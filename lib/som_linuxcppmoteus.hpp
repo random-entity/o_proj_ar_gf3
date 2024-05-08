@@ -1,9 +1,18 @@
+#pragma once
+
+#include <cxxabi.h>
+
 #include <map>
+#include <memory>
+#include <typeinfo>
 
 #include "moteus.h"
 #ifdef __RASPBERRY_PI__
 #include "pi3hat.h"
 #endif
+
+#include "helpers.hpp"
+#include "parser.hpp"
 
 #ifdef NaN
 #define NaN_backup NaN
@@ -11,28 +20,27 @@
 #endif
 #define NaN (std::numeric_limits<double>::quiet_NaN())
 
-namespace som {
 using namespace mjbots;
 
-namespace helpers {
-static double GetNow() {  // Get precise current time in seconds
-  struct timespec ts = {};
-  ::clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
-  return static_cast<double>(ts.tv_sec) +
-         static_cast<double>(ts.tv_nsec) * 1e-9;
-}
-}  // namespace helpers
+namespace som {
 
 class ServoSystem {
  public:
   ServoSystem(const std::map<int, int>& id_bus_map = {{1, 0}},
-              const double maximum_torque = 1.0,
-              const moteus::PositionMode::Format& position_format =
-                  moteus::PositionMode::Format{
-                      .maximum_torque = moteus::kFloat}) {
+              const std::string& config_dir_path = "../config") {
     transport_ = moteus::Controller::MakeSingletonTransport({});
     if (transport_) {
-      std::cout << "Default transport found: " << transport_ << std::endl;
+      int status;
+      char* class_name = abi::__cxa_demangle(typeid(*transport_).name(),
+                                             nullptr, nullptr, &status);
+      if (status == 0) {
+        std::cout << "Default transport found: " << class_name << std::endl;
+        free(class_name);
+      } else {
+        std::cout
+            << "Default transport found, but failed to demangle its class name."
+            << std::endl;
+      }
     } else {
       std::cout << "Default transport not found. Returning from "
                    "`ServoSystem` constructor without any initialization."
@@ -40,20 +48,24 @@ class ServoSystem {
       return;
     }
 
+    const auto& format_command =
+        Parser::ParsePositionModeConfig(config_dir_path);
+    const auto& format = format_command.first;
+    const auto& initial_command = format_command.second;
+
     std::vector<int> init_failed_ids;
     for (auto& id_bus : id_bus_map) {
       auto id = id_bus.first;
       auto bus = id_bus.second;
-      std::cout << "Initializing servo for ID: " << id << ", bus: " << bus
+      std::cout << "Initializing servo for ID " << id << " on bus " << bus
                 << "..." << std::endl;
-      auto servo =
-          std::make_shared<Servo>(id, bus, maximum_torque, position_format);
+      auto servo = std::make_shared<Servo>(id, bus, format, initial_command);
       if (servo->init_suceeded_()) {
         servos_[id] = servo;
-        std::cout << "Initialization succeeded for ID: " << id << std::endl;
+        std::cout << "Initialization succeeded for ID " << id << std::endl;
       } else {
         init_failed_ids.push_back(id);
-        std::cout << "Initialization failed for ID: " << id << std::endl;
+        std::cout << "Initialization failed for ID " << id << std::endl;
       }
     }
     if (!init_failed_ids.empty()) {
@@ -77,9 +89,8 @@ class ServoSystem {
 
   void Run() {
     if (servos_.empty()) {
-      std::cout
-          << "No servos found. Exiting `Run` for this `ServoSystem` instance."
-          << std::endl;
+      std::cout << "No servos found. Exiting `Run` for this `ServoSystem`."
+                << std::endl;
       return;
     }
 
@@ -108,7 +119,7 @@ class ServoSystem {
         int id = frame.source;
         if (servos_.find(id) != servos_.end()) {
           auto& state = servos_[id]->state_;
-          state.recent_state = moteus::Query::Parse(frame.data, frame.size);
+          state.recent_reply = moteus::Query::Parse(frame.data, frame.size);
           state.updated_this_cycle = true;
         }
       }
@@ -122,13 +133,14 @@ class ServoSystem {
     friend ServoSystem;
 
    public:
-    Servo(const int id, const int bus, const double maximum_torque,
-          const moteus::PositionMode::Format& position_format) {
-      // Initialize moteus controller
+    Servo(const int id, const int bus,
+          const moteus::PositionMode::Format& format,
+          const moteus::PositionMode::Command& initial_command) {
+      // Initialize a moteus controller
       controller_ = std::make_shared<moteus::Controller>([&, id]() {
         moteus::Controller::Options options;
         options.id = id;
-        options.position_format = position_format;
+        options.position_format = format;
         return options;
       }());
 
@@ -145,19 +157,21 @@ class ServoSystem {
       while (true) {
         maybe_reply = controller_->SetQuery();
         if (!maybe_reply) {
-          if (helpers::GetNow() - time_init < 3.0) {
+          const double time_passed = helpers::GetNow() - time_init;
+          const double time_left = 3.0 - time_passed;
+          if (time_left > 0.0) {
             std::cout << "Not getting replies from controller ID " << id
-                      << "...\r";
+                      << " but will try " << time_left << " more seconds...\r";
             ::usleep(10000);
             continue;
           } else {
             std::cout << "Failed to get initial position from controller ID "
-                      << id << " for 3 seconds. Skip this ID." << std::endl;
+                      << id << " for 3 seconds. Skipping this ID." << std::endl;
             break;
           }
         } else {
-          state_.recent_state = maybe_reply->values;
-          initial_position_ = state_.recent_state.position;
+          state_.recent_reply = maybe_reply->values;
+          initial_position_ = state_.recent_reply.position;
           std::cout << "Got initial position from controller ID " << id << ": "
                     << initial_position_
                     << (init_suceeded_()
@@ -168,17 +182,16 @@ class ServoSystem {
         }
       }
 
-      // Setup command values that will be constant over program lifetime
-      command_.maximum_torque = maximum_torque;
+      command_ = initial_command;
     }
 
    private:
     std::shared_ptr<moteus::Controller> controller_;
     double initial_position_ = NaN;
     bool init_suceeded_() { return std::isfinite(initial_position_); }
-    moteus::PositionMode::Command command_{.position = NaN};
+    moteus::PositionMode::Command command_;
     struct State {
-      moteus::Query::Result recent_state;
+      moteus::Query::Result recent_reply;
       bool updated_this_cycle = false;
     } state_;
   };
@@ -187,7 +200,7 @@ class ServoSystem {
     std::string input;
     while (true) {
       std::getline(std::cin, input);
-      for (auto id_pos : Parser::ParseInput(input)) {
+      for (auto id_pos : Parser::ParseCommandLineInput(input)) {
         auto id = id_pos.first;
         auto position = id_pos.second;
         if (servos_.find(id) == servos_.end()) {
@@ -210,40 +223,6 @@ class ServoSystem {
   const unsigned int cycle_period_us_ = 10000;
 
  private:
-  struct Parser {
-    static std::vector<std::string> Split(const std::string str,
-                                          char splitter) {
-      std::vector<std::string> result;
-      size_t start = 0;
-      auto pos = str.find(splitter);
-      while (pos != std::string::npos) {
-        result.push_back(str.substr(start, pos - start));
-        start = pos + 1;
-        pos = str.find(splitter, start);
-      }
-      result.push_back(str.substr(start));
-      return result;
-    }
-
-    static std::map<int, double> ParseInput(std::string input) {
-      std::map<int, double> result;
-      auto split_by_comma = Split(input, ',');
-      for (auto& id_pos : split_by_comma) {
-        auto split_by_equals = Split(id_pos, '=');
-        try {
-          if (split_by_equals.size() != 2) throw std::exception();
-          auto id = std::stoi(split_by_equals[0]);
-          auto position = std::stod(split_by_equals[1]);
-          result[id] = position;
-        } catch (std::exception& e) {
-          std::cout << "Ignoring wrong command: "
-                    << (id_pos.empty() ? "<empty>" : id_pos) << std::endl;
-        }
-      }
-      return result;
-    }
-  };
-
   std::mutex mutex_;
   std::thread input_getter_thread_;
 };

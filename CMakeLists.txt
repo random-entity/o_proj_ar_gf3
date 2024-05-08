@@ -5,6 +5,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 include(FetchContent)
 
 FetchContent_Declare(
+  nlohmann_json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG v3.11.3
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
+FetchContent_Declare(
   moteus
   GIT_REPOSITORY https://github.com/mjbots/moteus.git
   GIT_TAG main
@@ -14,9 +21,10 @@ FetchContent_MakeAvailable(moteus)
 add_library(som_linuxcppmoteus INTERFACE)
 target_compile_features(som_linuxcppmoteus INTERFACE cxx_std_17)
 target_include_directories(som_linuxcppmoteus INTERFACE lib)
-target_link_libraries(som_linuxcppmoteus INTERFACE moteus::cpp)
+target_link_libraries(som_linuxcppmoteus INTERFACE nlohmann_json moteus::cpp)
+
 if(EXISTS "/opt/vc/include/bcm_host.h")
-  message("IS RASPBERRY PI")
+  message("This system is Raspberry Pi")
   FetchContent_Declare(
     pi3hat
     GIT_REPOSITORY https://github.com/mjbots/pi3hat.git
@@ -26,8 +34,8 @@ if(EXISTS "/opt/vc/include/bcm_host.h")
   add_definitions(-D__RASPBERRY_PI__)
   target_link_libraries(som_linuxcppmoteus INTERFACE pi3hat::pi3hat)
 else()
-  message("NOT RASPBERRY PI")
+  message("This system is NOT Raspberry Pi")
 endif()
 
-add_executable(simple example/simple.cpp)
+add_executable(simple examples/simple/simple.cpp)
 target_link_libraries(simple som_linuxcppmoteus)
