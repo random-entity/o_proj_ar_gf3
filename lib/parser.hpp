@@ -3,9 +3,9 @@
 #include <fstream>
 #include <iostream>
 
+#include "enums.hpp"
 #include "moteus_protocol.h"
 #include "nlohmann/json.hpp"
-#include "printer.hpp"
 
 #ifdef NaN
 #define NaN_backup NaN
@@ -32,8 +32,9 @@ struct Parser {
     return result;
   }
 
-  static std::map<int, double> ParseCommandLineInput(std::string input) {
-    std::map<int, double> result;
+  static const std::map<int, std::map<CommandType, double>>
+  ParseCommandLineInput(std::string input) {
+    std::map<int, std::map<CommandType, double>> result;
     auto split_by_comma = Split(input, ',');
     for (auto& id_pos : split_by_comma) {
       auto split_by_equals = Split(id_pos, '=');
@@ -41,7 +42,7 @@ struct Parser {
         if (split_by_equals.size() != 2) throw std::exception();
         auto id = std::stoi(split_by_equals[0]);
         auto position = std::stod(split_by_equals[1]);
-        result[id] = position;
+        result[id][CommandType::POSITION] = position;
       } catch (std::exception& e) {
         std::cout << "Ignoring wrong command: "
                   << (id_pos.empty() ? "<empty>" : id_pos) << std::endl;
@@ -52,7 +53,8 @@ struct Parser {
 
   static std::pair<moteus::PositionMode::Format, moteus::PositionMode::Command>
   ParsePositionModeConfig(const std::string& config_dir_path) {
-    moteus::PositionMode::Format format;
+    moteus::PositionMode::Format format{.maximum_torque =
+                                            moteus::Resolution::kFloat};
     moteus::PositionMode::Command command{.position = NaN};
 
     const std::string config_file_path =
@@ -62,7 +64,8 @@ struct Parser {
       std::cout
           << "PositionMode config file `" << config_file_path
           << "` not found. Using default values from `moteus_protocol.h`, "
-             "except `Command::position = NaN(stay in current position)`."
+             "except `Format::maximun_torque = kFloat` "
+             "and `Command::position = NaN(stay in current position)`."
           << std::endl;
     } else {
       json json_data;
@@ -104,14 +107,14 @@ struct Parser {
             std::cout
                 << "Default values are unchanged from those in "
                    "`moteus_protocol.h` "
-                   "except `Command::position = NaN(stay in current position)`."
+                   "except `Format::maximun_torque = kFloat` "
+                   "and `Command::position = NaN(stay in current position)`."
                 << std::endl;
             default_used = true;
           }
 
           std::cout << "Config JSON does not contain key <" << member_name
-                    << ">. Using default values "
-                    << Printer::Resolution(*resolution) << ", "
+                    << ">. Using default values " << (*resolution) << ", "
                     << *initial_value << " and skipping to the next key."
                     << std::endl;
           continue;
@@ -121,19 +124,19 @@ struct Parser {
 
         if (!inner_json.contains("using")) {
           std::cout << "JSON does not contain key <" << member_name
-                    << "/using>. Using default value: "
-                    << Printer::Resolution(*resolution) << std::endl;
+                    << "/using>. Using default value: " << (*resolution)
+                    << std::endl;
         } else {
           if (!inner_json["using"].is_boolean()) {
             std::cout << "Value for key <" << member_name
                       << "/using> is not boolean. Using default value: "
-                      << Printer::Resolution(*resolution) << std::endl;
+                      << (*resolution) << std::endl;
           } else {
             *resolution = static_cast<bool>(inner_json["using"])
                               ? moteus::Resolution::kFloat
                               : moteus::Resolution::kIgnore;
             std::cout << "Successfully set resolution for " << member_name
-                      << " to " << Printer::Resolution(*resolution) << std::endl;
+                      << " to " << (*resolution) << std::endl;
           }
         }
 

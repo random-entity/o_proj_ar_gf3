@@ -11,6 +11,7 @@
 #include "pi3hat.h"
 #endif
 
+#include "enums.hpp"
 #include "helpers.hpp"
 #include "parser.hpp"
 
@@ -25,118 +26,16 @@ using namespace mjbots;
 namespace som {
 
 class ServoSystem {
- public:
-  ServoSystem(const std::map<int, int>& id_bus_map = {{1, 0}},
-              const std::string& config_dir_path = "../config") {
-    transport_ = moteus::Controller::MakeSingletonTransport({});
-    if (transport_) {
-      int status;
-      char* class_name = abi::__cxa_demangle(typeid(*transport_).name(),
-                                             nullptr, nullptr, &status);
-      if (status == 0) {
-        std::cout << "Default transport found: " << class_name << std::endl;
-        free(class_name);
-      } else {
-        std::cout
-            << "Default transport found, but failed to demangle its class name."
-            << std::endl;
-      }
-    } else {
-      std::cout << "Default transport not found. Returning from "
-                   "`ServoSystem` constructor without any initialization."
-                << std::endl;
-      return;
-    }
-
-    const auto& format_command =
-        Parser::ParsePositionModeConfig(config_dir_path);
-    const auto& format = format_command.first;
-    const auto& initial_command = format_command.second;
-
-    std::vector<int> init_failed_ids;
-    for (auto& id_bus : id_bus_map) {
-      auto id = id_bus.first;
-      auto bus = id_bus.second;
-      std::cout << "Initializing servo for ID " << id << " on bus " << bus
-                << "..." << std::endl;
-      auto servo = std::make_shared<Servo>(id, bus, format, initial_command);
-      if (servo->init_suceeded_()) {
-        servos_[id] = servo;
-        std::cout << "Initialization succeeded for ID " << id << std::endl;
-      } else {
-        init_failed_ids.push_back(id);
-        std::cout << "Initialization failed for ID " << id << std::endl;
-      }
-    }
-    if (!init_failed_ids.empty()) {
-      std::cout
-          << "Excluded servos with the following IDs from the servo list: ";
-      for (auto id : init_failed_ids) {
-        std::cout << id << " ";
-      }
-      std::cout << std::endl;
-    }
-    if (!servos_.empty()) {
-      std::cout << "Ready to control servos with the following IDs: ";
-      for (const auto& id_servo : servos_) {
-        std::cout << id_servo.first << " ";
-      }
-      std::cout << std::endl;
-    } else {
-      std::cout << "No available servos found." << std::endl;
-    }
-  }
-
-  void Run() {
-    if (servos_.empty()) {
-      std::cout << "No servos found. Exiting `Run` for this `ServoSystem`."
-                << std::endl;
-      return;
-    }
-
-    input_getter_thread_ = std::thread(&ServoSystem::InputGetter, this);
-
-    while (true) {
-      ::usleep(cycle_period_us_);
-
-      std::vector<moteus::CanFdFrame> command_frames;
-      for (auto& id_servo : servos_) {
-        auto id = id_servo.first;
-        auto& servo = id_servo.second;
-        servo->state_.updated_this_cycle = false;
-        {
-          std::lock_guard<std::mutex> lock(mutex_);
-          command_frames.push_back(
-              servo->controller_->MakePosition(servo->command_));
-        }
-      }
-
-      std::vector<moteus::CanFdFrame> reply_frames;
-      transport_->BlockingCycle(&command_frames[0], command_frames.size(),
-                                &reply_frames);
-
-      for (const auto& frame : reply_frames) {
-        int id = frame.source;
-        if (servos_.find(id) != servos_.end()) {
-          auto& state = servos_[id]->state_;
-          state.recent_reply = moteus::Query::Parse(frame.data, frame.size);
-          state.updated_this_cycle = true;
-        }
-      }
-    }
-
-    input_getter_thread_.join();
-  }
-
- protected:
+ private:
   class Servo {
     friend ServoSystem;
 
    public:
     Servo(const int id, const int bus,
           const moteus::PositionMode::Format& format,
-          const moteus::PositionMode::Command& initial_command) {
-      // Initialize a moteus controller
+          const moteus::PositionMode::Command& initial_command)
+        : command_(initial_command) {
+      // Initialize a moteus controller interface
       controller_ = std::make_shared<moteus::Controller>([&, id]() {
         moteus::Controller::Options options;
         options.id = id;
@@ -174,21 +73,19 @@ class ServoSystem {
           initial_position_ = state_.recent_reply.position;
           std::cout << "Got initial position from controller ID " << id << ": "
                     << initial_position_
-                    << (init_suceeded_()
+                    << (init_suceeded()
                             ? ""
                             : ", but is NaN. Initialization failed.")
                     << std::endl;
           break;
         }
       }
-
-      command_ = initial_command;
     }
 
    private:
     std::shared_ptr<moteus::Controller> controller_;
     double initial_position_ = NaN;
-    bool init_suceeded_() { return std::isfinite(initial_position_); }
+    bool init_suceeded() { return std::isfinite(initial_position_); }
     moteus::PositionMode::Command command_;
     struct State {
       moteus::Query::Result recent_reply;
@@ -196,41 +93,210 @@ class ServoSystem {
     } state_;
   };
 
-  virtual void InputGetter() {
+ public:
+  void Input(std::map<int, std::map<CommandType, double>> commands) {
+    InternalInputGetter(commands);
+  }
+
+  std::vector<int> GetIds() { return ids_; }
+
+  void SetListeningMode(ListeningMode listening_mode) {
+    listening_mode_ = listening_mode;
+    std::cout << "Listening mode set to " << listening_mode_ << std::endl;
+  }
+
+  ServoSystem(const std::map<int, int>& id_bus_map = {{1, 0}},
+              const std::string& config_dir_path = "../config",
+              ListeningMode listening_mode = ListeningMode::EXTERNAL) {
+    transport_ = moteus::Controller::MakeSingletonTransport({});
+    if (transport_) {
+      int status;
+      char* class_name = abi::__cxa_demangle(typeid(*transport_).name(),
+                                             nullptr, nullptr, &status);
+      if (status == 0) {
+        std::cout << "Default transport found: " << class_name << std::endl;
+        free(class_name);
+      } else {
+        std::cout
+            << "Default transport found, but failed to demangle its class name."
+            << std::endl;
+      }
+    } else {
+      std::cout << "Default transport not found. Returning from "
+                   "`ServoSystem` constructor without any initialization."
+                << std::endl;
+      return;
+    }
+
+    const auto& format_command =
+        Parser::ParsePositionModeConfig(config_dir_path);
+    const auto& format = format_command.first;
+    const auto& initial_command = format_command.second;
+
+    std::vector<int> init_failed_ids;
+    for (auto& id_bus : id_bus_map) {
+      auto id = id_bus.first;
+      auto bus = id_bus.second;
+      std::cout << "Initializing servo for ID " << id << " on bus " << bus
+                << "..." << std::endl;
+      auto servo = std::make_shared<Servo>(id, bus, format, initial_command);
+      if (servo->init_suceeded()) {
+        servos_[id] = servo;
+        ids_.push_back(id);
+        std::cout << "Initialization succeeded for ID " << id << std::endl;
+      } else {
+        init_failed_ids.push_back(id);
+        std::cout << "Initialization failed for ID " << id << std::endl;
+      }
+    }
+    if (!init_failed_ids.empty()) {
+      std::cout
+          << "Excluded servos with the following IDs from the servo list: ";
+      for (auto id : init_failed_ids) {
+        std::cout << id << " ";
+      }
+      std::cout << std::endl;
+    }
+    if (!servos_.empty()) {
+      std::cout << "Ready to control servos with the following IDs: ";
+      for (const auto& id_servo : servos_) {
+        std::cout << id_servo.first << " ";
+      }
+      std::cout << std::endl;
+    } else {
+      std::cout << "No available servos found." << std::endl;
+    }
+
+    SetListeningMode(listening_mode);
+
+    runner_thread_ = std::thread(&ServoSystem::Run, this);
+    runner_thread_.detach();
+    std::cout << "ServoSystem Runner thread started running..." << std::endl;
+
+    external_input_getter_thread_ =
+        std::thread(&ServoSystem::ExternalInputGetter, this);
+    external_input_getter_thread_.detach();
+    std::cout << "ServoSystem ExternalInputGetter thread started running..."
+              << std::endl;
+  }
+
+  ~ServoSystem() { terminated_ = true; }
+
+ protected:
+  virtual void ExternalInputGetter() {
     std::string input;
-    while (true) {
+    while (!terminated_) {
       std::getline(std::cin, input);
-      for (auto id_pos : Parser::ParseCommandLineInput(input)) {
-        auto id = id_pos.first;
-        auto position = id_pos.second;
-        if (servos_.find(id) == servos_.end()) {
-          std::cout << "No servo with ID " << id
-                    << " found on the servo list. Ignoring command."
-                    << std::endl;
+      if (listening_mode_ != ListeningMode::EXTERNAL) {
+        std::cout << "Rejecting external input since listening mode is set to "
+                     "INTERNAL."
+                  << std::endl;
+        continue;
+      }
+
+      InputGetter(Parser::ParseCommandLineInput(input));
+    }
+  }
+
+  const unsigned int cycle_period_us_ = 10000;
+
+ private:
+  void InternalInputGetter(
+      std::map<int, std::map<CommandType, double>> commands) {
+    if (listening_mode_ != ListeningMode::INTERNAL) {
+      std::cout
+          << "Rejecting internal input since listening mode is set to EXTERNAL."
+          << std::endl;
+      return;
+    }
+
+    InputGetter(commands);
+  }
+
+  void InputGetter(std::map<int, std::map<CommandType, double>> commands) {
+    std::cout << "Parsing input..." << std::endl;
+
+    for (const auto& id_cmd : commands) {
+      const auto id = id_cmd.first;
+      const auto& cmd = id_cmd.second;
+      const auto& maybe_servo = helpers::SafeAt(servos_, id);
+      if (!maybe_servo) {
+        std::cout << "No servo with ID " << id
+                  << " found on the servo list. Ignoring command for this ID."
+                  << std::endl;
+        continue;
+      }
+      const auto& servo = maybe_servo.value();
+
+      std::cout << "Parsing input for ID " << id << "..." << std::endl;
+      for (const auto& type_value : cmd) {
+        const auto type = type_value.first;
+        const auto value = type_value.second;
+        std::cout << "Parsing input of CommandType " << type << "..."
+                  << std::endl;
+        if (((moteus::Resolution*)(&(
+                servo->controller_->options().position_format)))[type] ==
+            moteus::Resolution::kIgnore) {
+          std::cout << "ServoSystem PositionMode Format is set to " << type
+                    << " = " << "kIgnore. Ignoring command." << std::endl;
           continue;
         }
         {
           std::lock_guard<std::mutex> lock(mutex_);
-          servos_[id]->command_.position =
-              servos_[id]->initial_position_ + position;
+          ((double*)(&(servo->command_)))[type] = value;
+        }
+        std::cout << "Successfully set command: " << type << " = " << value
+                  << std::endl;
+      }
+    }
+  }
+
+  void Run() {
+    if (servos_.empty()) {
+      std::cout << "No servos found. Exiting `Run` for this `ServoSystem`."
+                << std::endl;
+      return;
+    }
+
+    while (!terminated_) {
+      ::usleep(cycle_period_us_);
+
+      std::vector<moteus::CanFdFrame> command_frames;
+      for (auto& id_servo : servos_) {
+        auto id = id_servo.first;
+        auto& servo = id_servo.second;
+        servo->state_.updated_this_cycle = false;
+        {
+          std::lock_guard<std::mutex> lock(mutex_);
+          command_frames.push_back(
+              servo->controller_->MakePosition(servo->command_));
+        }
+      }
+
+      std::vector<moteus::CanFdFrame> reply_frames;
+      transport_->BlockingCycle(&command_frames[0], command_frames.size(),
+                                &reply_frames);
+
+      for (const auto& frame : reply_frames) {
+        int id = frame.source;
+        const auto& maybe_servo = helpers::SafeAt(servos_, id);
+        if (maybe_servo) {
+          auto& state = maybe_servo.value()->state_;
+          state.recent_reply = moteus::Query::Parse(frame.data, frame.size);
+          state.updated_this_cycle = true;
         }
       }
     }
   }
 
+  std::vector<int> ids_;
   std::map<int, std::shared_ptr<Servo>> servos_;  // ID -> Servo
   std::shared_ptr<moteus::Transport> transport_;
-  const unsigned int cycle_period_us_ = 10000;
-
- private:
+  ListeningMode listening_mode_;
   std::mutex mutex_;
-  std::thread input_getter_thread_;
+  std::thread runner_thread_;
+  std::thread external_input_getter_thread_;
+  bool terminated_;
 };
 
 }  // namespace som
-
-#ifdef NaN_backup
-#undef NaN
-#define NaN NaN_backup
-#undef NaN_backup
-#endif
