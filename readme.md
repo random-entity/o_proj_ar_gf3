@@ -52,7 +52,7 @@ This repository is a library that provides an easy-to-use C++ API to use mjbots 
             );
             ```
     - `void Input(std::map<CommandType, double>)`
-        - You can use this method if you want to input the same command to all servos. Just pass a map of `icommand_type -> value` as the argument. For example if you want all servos to move to position `0.0` with velocity `1.0`, you can write as follows:
+        - You can use this method if you want to input the same command to all servos. Just pass a map of `command_type -> value` as the argument. For example if you want all servos to move to position `0.0` with velocity `1.0`, you can write as follows:
             ```c++
             servo_system.InputAll(
               {CommandType::POSITION, 0.0,
