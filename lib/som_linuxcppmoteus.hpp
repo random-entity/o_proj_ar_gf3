@@ -105,7 +105,6 @@ class ServoSystem {
  public:
   ServoSystem(const std::map<int, int>& id_bus_map = {{1, 0}},
               const std::string& config_dir_path = "../config",
-              ListeningMode initial_listening_mode = ListeningMode::EXTERNAL,
               bool enable_external_input = true) {
     transport_ = moteus::Controller::MakeSingletonTransport({});
     if (transport_) {
@@ -167,8 +166,6 @@ class ServoSystem {
       std::cout << "No available servos found." << std::endl;
     }
 
-    SetListeningMode(initial_listening_mode);
-
     runner_thread_ = std::thread(&ServoSystem::Run, this);
     runner_thread_.detach();
     std::cout << "ServoSystem Runner thread started running..." << std::endl;
@@ -180,7 +177,7 @@ class ServoSystem {
       std::cout << "ServoSystem ExternalInputGetter thread started running..."
                 << std::endl;
     } else {
-      std::cout << "ExternalInputGetter thread is not running." << std::endl;
+      std::cout << "ExternalInputGetter thread will not run." << std::endl;
     }
   }
 
@@ -188,7 +185,7 @@ class ServoSystem {
     InternalInputGetter(commands);
   }
 
-  void InputAll(std::map<CommandType, double> command) {
+  void InputAll(const std::map<CommandType, double> command) {
     std::map<int, std::map<CommandType, double>> commands;
     for (const auto id : ids_) {
       commands[id] = command;
@@ -196,7 +193,7 @@ class ServoSystem {
     InternalInputGetter(commands);
   }
 
-  void SetBasePositions(std::vector<int> ids) {
+  void SetBasePositions(const std::vector<int> ids) {
     for (const auto id : ids) {
       const auto& servo = helpers::SafeAt(servos_, id);
       if (servo) {
@@ -337,7 +334,7 @@ class ServoSystem {
   std::vector<int> ids_;
   std::map<int, std::shared_ptr<Servo>> servos_;  // ID -> Servo
   std::shared_ptr<moteus::Transport> transport_;
-  ListeningMode listening_mode_;
+  ListeningMode listening_mode_ = ListeningMode::INTERNAL;
   std::mutex mutex_;
   std::thread runner_thread_;
   std::thread external_input_getter_thread_;
