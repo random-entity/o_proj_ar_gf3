@@ -32,6 +32,7 @@ class ServoSystem {
 
    public:
     Servo(const int id, const int bus,
+          const std::shared_ptr<moteus::Transport> transport,
           const moteus::PositionMode::Format& format,
           const moteus::PositionMode::Command& initial_command)
         : command_(initial_command) {
@@ -39,6 +40,8 @@ class ServoSystem {
       controller_ = std::make_shared<moteus::Controller>([&, id]() {
         moteus::Controller::Options options;
         options.id = id;
+        options.bus = bus;
+        options.transport = transport;
         options.position_format = format;
         return options;
       }());
@@ -50,14 +53,20 @@ class ServoSystem {
                 << " for initial SetStop command." << std::endl;
 
       // Get initial motor position
-      std::cout << "Attempting to get initial position from controller ID "
+      SetBasePosition(3.0);
+    }
+
+   private:
+    void SetBasePosition(double time_limit) {
+      int id = controller_->options().id;
+      std::cout << "Attempting to get current position from controller ID "
                 << id << "..." << std::endl;
       const double time_init = helpers::GetNow();
       while (true) {
-        maybe_reply = controller_->SetQuery();
+        const auto& maybe_reply = controller_->SetQuery();
         if (!maybe_reply) {
           const double time_passed = helpers::GetNow() - time_init;
-          const double time_left = 3.0 - time_passed;
+          const double time_left = time_limit - time_passed;
           if (time_left > 0.0) {
             std::cout << "Not getting replies from controller ID " << id
                       << " but will try " << time_left << " more seconds...\r";
@@ -65,27 +74,27 @@ class ServoSystem {
             continue;
           } else {
             std::cout << "Failed to get initial position from controller ID "
-                      << id << " for 3 seconds. Skipping this ID." << std::endl;
+                      << id << " for " << time_limit
+                      << " seconds. Skipping this ID." << std::endl;
             break;
           }
         } else {
           state_.recent_reply = maybe_reply->values;
-          initial_position_ = state_.recent_reply.position;
-          std::cout << "Got initial position from controller ID " << id << ": "
-                    << initial_position_
+          base_position_ = state_.recent_reply.position;
+          std::cout << "Got base position from controller ID " << id << ": "
+                    << base_position_
                     << (init_suceeded()
                             ? ""
-                            : ", but is NaN. Initialization failed.")
+                            : ", but is NaN. Base position setting failed.")
                     << std::endl;
           break;
         }
       }
     }
 
-   private:
     std::shared_ptr<moteus::Controller> controller_;
-    double initial_position_ = NaN;
-    bool init_suceeded() { return std::isfinite(initial_position_); }
+    double base_position_ = NaN;
+    bool init_suceeded() { return std::isfinite(base_position_); }
     moteus::PositionMode::Command command_;
     struct State {
       moteus::Query::Result recent_reply;
@@ -94,20 +103,10 @@ class ServoSystem {
   };
 
  public:
-  void Input(std::map<int, std::map<CommandType, double>> commands) {
-    InternalInputGetter(commands);
-  }
-
-  std::vector<int> GetIds() { return ids_; }
-
-  void SetListeningMode(ListeningMode listening_mode) {
-    listening_mode_ = listening_mode;
-    std::cout << "Listening mode set to " << listening_mode_ << std::endl;
-  }
-
   ServoSystem(const std::map<int, int>& id_bus_map = {{1, 0}},
               const std::string& config_dir_path = "../config",
-              ListeningMode listening_mode = ListeningMode::EXTERNAL) {
+              ListeningMode initial_listening_mode = ListeningMode::EXTERNAL,
+              bool enable_external_input = true) {
     transport_ = moteus::Controller::MakeSingletonTransport({});
     if (transport_) {
       int status;
@@ -139,7 +138,8 @@ class ServoSystem {
       auto bus = id_bus.second;
       std::cout << "Initializing servo for ID " << id << " on bus " << bus
                 << "..." << std::endl;
-      auto servo = std::make_shared<Servo>(id, bus, format, initial_command);
+      auto servo =
+          std::make_shared<Servo>(id, bus, transport_, format, initial_command);
       if (servo->init_suceeded()) {
         servos_[id] = servo;
         ids_.push_back(id);
@@ -167,22 +167,69 @@ class ServoSystem {
       std::cout << "No available servos found." << std::endl;
     }
 
-    SetListeningMode(listening_mode);
+    SetListeningMode(initial_listening_mode);
 
     runner_thread_ = std::thread(&ServoSystem::Run, this);
     runner_thread_.detach();
     std::cout << "ServoSystem Runner thread started running..." << std::endl;
 
-    external_input_getter_thread_ =
-        std::thread(&ServoSystem::ExternalInputGetter, this);
-    external_input_getter_thread_.detach();
-    std::cout << "ServoSystem ExternalInputGetter thread started running..."
-              << std::endl;
+    if (enable_external_input) {
+      external_input_getter_thread_ =
+          std::thread(&ServoSystem::ExternalInputGetter, this);
+      external_input_getter_thread_.detach();
+      std::cout << "ServoSystem ExternalInputGetter thread started running..."
+                << std::endl;
+    } else {
+      std::cout << "ExternalInputGetter thread is not running." << std::endl;
+    }
   }
 
-  ~ServoSystem() { terminated_ = true; }
+  void Input(const std::map<int, std::map<CommandType, double>> commands) {
+    InternalInputGetter(commands);
+  }
+
+  void InputAll(std::map<CommandType, double> command) {
+    std::map<int, std::map<CommandType, double>> commands;
+    for (const auto id : ids_) {
+      commands[id] = command;
+    }
+    InternalInputGetter(commands);
+  }
+
+  void SetBasePositions(std::vector<int> ids) {
+    for (const auto id : ids) {
+      const auto& servo = helpers::SafeAt(servos_, id);
+      if (servo) {
+        servo.value()->SetBasePosition(0.0);
+      }
+    }
+  }
+
+  void SetBasePositionsAll() { SetBasePositions(ids_); }
+
+  void Stop(const std::vector<int> ids) {
+    for (const auto id : ids) {
+      const auto& servo = helpers::SafeAt(servos_, id);
+      if (servo) {
+        servo.value()->controller_->SetStop();
+      }
+    }
+  }
+
+  void StopAll() { Stop(ids_); }
+
+  void Terminate() { terminated_ = true; }
+
+  std::vector<int> GetIds() { return ids_; }
+
+  void SetListeningMode(ListeningMode listening_mode) {
+    listening_mode_ = listening_mode;
+    std::cout << "Listening mode set to " << listening_mode_ << std::endl;
+  }
 
  protected:
+  const unsigned int cycle_period_us_ = 0.01 * 1e6;
+
   virtual void ExternalInputGetter() {
     std::string input;
     while (!terminated_) {
@@ -198,11 +245,9 @@ class ServoSystem {
     }
   }
 
-  const unsigned int cycle_period_us_ = 10000;
-
  private:
   void InternalInputGetter(
-      std::map<int, std::map<CommandType, double>> commands) {
+      const std::map<int, std::map<CommandType, double>>& commands) {
     if (listening_mode_ != ListeningMode::INTERNAL) {
       std::cout
           << "Rejecting internal input since listening mode is set to EXTERNAL."
@@ -213,9 +258,9 @@ class ServoSystem {
     InputGetter(commands);
   }
 
-  void InputGetter(std::map<int, std::map<CommandType, double>> commands) {
+  void InputGetter(
+      const std::map<int, std::map<CommandType, double>>& commands) {
     std::cout << "Parsing input..." << std::endl;
-
     for (const auto& id_cmd : commands) {
       const auto id = id_cmd.first;
       const auto& cmd = id_cmd.second;
@@ -253,7 +298,7 @@ class ServoSystem {
 
   void Run() {
     if (servos_.empty()) {
-      std::cout << "No servos found. Exiting `Run` for this `ServoSystem`."
+      std::cout << "No servos found. Exiting `Run` for this ServoSystem."
                 << std::endl;
       return;
     }

@@ -19,7 +19,7 @@ using json = nlohmann::json;
 namespace som {
 
 struct Parser {
-  static std::vector<std::string> Split(const std::string str, char splitter) {
+  static std::vector<std::string> Split(const std::string& str, char splitter) {
     std::vector<std::string> result;
     size_t start = 0;
     auto pos = str.find(splitter);
@@ -68,8 +68,8 @@ struct Parser {
              "and `Command::position = NaN(stay in current position)`."
           << std::endl;
     } else {
-      json json_data;
-      config_file >> json_data;
+      json config_json;
+      config_file >> config_json;
       config_file.close();
 
       const std::map<std::string, std::pair<moteus::Resolution*, double*>>
@@ -102,7 +102,7 @@ struct Parser {
 
         std::cout << "Configuring `" << member_name << "`..." << std::endl;
 
-        if (!json_data.contains(member_name)) {
+        if (!config_json.contains(member_name)) {
           if (!default_used) {
             std::cout
                 << "Default values are unchanged from those in "
@@ -120,7 +120,7 @@ struct Parser {
           continue;
         }
 
-        const auto& inner_json = json_data[member_name];
+        const auto& inner_json = config_json[member_name];
 
         if (!inner_json.contains("using")) {
           std::cout << "JSON does not contain key <" << member_name

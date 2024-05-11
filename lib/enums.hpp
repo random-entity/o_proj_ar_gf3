@@ -91,7 +91,7 @@ inline std::ostream& operator<<(std::ostream& os, const CommandType& type) {
   return os;
 }
 
-enum ListeningMode { EXTERNAL, INTERNAL };
+enum ListeningMode : bool { EXTERNAL, INTERNAL };
 
 inline std::ostream& operator<<(std::ostream& os, const ListeningMode& mode) {
   switch (mode) {
