@@ -24,7 +24,7 @@ target_include_directories(som_linuxcppmoteus INTERFACE lib)
 target_link_libraries(som_linuxcppmoteus INTERFACE nlohmann_json moteus::cpp)
 
 if(EXISTS "/opt/vc/include/bcm_host.h")
-  message("This system is Raspberry Pi")
+  message("This system is a Raspberry Pi")
   FetchContent_Declare(
     pi3hat
     GIT_REPOSITORY https://github.com/mjbots/pi3hat.git
@@ -34,8 +34,11 @@ if(EXISTS "/opt/vc/include/bcm_host.h")
   add_definitions(-D__RASPBERRY_PI__)
   target_link_libraries(som_linuxcppmoteus INTERFACE pi3hat::pi3hat)
 else()
-  message("This system is NOT Raspberry Pi")
+  message("This system is NOT a Raspberry Pi")
 endif()
 
-add_executable(simple examples/simple/simple.cpp)
-target_link_libraries(simple som_linuxcppmoteus)
+add_executable(vanilla examples/vanilla/main.cpp)
+target_link_libraries(vanilla som_linuxcppmoteus)
+set_target_properties(vanilla PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "examples/vanilla"
+)

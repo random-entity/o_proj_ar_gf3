@@ -104,7 +104,7 @@ class ServoSystem {
 
  public:
   ServoSystem(const std::map<int, int>& id_bus_map = {{1, 0}},
-              const std::string& config_dir_path = "../config",
+              const std::string& config_dir_path = ".",
               bool enable_external_input = true) {
     transport_ = moteus::Controller::MakeSingletonTransport({});
     if (transport_) {

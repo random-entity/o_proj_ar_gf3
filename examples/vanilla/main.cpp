@@ -4,15 +4,20 @@ using namespace som;
 
 int main() {
   ///////////////////////////////////////////////////////////////
-  /// Initialize the servo system.
-  ServoSystem servo_system{{{1, 1}, {2, 1}, {3, 1}},
-                           "../examples/simple/config"};
+  /// Initialize the servo system,
+  /// and get servo IDs that succeeded at initialization.
+  ServoSystem servo_system{{{1, 1}, {2, 1}, {3, 1}}};
   const auto& ids = servo_system.GetIds();
+
+  ///////////////////////////////////////////////////////////////
+  /// Instantiate empty input vectors.
+  /// We will fill them up with commands we want to send to the servos.
   std::map<int, std::map<CommandType, double>> input;
   std::map<CommandType, double> input_all;
 
   ///////////////////////////////////////////////////////////////
-  /// Follow internal commands for the first 20 seconds.
+  /// Let the servo system follow internal commands
+  /// for the first 20 seconds.
   servo_system.SetListeningMode(ListeningMode::INTERNAL);
 
   // Imitate a clock for 10 seconds.
