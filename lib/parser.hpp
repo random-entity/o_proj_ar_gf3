@@ -43,7 +43,7 @@ struct Parser {
         auto id = std::stoi(split_by_equals[0]);
         auto position = std::stod(split_by_equals[1]);
         result[id][CommandType::POSITION] = position;
-      } catch (std::exception& e) {
+      } catch (...) {
         std::cout << "Ignoring wrong command: "
                   << (id_pos.empty() ? "<empty>" : id_pos) << std::endl;
       }

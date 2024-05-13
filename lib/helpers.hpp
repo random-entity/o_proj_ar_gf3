@@ -22,7 +22,7 @@ static std::optional<Value> SafeAt(const std::map<Key, Value>& map,
   try {
     result = map.at(key);
   } catch (std::out_of_range e) {
-    // key not found
+    // Key not found, but do nothing
   }
   return result;
 }

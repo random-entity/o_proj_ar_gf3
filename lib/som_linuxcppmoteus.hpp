@@ -26,11 +26,17 @@ using namespace mjbots;
 namespace som {
 
 class ServoSystem {
- private:
+ protected:
   class Servo {
     friend ServoSystem;
 
    public:
+    moteus::PositionMode::Command command_;
+    struct State {
+      moteus::Query::Result recent_reply;
+      bool updated_this_cycle = false;
+    } state_;
+
     Servo(const int id, const int bus,
           const std::shared_ptr<moteus::Transport> transport,
           const moteus::PositionMode::Format& format,
@@ -50,14 +56,15 @@ class ServoSystem {
       auto maybe_reply = controller_->SetStop();
       std::cout << (maybe_reply ? "Got" : "Failed to get")
                 << " reply from controller ID " << id
-                << " for initial SetStop command." << std::endl;
+                << " for initial SetStop command. This is not good."
+                << std::endl;
 
       // Get initial motor position
       SetBasePosition(3.0);
     }
 
    private:
-    void SetBasePosition(double time_limit) {
+    bool SetBasePosition(double time_limit) {
       int id = controller_->options().id;
       std::cout << "Attempting to get current position from controller ID "
                 << id << "..." << std::endl;
@@ -70,24 +77,24 @@ class ServoSystem {
           if (time_left > 0.0) {
             std::cout << "Not getting replies from controller ID " << id
                       << " but will try " << time_left << " more seconds...\r";
-            ::usleep(10000);
+            ::usleep(0.01 * 1e6);
             continue;
           } else {
-            std::cout << "Failed to get initial position from controller ID "
-                      << id << " for " << time_limit
-                      << " seconds. Skipping this ID." << std::endl;
-            break;
+            std::cout << "Failed to get current position from controller ID "
+                      << id << " for " << time_limit << " seconds."
+                      << std::endl;
+            return false;
           }
         } else {
           state_.recent_reply = maybe_reply->values;
           base_position_ = state_.recent_reply.position;
-          std::cout << "Got base position from controller ID " << id << ": "
+          std::cout << "Got current position from controller ID " << id << ": "
                     << base_position_
                     << (init_suceeded()
                             ? ""
                             : ", but is NaN. Base position setting failed.")
                     << std::endl;
-          break;
+          return init_suceeded();
         }
       }
     }
@@ -95,17 +102,13 @@ class ServoSystem {
     std::shared_ptr<moteus::Controller> controller_;
     double base_position_ = NaN;
     bool init_suceeded() { return std::isfinite(base_position_); }
-    moteus::PositionMode::Command command_;
-    struct State {
-      moteus::Query::Result recent_reply;
-      bool updated_this_cycle = false;
-    } state_;
   };
 
  public:
-  ServoSystem(const std::map<int, int>& id_bus_map = {{1, 0}},
+  ServoSystem(const std::map<int, int>& id_bus_map = {{1, 1}},
               const std::string& config_dir_path = ".",
-              bool enable_external_input = true) {
+              bool enable_external_input = true,
+              bool enable_external_output = false) {
     transport_ = moteus::Controller::MakeSingletonTransport({});
     if (transport_) {
       int status;
@@ -121,23 +124,23 @@ class ServoSystem {
       }
     } else {
       std::cout << "Default transport not found. Returning from "
-                   "`ServoSystem` constructor without any initialization."
+                   "ServoSystem constructor without any initialization."
                 << std::endl;
       return;
     }
 
-    const auto& format_command =
+    const auto format_command =
         Parser::ParsePositionModeConfig(config_dir_path);
     const auto& format = format_command.first;
     const auto& initial_command = format_command.second;
 
     std::vector<int> init_failed_ids;
-    for (auto& id_bus : id_bus_map) {
-      auto id = id_bus.first;
-      auto bus = id_bus.second;
+    for (const auto& id_bus : id_bus_map) {
+      const auto id = id_bus.first;
+      const auto bus = id_bus.second;
       std::cout << "Initializing servo for ID " << id << " on bus " << bus
                 << "..." << std::endl;
-      auto servo =
+      const auto servo =
           std::make_shared<Servo>(id, bus, transport_, format, initial_command);
       if (servo->init_suceeded()) {
         servos_[id] = servo;
@@ -163,21 +166,65 @@ class ServoSystem {
       }
       std::cout << std::endl;
     } else {
-      std::cout << "No available servos found." << std::endl;
+      std::cout << "No available servos found. Returning from ServoSystem "
+                   "constructor without initializing child threads."
+                << std::endl;
+      return;
     }
 
-    runner_thread_ = std::thread(&ServoSystem::Run, this);
-    runner_thread_.detach();
-    std::cout << "ServoSystem Runner thread started running..." << std::endl;
+    try {
+      runner_thread_ = std::thread(&ServoSystem::Run, this);
+      runner_thread_.detach();
+      std::cout << "ServoSystem Runner thread started running..." << std::endl;
+    } catch (...) {
+      std::cout << "ServoSytem Runner thread initialization failed. Returning "
+                   "from ServoSystem constructor without initializing "
+                   "ExternalInputGetter thread."
+                << std::endl;
+      return;
+    }
 
     if (enable_external_input) {
-      external_input_getter_thread_ =
-          std::thread(&ServoSystem::ExternalInputGetter, this);
-      external_input_getter_thread_.detach();
-      std::cout << "ServoSystem ExternalInputGetter thread started running..."
-                << std::endl;
+      try {
+        external_input_getter_thread_ =
+            std::thread(&ServoSystem::ExternalInputGetter, this);
+        external_input_getter_thread_.detach();
+        std::cout << "ServoSystem ExternalInputGetter thread started running..."
+                  << std::endl;
+
+      } catch (...) {
+        std::cout << "ServoSytem ExternalInputGetter thread initialization "
+                     "failed. Returning from ServoSystem constructor."
+                  << std::endl;
+        return;
+      }
     } else {
-      std::cout << "ExternalInputGetter thread will not run." << std::endl;
+      std::cout
+          << "ServoSystem ExternalInputGetter thread will not run since "
+             "the constructor argument `enable_external_input` is set to false."
+          << std::endl;
+    }
+
+    if (enable_external_output) {
+      try {
+        external_output_sender_thread_ =
+            std::thread(&ServoSystem::ExternalOutputSender, this);
+        external_output_sender_thread_.detach();
+        std::cout
+            << "ServoSystem ExternalOutputGetter thread started running..."
+            << std::endl;
+
+      } catch (...) {
+        std::cout << "ServoSytem ExternalOutputGetter thread initialization "
+                     "failed. Returning from ServoSystem constructor."
+                  << std::endl;
+        return;
+      }
+    } else {
+      std::cout << "ServoSystem ExternalOutputGetter thread will not run since "
+                   "the constructor argument `enable_external_output` is set "
+                   "to false."
+                << std::endl;
     }
   }
 
@@ -197,7 +244,10 @@ class ServoSystem {
     for (const auto id : ids) {
       const auto& servo = helpers::SafeAt(servos_, id);
       if (servo) {
-        servo.value()->SetBasePosition(0.0);
+        if (!servo.value()->SetBasePosition(0.0)) {
+          std::cout << "Base position setting failed for ID " << id
+                    << std::endl;
+        }
       }
     }
   }
@@ -208,7 +258,9 @@ class ServoSystem {
     for (const auto id : ids) {
       const auto& servo = helpers::SafeAt(servos_, id);
       if (servo) {
-        servo.value()->controller_->SetStop();
+        if (!servo.value()->controller_->SetStop()) {
+          std::cout << "Stop command failed for ID " << id << std::endl;
+        }
       }
     }
   }
@@ -225,7 +277,55 @@ class ServoSystem {
   }
 
  protected:
+  std::vector<int> ids_;
+  std::map<int, std::shared_ptr<Servo>> servos_;  // ID -> Servo
   const unsigned int cycle_period_us_ = 0.01 * 1e6;
+  std::mutex mutex_;
+  bool terminated_;
+
+  virtual void InternalOutputSender(void* output, size_t size) {
+    for (const auto& id_servo : servos_) {
+      const auto id = id_servo.first;
+      const auto& servo = id_servo.second;
+      moteus::Query::Result recent_state;
+      bool updated_this_cycle;
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        recent_state = servo->state_.recent_reply;
+        updated_this_cycle = servo->state_.updated_this_cycle;
+      }
+
+      int written;
+      if (updated_this_cycle) {
+        written = ::snprintf((char*)output, size,
+                             "id=%d/mode=%d/pos=%.3f/vel=%.3f/tor=%.3f/"
+                             "volt=%.2f/temp=%.1f/fault=%d\n",
+                             id, static_cast<int>(recent_state.mode),
+                             recent_state.position, recent_state.velocity,
+                             recent_state.torque, recent_state.voltage,
+                             recent_state.temperature, recent_state.fault);
+      } else {
+        written = ::snprintf((char*)output, size,
+                             "id=%d/NOT UPDATED THIS CYCLE\n", id);
+      }
+      if (written < 0) {
+        std::cout
+            << "Error occured during printing output to designated pointer."
+            << std::endl;
+        return;
+      } else if (written >= size) {
+        std::cout << "Insufficient size to accommodate output." << std::endl;
+        return;
+      }
+      output += written;
+      size -= written;
+    }
+  }
+
+  virtual void ExternalOutputSender() {
+    // Probably let a ROS2 publisher publish servo states
+    // or send encoded servo states as UDP packets
+  }
 
   virtual void ExternalInputGetter() {
     std::string input;
@@ -287,15 +387,15 @@ class ServoSystem {
           std::lock_guard<std::mutex> lock(mutex_);
           ((double*)(&(servo->command_)))[type] = value;
         }
-        std::cout << "Successfully set command: " << type << " = " << value
-                  << std::endl;
+        std::cout << "Successfully set command " << type << " = " << value
+                  << " for ID " << id << std::endl;
       }
     }
   }
 
   void Run() {
     if (servos_.empty()) {
-      std::cout << "No servos found. Exiting `Run` for this ServoSystem."
+      std::cout << "No servos found. ServoSystem Runner thread is terminating."
                 << std::endl;
       return;
     }
@@ -331,14 +431,11 @@ class ServoSystem {
     }
   }
 
-  std::vector<int> ids_;
-  std::map<int, std::shared_ptr<Servo>> servos_;  // ID -> Servo
   std::shared_ptr<moteus::Transport> transport_;
   ListeningMode listening_mode_ = ListeningMode::INTERNAL;
-  std::mutex mutex_;
   std::thread runner_thread_;
   std::thread external_input_getter_thread_;
-  bool terminated_;
+  std::thread external_output_sender_thread_;
 };
 
 }  // namespace som
