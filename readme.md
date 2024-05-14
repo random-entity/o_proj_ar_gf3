@@ -30,7 +30,7 @@ This repository is a library that provides an easy-to-use C++ API to use mjbots 
     ```c++
     ServoSystem servo_system{
       {{1, 1}, {2, 1}, {3, 1}} // a map that maps the IDs of the controllers to the bus numbers they are connected to
-      "../config", // the path to the directory where your `slcm.positionmode.config.json` file is located, relative to the executable
+      "../config", // the path to the directory where your `slcm.positionmode.config.json` file is located, relative to your location in terminal
       true // whether to enable external input
     };
     ```

@@ -34,7 +34,7 @@ struct Parser {
 
   static const std::map<int, std::map<CommandType, double>>
   ParseCommandLineInput(std::string input) {
-    std::map<int, std::map<CommandType, double>> result;
+    std::map<int, std::map<CommandType, double>> commands;
     auto split_by_comma = Split(input, ',');
     for (auto& id_pos : split_by_comma) {
       auto split_by_equals = Split(id_pos, '=');
@@ -42,13 +42,14 @@ struct Parser {
         if (split_by_equals.size() != 2) throw std::exception();
         auto id = std::stoi(split_by_equals[0]);
         auto position = std::stod(split_by_equals[1]);
-        result[id][CommandType::POSITION] = position;
+        commands[id][CommandType::POSITION] = position;
+        commands[id][CommandType::VELOCITY] = 0.0;
       } catch (...) {
         std::cout << "Ignoring wrong command: "
                   << (id_pos.empty() ? "<empty>" : id_pos) << std::endl;
       }
     }
-    return result;
+    return commands;
   }
 
   static std::pair<moteus::PositionMode::Format, moteus::PositionMode::Command>
@@ -56,6 +57,11 @@ struct Parser {
     moteus::PositionMode::Format format{.maximum_torque =
                                             moteus::Resolution::kFloat};
     moteus::PositionMode::Command command{.position = NaN};
+
+    char config_dir_path_absolute[512];
+    realpath(config_dir_path.c_str(), config_dir_path_absolute);
+    std::cout << "Looking for config file at " << config_dir_path_absolute
+              << std::endl;
 
     const std::string config_file_path =
         config_dir_path + "/slcm.positionmode.config.json";
@@ -68,6 +74,9 @@ struct Parser {
              "and `Command::position = NaN(stay in current position)`."
           << std::endl;
     } else {
+      std::cout << "PositionMode config file `" << config_file_path
+                << "` found." << std::endl;
+
       json config_json;
       config_file >> config_json;
       config_file.close();

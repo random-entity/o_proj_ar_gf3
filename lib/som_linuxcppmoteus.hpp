@@ -28,15 +28,7 @@ namespace som {
 class ServoSystem {
  protected:
   class Servo {
-    friend ServoSystem;
-
    public:
-    moteus::PositionMode::Command command_;
-    struct State {
-      moteus::Query::Result recent_reply;
-      bool updated_this_cycle = false;
-    } state_;
-
     Servo(const int id, const int bus,
           const std::shared_ptr<moteus::Transport> transport,
           const moteus::PositionMode::Format& format,
@@ -56,14 +48,12 @@ class ServoSystem {
       auto maybe_reply = controller_->SetStop();
       std::cout << (maybe_reply ? "Got" : "Failed to get")
                 << " reply from controller ID " << id
-                << " for initial SetStop command. This is not good."
-                << std::endl;
+                << " for initial SetStop command." << std::endl;
 
-      // Get initial motor position
+      // Set base position to initial position
       SetBasePosition(3.0);
     }
 
-   private:
     bool SetBasePosition(double time_limit) {
       int id = controller_->options().id;
       std::cout << "Attempting to get current position from controller ID "
@@ -81,32 +71,40 @@ class ServoSystem {
             continue;
           } else {
             std::cout << "Failed to get current position from controller ID "
-                      << id << " for " << time_limit << " seconds."
-                      << std::endl;
+                      << id << " for " << time_limit << " seconds. "
+                      << "Base position setting failed." << std::endl;
             return false;
           }
         } else {
           state_.recent_reply = maybe_reply->values;
-          base_position_ = state_.recent_reply.position;
-          std::cout << "Got current position from controller ID " << id << ": "
-                    << base_position_
-                    << (init_suceeded()
-                            ? ""
-                            : ", but is NaN. Base position setting failed.")
-                    << std::endl;
-          return init_suceeded();
+          if (std::isfinite(state_.recent_reply.position)) {
+            base_position_ = state_.recent_reply.position;
+            std::cout
+                << "Set base position to current position for controller ID "
+                << id << ": " << base_position_ << std::endl;
+            return true;
+          } else {
+            std::cout << "Current position for controller ID " << id
+                      << " is NaN. Base position setting failed." << std::endl;
+            return false;
+          }
         }
       }
     }
 
     std::shared_ptr<moteus::Controller> controller_;
+    moteus::PositionMode::Command command_;
+    struct State {
+      moteus::Query::Result recent_reply;
+      bool updated_this_cycle = false;
+    } state_;
     double base_position_ = NaN;
     bool init_suceeded() { return std::isfinite(base_position_); }
   };
 
  public:
   ServoSystem(const std::map<int, int>& id_bus_map = {{1, 1}},
-              const std::string& config_dir_path = ".",
+              const std::string& config_dir_path = "../config",
               bool enable_external_input = true,
               bool enable_external_output = false) {
     transport_ = moteus::Controller::MakeSingletonTransport({});
@@ -211,17 +209,17 @@ class ServoSystem {
             std::thread(&ServoSystem::ExternalOutputSender, this);
         external_output_sender_thread_.detach();
         std::cout
-            << "ServoSystem ExternalOutputGetter thread started running..."
+            << "ServoSystem ExternalOutputSender thread started running..."
             << std::endl;
 
       } catch (...) {
-        std::cout << "ServoSytem ExternalOutputGetter thread initialization "
+        std::cout << "ServoSytem ExternalOutputSender thread initialization "
                      "failed. Returning from ServoSystem constructor."
                   << std::endl;
         return;
       }
     } else {
-      std::cout << "ServoSystem ExternalOutputGetter thread will not run since "
+      std::cout << "ServoSystem ExternalOutputSender thread will not run since "
                    "the constructor argument `enable_external_output` is set "
                    "to false."
                 << std::endl;
@@ -255,17 +253,22 @@ class ServoSystem {
   void SetBasePositionsAll() { SetBasePositions(ids_); }
 
   void Stop(const std::vector<int> ids) {
+    std::map<int, std::map<CommandType, double>> commands;
     for (const auto id : ids) {
       const auto& servo = helpers::SafeAt(servos_, id);
       if (servo) {
-        if (!servo.value()->controller_->SetStop()) {
-          std::cout << "Stop command failed for ID " << id << std::endl;
-        }
+        commands[id][CommandType::POSITION] = NaN;
+        commands[id][CommandType::VELOCITY] = 0.0;
       }
     }
+    Input(commands);
   }
 
   void StopAll() { Stop(ids_); }
+
+  void GetOutput(void* output, size_t size) {
+    InternalOutputSender(output, size);
+  }
 
   void Terminate() { terminated_ = true; }
 
@@ -284,6 +287,7 @@ class ServoSystem {
   bool terminated_;
 
   virtual void InternalOutputSender(void* output, size_t size) {
+    char* output_charptr = (char*)output;
     for (const auto& id_servo : servos_) {
       const auto id = id_servo.first;
       const auto& servo = id_servo.second;
@@ -297,16 +301,16 @@ class ServoSystem {
 
       int written;
       if (updated_this_cycle) {
-        written = ::snprintf((char*)output, size,
-                             "id=%d/mode=%d/pos=%.3f/vel=%.3f/tor=%.3f/"
-                             "volt=%.2f/temp=%.1f/fault=%d\n",
+        written = ::snprintf(output_charptr, size,
+                             "id=%2d/mode=%2d/pos=%3.3f/vel=%3.3f/tor=%3.3f/"
+                             "volt=%3.2f/temp=%2.1f/fault=%2d\n",
                              id, static_cast<int>(recent_state.mode),
                              recent_state.position, recent_state.velocity,
                              recent_state.torque, recent_state.voltage,
                              recent_state.temperature, recent_state.fault);
       } else {
-        written = ::snprintf((char*)output, size,
-                             "id=%d/NOT UPDATED THIS CYCLE\n", id);
+        written = ::snprintf(output_charptr, size,
+                             "id=%2d/NOT UPDATED THIS CYCLE\n", id);
       }
       if (written < 0) {
         std::cout
@@ -317,7 +321,7 @@ class ServoSystem {
         std::cout << "Insufficient size to accommodate output." << std::endl;
         return;
       }
-      output += written;
+      output_charptr += written;
       size -= written;
     }
   }
@@ -373,7 +377,7 @@ class ServoSystem {
       std::cout << "Parsing input for ID " << id << "..." << std::endl;
       for (const auto& type_value : cmd) {
         const auto type = type_value.first;
-        const auto value = type_value.second;
+        auto value = type_value.second;
         std::cout << "Parsing input of CommandType " << type << "..."
                   << std::endl;
         if (((moteus::Resolution*)(&(
@@ -385,6 +389,9 @@ class ServoSystem {
         }
         {
           std::lock_guard<std::mutex> lock(mutex_);
+          if (type == CommandType::POSITION && std::isfinite(value)) {
+            value += servo->base_position_;
+          }
           ((double*)(&(servo->command_)))[type] = value;
         }
         std::cout << "Successfully set command " << type << " = " << value

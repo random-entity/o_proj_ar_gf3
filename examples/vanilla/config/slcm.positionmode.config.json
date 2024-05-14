@@ -1,6 +1,6 @@
 {
   "maximum_torque": {
     "using": true,
-    "initial_value": 0.05
+    "initial_value": 0.1
   }
 }
