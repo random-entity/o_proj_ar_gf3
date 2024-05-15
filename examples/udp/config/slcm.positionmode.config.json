@@ -1,0 +1,14 @@
+{
+  "maximum_torque": {
+    "using": true,
+    "initial_value": 0.5
+  },
+  "velocity_limit": {
+    "using": true,
+    "initial_value": 0.1
+  },
+  "accel_limit": {
+    "using": true,
+    "initial_value": 0.1
+  }
+}

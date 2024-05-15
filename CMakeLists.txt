@@ -43,8 +43,8 @@ set_target_properties(vanilla PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "../examples/vanilla/bin"
 )
 
-# add_executable(udp examples/udp/main.cpp)
-# target_link_libraries(udp som_linuxcppmoteus)
-# set_target_properties(udp PROPERTIES
-#   RUNTIME_OUTPUT_DIRECTORY "../examples/udp/bin"
-# )
+add_executable(udp examples/udp/main.cpp)
+target_link_libraries(udp som_linuxcppmoteus)
+set_target_properties(udp PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "../examples/udp/bin"
+)

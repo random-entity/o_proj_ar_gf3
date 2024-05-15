@@ -91,21 +91,4 @@ inline std::ostream& operator<<(std::ostream& os, const CommandType& type) {
   return os;
 }
 
-enum ListeningMode : bool { EXTERNAL, INTERNAL };
-
-inline std::ostream& operator<<(std::ostream& os, const ListeningMode& mode) {
-  switch (mode) {
-    case EXTERNAL:
-      os << "External";
-      break;
-    case INTERNAL:
-      os << "Internal";
-      break;
-    default:
-      os << "<Unknown ListeningMode>";
-      break;
-  }
-  return os;
-}
-
 }  // namespace som
