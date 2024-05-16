@@ -8,7 +8,7 @@
     "initial_value": 0.0
   },
   "feedforward_torque": {
-    "using": false,
+    "using": true,
     "initial_value": 0.0
   },
   "kp_scale": {
@@ -24,7 +24,7 @@
     "initial_value": 1.0
   },
   "stop_position": {
-    "using": false,
+    "using": true,
     "initial_value": "NaN"
   },
   "watchdog_timeout": {
@@ -33,11 +33,11 @@
   },
   "velocity_limit": {
     "using": true,
-    "initial_value": 16.0
+    "initial_value": 8.0
   },
   "accel_limit": {
     "using": true,
-    "initial_value": 16.0
+    "initial_value": 4.0
   },
   "fixed_voltage_override": {
     "using": false,

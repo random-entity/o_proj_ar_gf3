@@ -91,7 +91,7 @@ struct Parser {
           }
         }
       } catch (...) {
-        std::cout << "Ignoring wrong command : "
+        std::cout << "Ignoring wrong command: "
                   << (id_command.empty() ? "<empty>" : id_command) << std::endl;
       }
     }
@@ -119,7 +119,7 @@ struct Parser {
 
     char* config_dir_path_absolute = (char*)(malloc(512));
     realpath(config_dir_path.c_str(), config_dir_path_absolute);
-    std::cout << "Looking for config file at : " << config_dir_path_absolute
+    std::cout << "Looking for config file at: " << config_dir_path_absolute
               << std::endl;
     free(config_dir_path_absolute);
 
@@ -200,13 +200,13 @@ struct Parser {
                               ? moteus::Resolution::kFloat
                               : moteus::Resolution::kIgnore;
             std::cout << "Successfully set resolution for " << member_name
-                      << " to : " << *resolution << std::endl;
+                      << ": " << *resolution << std::endl;
           }
         }
 
         if (!inner_json.contains("initial_value")) {
           std::cout << "JSON does not contain key " << member_name
-                    << "/initial_value.  Using default value : "
+                    << "/initial_value.  Using default value: "
                     << *initial_value << std::endl;
         } else {
           if (!inner_json["initial_value"].is_number()) {
@@ -216,13 +216,13 @@ struct Parser {
             } else {
               std::cout << "Value for key " << member_name
                         << "/initial_value is not a number nor NaN.  "
-                           "Using default value : "
+                           "Using default value: "
                         << *initial_value << std::endl;
             }
           } else {
             *initial_value = static_cast<double>(inner_json["initial_value"]);
             std::cout << "Successfully set initial value for " << member_name
-                      << " to : " << *initial_value << std::endl;
+                      << ": " << *initial_value << std::endl;
           }
         }
       }

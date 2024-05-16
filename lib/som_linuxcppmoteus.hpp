@@ -76,7 +76,7 @@ class ServoSystem {
             base_position_ = current_position;
             std::cout << "Successfully set base position to current position "
                          "for Servo ID "
-                      << id << " : " << base_position_ << std::endl;
+                      << id << ": " << base_position_ << std::endl;
             state_.recent_reply = maybe_reply->values;
             return true;
           } else {
@@ -175,12 +175,13 @@ class ServoSystem {
             this,
             &ServoSystem::ExternalOutputSender,
             {"ExternalOutputSender", "exout", "eo"}} {
+    /// Get default transport. Priority order: pi3hat > fdcanusb > socketcan
     transport_ = moteus::Controller::MakeSingletonTransport({});
     /* Print transport status */ {
       if (transport_) {
         std::string transport_name = Utils::GetClassName(transport_.get());
         if (!transport_name.empty()) {
-          std::cout << "Default transport found : " << transport_name
+          std::cout << "Default transport found: " << transport_name
                     << std::endl;
         } else {
           std::cout
@@ -206,8 +207,8 @@ class ServoSystem {
     for (const auto& id_bus : id_bus_map) {
       const auto id = id_bus.first;
       const auto bus = id_bus.second;
-      std::cout << "Initializing Servo of ID " << id << " on bus " << bus
-                << "..." << std::endl;
+      std::cout << "Initializing Servo ID " << id << " on bus " << bus << "..."
+                << std::endl;
       const auto servo =
           std::make_shared<Servo>(id, bus, transport_, format, initial_command);
       if (servo->init_suceeded()) {
@@ -224,8 +225,8 @@ class ServoSystem {
 
     /* Print Servo initialization result */ {
       if (!init_failed_ids.empty()) {
-        std::cout << "Excluded Servos with the following controller IDs "
-                     "from the servo list : ";
+        std::cout << "Excluded Servos with the following IDs "
+                     "from the Servo list: ";
         for (auto id : init_failed_ids) {
           std::cout << id << " ";
         }
@@ -233,14 +234,13 @@ class ServoSystem {
       }
 
       if (!servos_.empty()) {
-        std::cout << "Ready to control Servos with the following IDs : ";
+        std::cout << "Ready to control Servos of the following IDs: ";
         for (const auto& id_servo : servos_) {
           std::cout << id_servo.first << " ";
         }
         std::cout << std::endl;
       } else {
         std::cout << "No available Servos found." << std::endl;
-        return;
       }
     }
 
@@ -372,13 +372,13 @@ class ServoSystem {
 
   void InputGetter(
       const std::map<int, std::map<CommandType, double>>& commands) {
-    // std::cout << "Parsing input..." << std::endl;
+    std::cout << "Parsing input..." << std::endl;
     for (const auto& id_cmd : commands) {
       const auto id = id_cmd.first;
       const auto& cmd = id_cmd.second;
       const auto& maybe_servo = Utils::SafeAt(servos_, id);
       if (!maybe_servo) {
-        std::cout << "No Servo with ID " << id
+        std::cout << "No Servo of ID " << id
                   << " found on the Servo list.  Ignoring command for this ID."
                   << std::endl;
         continue;
@@ -416,7 +416,7 @@ class ServoSystem {
     std::cout << "Runner thread is running..." << std::endl;
 
     if (servos_.empty()) {
-      std::cout << "No Servos found." << std::endl;
+      std::cout << "No Servos found. Runner thread terminating." << std::endl;
       return;
     }
 
