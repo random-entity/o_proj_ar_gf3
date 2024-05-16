@@ -43,7 +43,7 @@ class UdpServoSystem : public ServoSystem {
       float position;
       float velocity;
       float maximum_torque;
-      float unknown;
+      float velocity_limit;
     } __attribute__((packed)) command;
     uint8_t raw_bytes[sizeof(command)];
   };
@@ -51,9 +51,18 @@ class UdpServoSystem : public ServoSystem {
   union SendBuffer {
     struct encoded {
       uint8_t id;
-      // ...
+      uint16_t false_code;
+      uint8_t rezero;
+      float position;
+      float i2c_position;
+      float velocity;
+      float torque;
+      float q_curr;
+      float d_curr;
+      float voltage;
+      float temperature;
     } __attribute__((packed)) state;
-    uint8_t raw_bytes[sizeof(moteus::Query::Result)];
+    uint8_t raw_bytes[sizeof(state)];
   };
 
  public:
@@ -131,11 +140,6 @@ class UdpServoSystem : public ServoSystem {
           }
         }
 
-        std::cout << buffer.command.position << std::endl;
-        std::cout << buffer.command.velocity << std::endl;
-        std::cout << buffer.command.maximum_torque << std::endl;
-        std::cout << buffer.command.unknown << std::endl;
-
         input[id][CommandType::POSITION] =
             static_cast<double>(buffer.command.position);
         input[id][CommandType::VELOCITY] =
@@ -143,7 +147,7 @@ class UdpServoSystem : public ServoSystem {
         input[id][CommandType::MAXIMUM_TORQUE] =
             static_cast<double>(buffer.command.maximum_torque);
         input[id][CommandType::VELOCITY_LIMIT] =
-            static_cast<double>(buffer.command.unknown);
+            static_cast<double>(buffer.command.velocity_limit);
 
         receive_states[id] = true;
       }
@@ -182,29 +186,28 @@ class UdpServoSystem : public ServoSystem {
         const auto& servo = id_servo.second;
         const auto& state = servo->state_.recent_reply;
 
-        // std::vector<uint8_t> num_list;
-        // {
-        //   std::lock_guard<std::mutex> lock(servo_access_mutex_);
-        //   num_list = {(uint8_t)id,
-        //               0,
-        //               0,  // Assuming placeholders for your data
-        //               0,  // state.rezero_state,
-        //               (uint8_t)state.position,
-        //               0,  // state.i2c_position,
-        //               (uint8_t)state.velocity,
-        //               (uint8_t)state.torque,
-        //               (uint8_t)state.q_current,
-        //               (uint8_t)state.d_current,
-        //               (uint8_t)state.voltage,
-        //               (uint8_t)state.temperature};
-        // }
+        SendBuffer buffer;
 
-        // std::vector<uint8_t> packed_data(
-        //     /* sizeof(uint8_t) * */ num_list.size());
-        // memcpy(packed_data.data(), num_list.data(), packed_data.size());
+        {
+          std::lock_guard<std::mutex> lock(servo_access_mutex_);
+          buffer.state.id = static_cast<uint8_t>(id);
+          buffer.state.position = state.position;
+          buffer.state.velocity = state.velocity;
+          buffer.state.torque = state.torque;
+          buffer.state.q_curr = state.q_current;
+          buffer.state.d_curr = state.d_current;
+          buffer.state.voltage = state.voltage;
+          buffer.state.temperature = state.temperature;
+        }
 
-        // sendto(udp_socket, packed_data.data(), packed_data.size(), 0,
-        //        (struct sockaddr*)&addr, sizeof(addr));
+        if (Utils::IsLittleEndian) {
+          for (int i = 4; i + 4 <= sizeof(buffer.raw_bytes); i += 4) {
+            std::reverse(buffer.raw_bytes + i, buffer.raw_bytes + i + 4);
+          }
+        }
+
+        sendto(udp_socket, static_cast<void*>(buffer.raw_bytes), sizeof(buffer),
+               0, (struct sockaddr*)&addr, sizeof(addr));
       }
     }
 
@@ -229,11 +232,13 @@ int main() {
                                   host,
                                   udp_receive_port,
                                   udp_send_port};
+  sleep(1);
 
   ///////////////////////////////////////////////////////////////
   // Suspend main thread termination while listening to
   // external commands coming through UDP.
-  udp_servo_system.ThreadsManager["ext_in"]->Start();
+  udp_servo_system.ThreadsManager.at("exin")->Start();
+  udp_servo_system.ThreadsManager.at("exout")->Start();
   while (true) sleep(1);
 
   return 0;

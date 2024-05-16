@@ -37,6 +37,12 @@ else()
   message("This system is NOT a Raspberry Pi")
 endif()
 
+add_executable(debug examples/debug/main.cpp)
+target_link_libraries(debug som_linuxcppmoteus)
+set_target_properties(debug PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "../examples/debug/bin"
+)
+
 add_executable(vanilla examples/vanilla/main.cpp)
 target_link_libraries(vanilla som_linuxcppmoteus)
 set_target_properties(vanilla PROPERTIES

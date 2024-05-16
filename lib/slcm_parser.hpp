@@ -39,9 +39,9 @@ struct Parser {
   /// @brief Parse string input of specific format described below
   ///        to form a command map.
   /// @param input The format of string input is as follows:
-  ///              <id>:<3-letter-command-type-abbr><value>[,...][;...]
+  ///              <id>=<3-letter-command-type-abbr><value>[,...][;...]
   ///              For example,
-  ///              1:pos1.0,vel0.1,mtq1.0;2:pos-1.0,vel-0.1,vlm0.5
+  ///              1=pos1.0,vel0.1,mtq1.0;2=pos-1.0,vel-0.1,vlm0.5
   static std::map<int, std::map<CommandType, double>> ParseStringInput(
       std::string input) {
     std::map<int, std::map<CommandType, double>> commands;
@@ -83,8 +83,12 @@ struct Parser {
               throw std::exception();
             }
           }
-          auto command_value = stod(field.substr(3));
-          commands[id][command_type] = command_value;
+          if (field.substr(3) == "nan") {
+            commands[id][command_type] = NaN;
+          } else {
+            auto command_value = stod(field.substr(3));
+            commands[id][command_type] = command_value;
+          }
         }
       } catch (...) {
         std::cout << "Ignoring wrong command : "

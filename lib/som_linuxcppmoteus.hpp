@@ -46,7 +46,7 @@ class ServoSystem {
                 << " reply for initial SetStop command from Servo ID " << id
                 << "." << std::endl;
 
-      SetBasePosition(0.1);
+      SetBasePosition(2.0);
     }
 
     bool SetBasePosition(double time_limit) {
@@ -115,21 +115,32 @@ class ServoSystem {
     LoopingThreadManager(
         ServoSystem* servo_system,
         std::function<void(ServoSystem*, std::atomic_bool*)> task,
-        const std::string name)
+        const std::vector<std::string>& names)
         : servo_system_(servo_system),
           task_(task),
-          name_(name),
-          thread_(nullptr) {}
+          names_(names),
+          thread_(nullptr) {
+      if (names_.empty()) {
+        std::cout << "ThreadManager initialization failed since "
+                     "no names are given for this thread."
+                  << std::endl;
+        return;
+      }
+      for (const auto& name : names_) {
+        servo_system_->ThreadsManager[name] = this;
+      }
+    }
 
     void Start() {
       if (!thread_) {
         terminated_ = false;
         thread_ = new std::thread(task_, servo_system_, &terminated_);
         thread_->detach();
-        std::cout << name_ << " thread successfully initialized and detached."
+        std::cout << names_[0]
+                  << " thread successfully initialized and detached."
                   << std::endl;
       } else {
-        std::cout << name_ << " thread is already running." << std::endl;
+        std::cout << names_[0] << " thread is already running." << std::endl;
       }
     }
 
@@ -138,9 +149,10 @@ class ServoSystem {
         terminated_ = true;
         delete thread_;
         thread_ = nullptr;
-        std::cout << name_ << " thread successfully terminated." << std::endl;
+        std::cout << names_[0] << " thread successfully terminated."
+                  << std::endl;
       } else {
-        std::cout << name_ << " thread is not running." << std::endl;
+        std::cout << names_[0] << " thread is not running." << std::endl;
       }
     }
 
@@ -149,17 +161,20 @@ class ServoSystem {
     std::thread* thread_;
     const std::function<void(ServoSystem*, std::atomic_bool*)> task_;
     std::atomic_bool terminated_;
-    const std::string name_;
+    const std::vector<std::string> names_;
   };
 
  public:
   ServoSystem(const std::map<int, int>& id_bus_map = {{1, 1}},
               const std::string& config_dir_path = "../config")
-      : runner_thread_manager_{this, &ServoSystem::Run, "Runner"},
-        external_input_getter_manager_{this, &ServoSystem::ExternalInputGetter,
-                                       "ExternalInputGetter"},
+      : runner_thread_manager_{this, &ServoSystem::Run, {"Runner", "run", "r"}},
+        external_input_getter_manager_{this,
+                                       &ServoSystem::ExternalInputGetter,
+                                       {"ExternalInputGetter", "exin", "ei"}},
         external_output_sender_manager_{
-            this, &ServoSystem::ExternalOutputSender, "ExternalOutputSender"} {
+            this,
+            &ServoSystem::ExternalOutputSender,
+            {"ExternalOutputSender", "exout", "eo"}} {
     transport_ = moteus::Controller::MakeSingletonTransport({});
     /* Print transport status */ {
       if (transport_) {
@@ -179,11 +194,6 @@ class ServoSystem {
         return;
       }
     }
-
-    /// Add child thread managers to a single map for easy access
-    ThreadsManager["run"] = &runner_thread_manager_;
-    ThreadsManager["ext_in"] = &external_input_getter_manager_;
-    ThreadsManager["ext_out"] = &external_output_sender_manager_;
 
     /// Parse the PositionMode config file
     const auto format_command =
