@@ -292,7 +292,7 @@ class ServoSystem {
 
   void SetBasePositionsAll() { SetBasePositions(ids_); }
 
-  void GetOutput(void* output, size_t size) {
+  void GetOutput(const void* output, size_t size) {
     InternalOutputSender(output, size);
   }
 
@@ -313,7 +313,7 @@ class ServoSystem {
   LoopingThreadManager external_input_getter_manager_;
   LoopingThreadManager external_output_sender_manager_;
 
-  virtual void InternalOutputSender(void* output, size_t size) {
+  virtual void InternalOutputSender(const void* output, size_t size) {
     char* output_charptr = (char*)output;
     for (const auto& id_servo : servos_) {
       const auto id = id_servo.first;
@@ -366,6 +366,7 @@ class ServoSystem {
     while (!(*terminated).load()) {
       std::string input;
       std::getline(std::cin, input);
+      if (input.empty()) continue;
       InputGetter(Parser::ParseStringInput(input));
     }
   }

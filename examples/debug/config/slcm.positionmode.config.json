@@ -24,12 +24,10 @@
     "initial_value": 1.0
   },
   "stop_position": {
-    "using": true,
-    "initial_value": "NaN"
+    "using": false
   },
   "watchdog_timeout": {
-    "using": false,
-    "initial_value": "NaN"
+    "using": false
   },
   "velocity_limit": {
     "using": true,
@@ -40,7 +38,6 @@
     "initial_value": 4.0
   },
   "fixed_voltage_override": {
-    "using": false,
-    "initial_value": "NaN"
+    "using": false
   }
 }

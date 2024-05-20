@@ -190,40 +190,42 @@ struct Parser {
           std::cout << "JSON does not contain key " << member_name
                     << "/using.  Using default value: " << *resolution
                     << std::endl;
+        } else if (!inner_json["using"].is_boolean()) {
+          std::cout << "Value for key " << member_name
+                    << "/using is not boolean.  Using default value: "
+                    << *resolution << std::endl;
         } else {
-          if (!inner_json["using"].is_boolean()) {
-            std::cout << "Value for key " << member_name
-                      << "/using is not boolean.  Using default value: "
-                      << *resolution << std::endl;
-          } else {
-            *resolution = static_cast<bool>(inner_json["using"])
-                              ? moteus::Resolution::kFloat
-                              : moteus::Resolution::kIgnore;
-            std::cout << "Successfully set resolution for " << member_name
-                      << ": " << *resolution << std::endl;
-          }
+          *resolution = static_cast<bool>(inner_json["using"])
+                            ? moteus::Resolution::kFloat
+                            : moteus::Resolution::kIgnore;
+          std::cout << "Successfully set resolution for " << member_name << ": "
+                    << *resolution << std::endl;
+        }
+
+        if (*resolution == moteus::Resolution::kIgnore) {
+          std::cout << "Skipping initial value setting " << member_name
+                    << " since resolution is set to kIgnore." << std::endl;
+          continue;
         }
 
         if (!inner_json.contains("initial_value")) {
           std::cout << "JSON does not contain key " << member_name
                     << "/initial_value.  Using default value: "
                     << *initial_value << std::endl;
-        } else {
-          if (!inner_json["initial_value"].is_number()) {
-            if (inner_json["initial_value"].is_string() &&
-                inner_json["initial_value"] == "NaN") {
-              *initial_value = NaN;
-            } else {
-              std::cout << "Value for key " << member_name
-                        << "/initial_value is not a number nor NaN.  "
-                           "Using default value: "
-                        << *initial_value << std::endl;
-            }
+        } else if (!inner_json["initial_value"].is_number()) {
+          if (inner_json["initial_value"].is_string() &&
+              inner_json["initial_value"] == "NaN") {
+            *initial_value = NaN;
           } else {
-            *initial_value = static_cast<double>(inner_json["initial_value"]);
-            std::cout << "Successfully set initial value for " << member_name
-                      << ": " << *initial_value << std::endl;
+            std::cout << "Value for key " << member_name
+                      << "/initial_value is not a number nor NaN.  "
+                         "Using default value: "
+                      << *initial_value << std::endl;
           }
+        } else {
+          *initial_value = static_cast<double>(inner_json["initial_value"]);
+          std::cout << "Successfully set initial value for " << member_name
+                    << ": " << *initial_value << std::endl;
         }
       }
     }
