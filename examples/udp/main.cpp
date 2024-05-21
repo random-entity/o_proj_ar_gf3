@@ -191,7 +191,7 @@ class UdpServoSystem : public ServoSystem {
         {
           std::lock_guard<std::mutex> lock(servo_access_mutex_);
           buffer.state.id = static_cast<uint8_t>(id);
-          buffer.state.position = state.position;
+          buffer.state.position = state.position - servo->base_position_;
           buffer.state.velocity = state.velocity;
           buffer.state.torque = state.torque;
           buffer.state.q_curr = state.q_current;
@@ -237,9 +237,11 @@ int main() {
   ///////////////////////////////////////////////////////////////
   // Suspend main thread termination while listening to
   // external commands coming through UDP.
-  udp_servo_system.ThreadsManager.at("exin")->Start();
-  udp_servo_system.ThreadsManager.at("exout")->Start();
+  udp_servo_system.StartThreadAll();
+
   while (true) sleep(1);
 
+  udp_servo_system.TerminateThreadAll();
+  sleep(1);
   return 0;
 }

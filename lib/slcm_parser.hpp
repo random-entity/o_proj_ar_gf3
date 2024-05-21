@@ -8,7 +8,6 @@
 #include "slcm_enums.hpp"
 
 #ifdef NaN
-#define NaN_backup NaN
 #undef NaN
 #endif
 #define NaN (std::numeric_limits<double>::quiet_NaN())
@@ -235,9 +234,3 @@ struct Parser {
 };
 
 }  // namespace som
-
-#ifdef NaN_backup
-#undef NaN
-#define NaN NaN_backup
-#undef NaN_backup
-#endif

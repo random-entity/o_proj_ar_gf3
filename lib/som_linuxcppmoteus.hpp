@@ -14,7 +14,6 @@
 #include "slcm_utils.hpp"
 
 #ifdef NaN
-#define NaN_backup NaN
 #undef NaN
 #endif
 #define NaN (std::numeric_limits<double>::quiet_NaN())
@@ -46,7 +45,7 @@ class ServoSystem {
                 << " reply for initial SetStop command from Servo ID " << id
                 << "." << std::endl;
 
-      SetBasePosition(2.0);
+      SetBasePosition(1.0);
     }
 
     bool SetBasePosition(double time_limit) {
@@ -83,7 +82,7 @@ class ServoSystem {
             const double time_passed = Utils::GetNow() - time_init;
             const double time_left = time_limit - time_passed;
             if (time_left > 0.0) {
-              std::cout << "Current position for servo ID " << id
+              std::cout << "Current position for Servo ID " << id
                         << " is NaN, but will try " << time_left
                         << " more seconds...\r";
               ::usleep(0.01 * 1e6);
@@ -110,24 +109,31 @@ class ServoSystem {
     bool init_suceeded() { return std::isfinite(base_position_); }
   };
 
+  friend class LoopingThreadManager;
   class LoopingThreadManager {
+    friend class ServoSystem;
+
    public:
     LoopingThreadManager(
         ServoSystem* servo_system,
         std::function<void(ServoSystem*, std::atomic_bool*)> task,
-        const std::vector<std::string>& names)
+        const std::vector<std::string>& aliases)
         : servo_system_(servo_system),
           task_(task),
-          names_(names),
+          aliases_(aliases),
           thread_(nullptr) {
-      if (names_.empty()) {
+      std::cout << "LTM constructor begin" << std::endl;
+
+      if (aliases_.empty()) {
         std::cout << "ThreadManager initialization failed since "
                      "no names are given for this thread."
                   << std::endl;
         return;
       }
-      for (const auto& name : names_) {
+      for (const auto& name : aliases_) {
+        std::cout << "for 1" << std::endl;
         servo_system_->ThreadsManager[name] = this;
+        std::cout << "for 2" << std::endl;
       }
     }
 
@@ -135,34 +141,41 @@ class ServoSystem {
       if (!thread_) {
         terminated_ = false;
         thread_ = new std::thread(task_, servo_system_, &terminated_);
-        thread_->detach();
-        std::cout << names_[0]
+        std::cout << aliases_[0]
                   << " thread successfully initialized and detached."
                   << std::endl;
       } else {
-        std::cout << names_[0] << " thread is already running." << std::endl;
+        std::cout << aliases_[0] << " thread is already running." << std::endl;
       }
     }
 
     void Terminate() {
       if (thread_) {
         terminated_ = true;
+        std::cout << "Waiting for " << aliases_[0] << " thread to join..."
+                  << std::endl;
+        thread_->join();
         delete thread_;
         thread_ = nullptr;
-        std::cout << names_[0] << " thread successfully terminated."
+        std::cout << aliases_[0] << " thread successfully terminated."
                   << std::endl;
       } else {
-        std::cout << names_[0] << " thread is not running." << std::endl;
+        std::cout << aliases_[0] << " thread has not been running."
+                  << std::endl;
       }
     }
 
+    bool IsOn() { return !!thread_; }
+
    private:
-    ServoSystem* servo_system_;
+    const std::vector<std::string> aliases_;
+    ServoSystem* const servo_system_;
     std::thread* thread_;
     const std::function<void(ServoSystem*, std::atomic_bool*)> task_;
     std::atomic_bool terminated_;
-    const std::vector<std::string> names_;
   };
+
+  std::map<std::string, LoopingThreadManager*> ThreadsManager;
 
  public:
   ServoSystem(const std::map<int, int>& id_bus_map = {{1, 1}},
@@ -175,9 +188,11 @@ class ServoSystem {
             this,
             &ServoSystem::ExternalOutputSender,
             {"ExternalOutputSender", "exout", "eo"}} {
+    std::cout << "constructor begin" << std::endl;
+
     /// Get default transport. Priority order: pi3hat > fdcanusb > socketcan
     transport_ = moteus::Controller::MakeSingletonTransport({});
-    /* Print transport status */ {
+    /*[ Print transport status and handle failure. ]*/ {
       if (transport_) {
         std::string transport_name = Utils::GetClassName(transport_.get());
         if (!transport_name.empty()) {
@@ -185,7 +200,9 @@ class ServoSystem {
                     << std::endl;
         } else {
           std::cout
-              << "Default transport found, but failed to get its class name."
+              << "Default transport found, but failed to get its class "
+                 "name.  Returning from ServoSystem constructor without any "
+                 "initialization for safety."
               << std::endl;
         }
       } else {
@@ -196,13 +213,15 @@ class ServoSystem {
       }
     }
 
-    /// Parse the PositionMode config file
+    std::cout << "got transport" << std::endl;
+
+    /// Parse the PositionMode config file.
     const auto format_command =
         Parser::ParsePositionModeConfig(config_dir_path);
     const auto& format = format_command.first;
     const auto& initial_command = format_command.second;
 
-    /// Initialize Servos
+    /// Initialize Servos.
     std::set<int> init_failed_ids;
     for (const auto& id_bus : id_bus_map) {
       const auto id = id_bus.first;
@@ -223,7 +242,7 @@ class ServoSystem {
       }
     }
 
-    /* Print Servo initialization result */ {
+    /*[ Print Servo initialization result ]*/ {
       if (!init_failed_ids.empty()) {
         std::cout << "Excluded Servos with the following IDs "
                      "from the Servo list: ";
@@ -243,9 +262,6 @@ class ServoSystem {
         std::cout << "No available Servos found." << std::endl;
       }
     }
-
-    /// Start the Runner thread
-    runner_thread_manager_.Start();
   }
 
   ///////////////////////////////////////////////////////////////
@@ -271,6 +287,7 @@ class ServoSystem {
         servo.value()->controller_->SetStop();
         commands[id][CommandType::POSITION] = NaN;
         commands[id][CommandType::VELOCITY] = 0.0;
+        commands[id][CommandType::FEEDFORWARD_TORQUE] = 0.0;
       }
     }
     InputGetter(commands);
@@ -285,7 +302,13 @@ class ServoSystem {
         if (!servo.value()->SetBasePosition(0.0)) {
           std::cout << "Base position setting failed for ID " << id << "."
                     << std::endl;
+        } else {
+          std::cout << "Base position setting succeeded for ID " << id << "."
+                    << std::endl;
         }
+      } else {
+        std::cout << "No Servo of ID " << id
+                  << " found.  Base position setting failed," << std::endl;
       }
     }
   }
@@ -298,10 +321,64 @@ class ServoSystem {
 
   std::set<int> GetIds() { return ids_; }
 
+  void StartThread(const std::string& name) {
+    const auto& maybe_thread_manager = Utils::SafeAt(ThreadsManager, name);
+    if (maybe_thread_manager) {
+      maybe_thread_manager.value()->Start();
+    } else {
+      std::cout << "Cannot find thread of name " << name << "." << std::endl;
+    }
+  }
+
+  void StartThreadAll() {
+    std::set<LoopingThreadManager*> threads;
+    for (const auto& pair : ThreadsManager) {
+      threads.insert(pair.second);
+    }
+    for (const auto& thread : threads) {
+      StartThread(thread);
+    }
+  }
+
+  void TerminateThread(const std::string& name) {
+    const auto& maybe_thread_manager = Utils::SafeAt(ThreadsManager, name);
+    if (maybe_thread_manager) {
+      maybe_thread_manager.value()->Terminate();
+    } else {
+      std::cout << "Cannot find thread of name " << name << "." << std::endl;
+    }
+  }
+
+  void TerminateThreadAll() {
+    std::set<LoopingThreadManager*> threads;
+    for (const auto& pair : ThreadsManager) {
+      threads.insert(pair.second);
+    }
+    for (const auto& thread : threads) {
+      TerminateThread(thread);
+    }
+  }
+
+  void PrintThreads() {
+    std::set<LoopingThreadManager*> threads;
+    for (const auto& pair : ThreadsManager) {
+      threads.insert(pair.second);
+    }
+    int i = 1;
+    for (const auto& thread : threads) {
+      std::cout << "Thread #" << i++ << ":" << std::endl;
+      std::cout << "    Aliases: ";
+      for (const auto& alias : thread->aliases_) {
+        std::cout << alias << ", ";
+      }
+      std::cout << std::endl
+                << "    Is On?: " << (thread->IsOn() ? "True" : "False")
+                << std::endl;
+    }
+  }
+
   ///           Commands you can send to the Servos.          ///
   ///////////////////////////////////////////////////////////////
-
-  std::map<std::string, LoopingThreadManager*> ThreadsManager;
 
  protected:
   std::set<int> ids_;
@@ -315,6 +392,7 @@ class ServoSystem {
 
   virtual void InternalOutputSender(const void* output, size_t size) {
     char* output_charptr = (char*)output;
+    int written;
     for (const auto& id_servo : servos_) {
       const auto id = id_servo.first;
       const auto& servo = id_servo.second;
@@ -326,19 +404,20 @@ class ServoSystem {
         updated_this_cycle = servo->state_.updated_this_cycle;
       }
 
-      int written;
       if (updated_this_cycle) {
         written = ::snprintf(output_charptr, size,
                              "id=%2d/mode=%2d/pos=%3.3f/vel=%3.3f/tor=%3.3f/"
                              "volt=%3.2f/temp=%2.1f/fault=%2d\n",
                              id, static_cast<int>(recent_state.mode),
-                             recent_state.position, recent_state.velocity,
-                             recent_state.torque, recent_state.voltage,
-                             recent_state.temperature, recent_state.fault);
+                             recent_state.position - servo->base_position_,
+                             recent_state.velocity, recent_state.torque,
+                             recent_state.voltage, recent_state.temperature,
+                             recent_state.fault);
       } else {
         written = ::snprintf(output_charptr, size,
                              "id=%2d/NOT UPDATED THIS CYCLE\n", id);
       }
+
       if (written < 0) {
         std::cout
             << "Error occured during printing output to designated pointer."
@@ -348,6 +427,7 @@ class ServoSystem {
         std::cout << "Insufficient size to accommodate output." << std::endl;
         return;
       }
+
       output_charptr += written;
       size -= written;
     }
@@ -356,8 +436,8 @@ class ServoSystem {
   virtual void ExternalOutputSender(std::atomic_bool* terminated) {
     std::cout << "ExternalOutputSender thread is running..." << std::endl;
 
-    // Probably let a ROS2 publisher publish servo states
-    // or send encoded servo states as UDP packets
+    /// Probably let a ROS2 publisher publish servo states
+    /// or send encoded servo states as UDP packets.
   }
 
   virtual void ExternalInputGetter(std::atomic_bool* terminated) {
@@ -450,6 +530,14 @@ class ServoSystem {
         }
       }
     }
+  }
+
+  void StartThread(LoopingThreadManager* thread) {
+    if (thread) thread->Start();
+  }
+
+  void TerminateThread(LoopingThreadManager* thread) {
+    if (thread) thread->Terminate();
   }
 };
 
