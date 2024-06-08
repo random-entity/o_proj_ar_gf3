@@ -1,0 +1,16 @@
+{
+  "mode": "kInt8",
+  "position": "kFloat",
+  "velocity": "kFloat",
+  "torque": "kFloat",
+  "q_current": "kInt16",
+  "d_current": "kInt16",
+  "abs_position": "kFloat",
+  "power": "kInt16",
+  "motor_temperature": "kInt16",
+  "trajectory_complete": "kInt8",
+  "home_state": "kInt8",
+  "voltage": "kInt16",
+  "temperature": "kInt16",
+  "fault": "kInt8"
+}

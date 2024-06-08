@@ -25,33 +25,91 @@ namespace som {
 class ServoSystem {
  protected:
   class Servo {
+    friend class ServoSystem;
+
    public:
     Servo(const int id, const int bus,
           const std::shared_ptr<moteus::Transport>& transport,
-          const moteus::PositionMode::Format& format,
-          const moteus::PositionMode::Command& initial_command)
-        : command_(initial_command) {
-      controller_ = std::make_shared<moteus::Controller>([&, id, bus]() {
-        moteus::Controller::Options options;
-        options.id = id;
-        options.bus = bus;
-        options.transport = transport;
-        options.position_format = format;
-        return options;
-      }());
+          const CmdPosRelTo usr_cmd_pos_rel_to,
+          const RplPosRelTo usr_rpl_pos_rel_to,
+          const moteus::PositionMode::Format& cmd_fmt,
+          const moteus::PositionMode::Command& init_cmd,
+          const moteus::Query::Format& rpl_fmt, const bool use_aux2,
+          const RplPosRelTo usr_rpl_aux2_pos_rel_to)
+        : controller_{std::make_unique<moteus::Controller>([&]() {
+            moteus::Controller::Options options;
+            options.id = id;
+            options.bus = bus;
+            options.transport = transport;
+            options.position_format = cmd_fmt;
+            options.query_format = rpl_fmt;
+            return options;
+          }())},
+          usr_cmd_pos_rel_to_{usr_cmd_pos_rel_to},
+          usr_rpl_pos_rel_to_{usr_rpl_pos_rel_to},
+          usr_cmd_{init_cmd},
+          use_aux2_{use_aux2},
+          usr_rpl_aux2_pos_rel_to_{usr_rpl_aux2_pos_rel_to} {
+      controller_->VerifySchemaVersion();
+      std::cout << "CheckRegisterMapVersion passed." << std::endl;
 
-      auto maybe_reply = controller_->SetStop();
-      std::cout << (maybe_reply ? "Got" : "Failed to get")
-                << " reply for initial SetStop command from Servo ID " << id
+      const auto& maybe_reply = controller_->SetStop();
+      std::cout << (maybe_reply ? "Got" : "WARNING: Failed to get")
+                << " reply from initial SetStop command for Servo ID " << id
                 << "." << std::endl;
 
-      SetBasePosition(1.0);
+      SetBasePos(1.0);
+      if (use_aux2) {
+        SetBaseAux2Pos(1.0);
+      }
     }
 
-    bool SetBasePosition(double time_limit) {
-      const int id = controller_->options().id;
-      std::cout << "Attempting to get current position from Servo ID " << id
-                << "..." << std::endl;
+    moteus::Query::Result GetReply() { return usr_rpl(); }
+
+    void SetReply(const moteus::Query::Result& new_sys_repl) {
+      if (sys_rpl_.velocity > 0.0 &&
+          sys_rpl_.abs_position > new_sys_repl.abs_position) {
+        aux2_revs_++;
+      } else if (sys_rpl_.velocity < 0.0 &&
+                 sys_rpl_.abs_position < new_sys_repl.abs_position) {
+        aux2_revs_--;
+      }
+
+      sys_rpl_ = new_sys_repl;
+      sys_rpl_.abs_position += aux2_revs_;
+    }
+
+   protected:
+    const bool InitSucceeded() {
+      return use_aux2_
+                 ? std::isfinite(base_pos_) && std::isfinite(base_aux2_pos_)
+                 : std::isfinite(base_pos_);
+    }
+
+    const int GetId() { return controller_->options().id; }
+
+    void SetCmdPosRelTo(CmdPosRelTo new_val) { usr_cmd_pos_rel_to_ = new_val; }
+
+    void SetRplPosRelTo(RplPosRelTo new_val) { usr_rpl_pos_rel_to_ = new_val; }
+
+    void SetRplAux2PosRelTo(RplPosRelTo new_val) {
+      usr_rpl_aux2_pos_rel_to_ = new_val;
+    }
+
+    bool SetBasePos(const double time_limit) {
+      return SetBase(time_limit, WhichPos::posINTERNAL);
+    }
+
+    bool SetBaseAux2Pos(const double time_limit) {
+      return SetBase(time_limit, WhichPos::posAUX2);
+    }
+
+    bool SetBase(const double time_limit, WhichPos which_position) {
+      const std::string which_str =
+          (which_position == WhichPos::posINTERNAL) ? "" : "aux2 ";
+      const int id = GetId();
+      std::cout << "Attempting to get current " << which_str
+                << "position from Servo ID " << id << "..." << std::endl;
       const double time_init = Utils::GetNow();
       while (true) {
         const auto& maybe_reply = controller_->SetQuery();
@@ -61,37 +119,43 @@ class ServoSystem {
           if (time_left > 0.0) {
             std::cout << "Not getting reply from Servo ID " << id
                       << ", but will try " << time_left << " more seconds...\r";
-            ::usleep(0.01 * 1e6);
+            ::usleep(1.0 / 100.0 * 1e6);
             continue;
           } else {
             std::cout << "Failed to get reply from Servo ID " << id << " for "
-                      << time_limit << " seconds.  "
-                      << "Base position setting failed." << std::endl;
+                      << time_limit << " seconds.  " << "Base " << which_str
+                      << "position setting failed." << std::endl;
             return false;
           }
         } else {
-          const double current_position = maybe_reply->values.position;
-          if (std::isfinite(current_position)) {
-            base_position_ = current_position;
-            std::cout << "Successfully set base position to current position "
-                         "for Servo ID "
-                      << id << ": " << base_position_ << std::endl;
-            state_.recent_reply = maybe_reply->values;
+          const double cur_val = (which_position == WhichPos::posINTERNAL)
+                                     ? maybe_reply->values.position
+                                     : maybe_reply->values.abs_position;
+          if (std::isfinite(cur_val)) {
+            auto& base = (which_position == WhichPos::posINTERNAL)
+                             ? base_pos_
+                             : base_aux2_pos_;
+            base = cur_val;
+            std::cout << "Successfully set base " << which_str
+                      << "position to current " << which_str
+                      << "position for Servo ID " << id << ": " << base
+                      << std::endl;
+            SetReply(maybe_reply->values);
             return true;
           } else {
             const double time_passed = Utils::GetNow() - time_init;
             const double time_left = time_limit - time_passed;
             if (time_left > 0.0) {
-              std::cout << "Current position for Servo ID " << id
-                        << " is NaN, but will try " << time_left
+              std::cout << "Current " << which_str << "position for Servo ID "
+                        << id << " is NaN, but will try " << time_left
                         << " more seconds...\r";
-              ::usleep(0.01 * 1e6);
+              ::usleep(1.0 / 100.0 * 1e6);
               continue;
             } else {
-              std::cout << "Failed to get finite value as the current position "
-                           "for Servo ID "
-                        << id << " for " << time_limit << " seconds.  "
-                        << "Base position setting failed." << std::endl;
+              std::cout << "Failed to get finite value as the current "
+                        << which_str << "position for Servo ID " << id
+                        << " for " << time_limit << " seconds.  " << "Base "
+                        << which_str << "position setting failed." << std::endl;
               return false;
             }
           }
@@ -99,41 +163,111 @@ class ServoSystem {
       }
     }
 
-    std::shared_ptr<moteus::Controller> controller_;
-    moteus::PositionMode::Command command_;
-    struct State {
-      moteus::Query::Result recent_reply;
-      bool updated_this_cycle = false;
-    } state_;
-    double base_position_ = NaN;
-    bool init_suceeded() { return std::isfinite(base_position_); }
+    const std::unique_ptr<moteus::Controller> controller_;
+    CmdPosRelTo usr_cmd_pos_rel_to_;
+    moteus::PositionMode::Command usr_cmd_;
+    moteus::PositionMode::Command sys_cmd() {
+      auto cmd = usr_cmd_;
+      switch (usr_cmd_pos_rel_to_) {
+        case CmdPosRelTo::cmdBASE:
+          if (std::isnan(base_pos_)) {
+            std::cout
+                << "User requested a base position-relative command, "
+                   "but base position is not set.  "
+                   "User command position will be treated as absolute position."
+                << std::endl;
+          } else if (std::isnan(cmd.position)) {
+            std::cout << "User requested a base position-relative command, "
+                         "but command position is NaN.  NaN will be used for "
+                         "system command position."
+                      << std::endl;
+          } else {
+            cmd.position += base_pos_;
+          }
+          break;
+        case CmdPosRelTo::cmdRECENT:
+          if (std::isnan(cmd.position)) {
+            std::cout << "User requested a recent position-relative command, "
+                         "but command position is NaN.  NaN will be used for "
+                         "system command position."
+                      << std::endl;
+          } else {
+            if (updated_last_cycle_) {
+              cmd.position += sys_rpl_.position;
+            } else {
+              // Should experiment physically whether considering or ignoring
+              // updated_last_cycle works better.
+              cmd.position = NaN;
+            }
+          }
+          break;
+        default:
+          break;
+      }
+      return cmd;
+    }
+    RplPosRelTo usr_rpl_pos_rel_to_;
+    RplPosRelTo usr_rpl_aux2_pos_rel_to_;
+    moteus::Query::Result sys_rpl_;  // aux2 position uncoiled.
+                                     // Must update via dedicated setter
+                                     // to track aux2 revolutions.
+    moteus::Query::Result usr_rpl() {
+      auto rpl = sys_rpl_;
+      if (usr_rpl_pos_rel_to_ == RplPosRelTo::rplBASE) {
+        rpl.position -= base_pos_;
+      }
+      if (usr_rpl_aux2_pos_rel_to_ == RplPosRelTo::rplBASE) {
+        rpl.abs_position -= base_aux2_pos_;
+      }
+      return rpl;
+    }
+    bool updated_last_cycle_ = false;
+    double base_pos_ = NaN;
+    double base_aux2_pos_ = NaN;
+    int aux2_revs_ = 0;
+    bool use_aux2_;
   };
+
+  virtual std::shared_ptr<Servo> InitServo(
+      const int id, const int bus, const CmdPosRelTo cmd_pos_rel_to,
+      const RplPosRelTo rpl_pos_rel_to,
+      const moteus::PositionMode::Format& cmd_fmt,
+      const moteus::PositionMode::Command& init_cmd,
+      const moteus::Query::Format& rpl_fmt, const bool use_aux2,
+      const RplPosRelTo rpl_aux2_pos_rel_to) {
+    std::cout << "Initializing Servo ID " << id << " on bus " << bus << "..."
+              << std::endl;
+    const auto maybe_servo = std::make_shared<Servo>(
+        id, bus, transport_, cmd_pos_rel_to, rpl_pos_rel_to, cmd_fmt, init_cmd,
+        rpl_fmt, use_aux2, rpl_aux2_pos_rel_to);
+    if (maybe_servo->InitSucceeded()) {
+      return maybe_servo;
+    } else {
+      return nullptr;
+    }
+  }
 
   friend class LoopingThreadManager;
   class LoopingThreadManager {
     friend class ServoSystem;
 
-   public:
+   protected:
     LoopingThreadManager(
         ServoSystem* servo_system,
         std::function<void(ServoSystem*, std::atomic_bool*)> task,
         const std::vector<std::string>& aliases)
-        : servo_system_(servo_system),
-          task_(task),
-          aliases_(aliases),
-          thread_(nullptr) {
-      std::cout << "LTM constructor begin" << std::endl;
-
+        : servo_system_{servo_system},
+          task_{task},
+          aliases_{aliases},
+          thread_{nullptr} {
       if (aliases_.empty()) {
-        std::cout << "ThreadManager initialization failed since "
-                     "no names are given for this thread."
+        std::cout << "LoopingThreadManager initialization failed since "
+                     "no aliases are given for this thread."
                   << std::endl;
         return;
       }
-      for (const auto& name : aliases_) {
-        std::cout << "for 1" << std::endl;
-        servo_system_->ThreadsManager[name] = this;
-        std::cout << "for 2" << std::endl;
+      for (const auto& alias : aliases_) {
+        servo_system_->threads_manager[alias] = this;
       }
     }
 
@@ -165,7 +299,7 @@ class ServoSystem {
       }
     }
 
-    bool IsOn() { return !!thread_; }
+    bool IsRunning() { return !!thread_; }
 
    private:
     const std::vector<std::string> aliases_;
@@ -175,24 +309,26 @@ class ServoSystem {
     std::atomic_bool terminated_;
   };
 
-  std::map<std::string, LoopingThreadManager*> ThreadsManager;
-
  public:
-  ServoSystem(const std::map<int, int>& id_bus_map = {{1, 1}},
-              const std::string& config_dir_path = "../config")
-      : runner_thread_manager_{this, &ServoSystem::Run, {"Runner", "run", "r"}},
-        external_input_getter_manager_{this,
-                                       &ServoSystem::ExternalInputGetter,
-                                       {"ExternalInputGetter", "exin", "ei"}},
-        external_output_sender_manager_{
-            this,
-            &ServoSystem::ExternalOutputSender,
-            {"ExternalOutputSender", "exout", "eo"}} {
-    std::cout << "constructor begin" << std::endl;
-
+  ServoSystem(const std::map<int, int>& id_bus_map,
+              const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::cmdBASE,
+              const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::rplBASE,
+              const std::string& cmd_conf_dir = "../config",
+              const std::string& rpl_conf_dir = "../config",
+              const bool use_aux2 = false,
+              const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::rplABSOLUTE)
+      : exec_mgr_{this,
+                  &ServoSystem::ExecuteCommand,
+                  {"Executor", "exec", "x"}},
+        ext_cmd_mgr_{this,
+                     &ServoSystem::ExternalCommandGetter,
+                     {"ExternalCommandGetter", "extcmd", "ec"}},
+        ext_rpl_mgr_{this,
+                     &ServoSystem::ExternalReplySender,
+                     {"ExternalReplySender", "extrpl", "er"}} {
     /// Get default transport. Priority order: pi3hat > fdcanusb > socketcan
     transport_ = moteus::Controller::MakeSingletonTransport({});
-    /*[ Print transport status and handle failure. ]*/ {
+    /* Print transport status and handle failure. */ {
       if (transport_) {
         std::string transport_name = Utils::GetClassName(transport_.get());
         if (!transport_name.empty()) {
@@ -213,40 +349,51 @@ class ServoSystem {
       }
     }
 
-    std::cout << "got transport" << std::endl;
-
     /// Parse the PositionMode config file.
-    const auto format_command =
-        Parser::ParsePositionModeConfig(config_dir_path);
-    const auto& format = format_command.first;
-    const auto& initial_command = format_command.second;
+    const auto cmd_conf = Parser::ParseCmdConf(cmd_conf_dir);
+    const auto& cmd_fmt = cmd_conf.first;
+    const auto& init_cmd = cmd_conf.second;
+
+    /// Parse the Query config file.
+    const auto rpl_fmt = Parser::ParseRplConf(rpl_conf_dir);
+    if (use_aux2 && rpl_fmt.abs_position == moteus::Resolution::kIgnore) {
+      std::cout << "WARNING: ServoSystem was told the user will use aux2, "
+                   "but the reply resolution configuration for aux2 position "
+                   "is set to kIgnore."
+                << std::endl;
+    } else if (!use_aux2 &&
+               rpl_fmt.abs_position != moteus::Resolution::kIgnore) {
+      std::cout << "WARNING: ServoSystem was told the user will not use aux2, "
+                   "but the reply resolution configuration for aux2 position "
+                   "is not set to kIgnore."
+                << std::endl;
+    }
 
     /// Initialize Servos.
-    std::set<int> init_failed_ids;
+    std::set<int> failed_ids;
     for (const auto& id_bus : id_bus_map) {
-      const auto id = id_bus.first;
-      const auto bus = id_bus.second;
-      std::cout << "Initializing Servo ID " << id << " on bus " << bus << "..."
-                << std::endl;
-      const auto servo =
-          std::make_shared<Servo>(id, bus, transport_, format, initial_command);
-      if (servo->init_suceeded()) {
-        servos_[id] = servo;
+      const auto& id = id_bus.first;
+      const auto& bus = id_bus.second;
+      const auto& maybe_servo =
+          InitServo(id, bus, cmd_pos_rel_to, rpl_pos_rel_to, cmd_fmt, init_cmd,
+                    rpl_fmt, use_aux2, rpl_aux2_pos_rel_to);
+      if (maybe_servo) {
+        servos_[id] = maybe_servo;
         ids_.insert(id);
         std::cout << "Initialization succeeded for Servo ID " << id << "."
                   << std::endl;
       } else {
-        init_failed_ids.insert(id);
+        failed_ids.insert(id);
         std::cout << "Initialization failed for Servo ID " << id << "."
                   << std::endl;
       }
     }
 
-    /*[ Print Servo initialization result ]*/ {
-      if (!init_failed_ids.empty()) {
+    /* Print Servo initialization result */ {
+      if (!failed_ids.empty()) {
         std::cout << "Excluded Servos with the following IDs "
                      "from the Servo list: ";
-        for (auto id : init_failed_ids) {
+        for (auto id : failed_ids) {
           std::cout << id << " ";
         }
         std::cout << std::endl;
@@ -267,39 +414,61 @@ class ServoSystem {
   ///////////////////////////////////////////////////////////////
   ///           Commands you can send to the Servos.          ///
 
-  void Input(const std::map<int, std::map<CommandType, double>> commands) {
-    InputGetter(commands);
+  std::set<int> GetIds() { return ids_; }
+
+  void ListenInternalCommand(bool listen) { listen_.internal = listen; }
+
+  void ListenExternalCommand(bool listen) { listen_.external = listen; }
+
+  void Command(const std::map<int, std::map<CmdItem, double>> cmds) {
+    if (!listen_.internal) return;
+    EmplaceCommand(cmds);
   }
 
-  void InputAll(const std::map<CommandType, double> command) {
-    std::map<int, std::map<CommandType, double>> commands;
+  void CommandAll(const std::map<CmdItem, double> cmd) {
+    if (!listen_.internal) return;
+    std::map<int, std::map<CmdItem, double>> cmds;
     for (const auto id : ids_) {
-      commands[id] = command;
+      cmds[id] = cmd;
     }
-    InputGetter(commands);
+    EmplaceCommand(cmds);
   }
+
+  void GetReplyAll(void* const output, size_t size) {
+    InternalReplySender(output, size);
+  }
+
+  void Fix(const std::set<int> ids) {
+    std::map<int, std::map<CmdItem, double>> cmds;
+    for (const auto id : ids) {
+      const auto& servo = Utils::SafeAt(servos_, id);
+      if (servo) {
+        cmds[id][CmdItem::POSITION] = NaN;
+        cmds[id][CmdItem::VELOCITY] = 0.0;
+        cmds[id][CmdItem::FEEDFORWARD_TORQUE] = 0.0;
+      }
+    }
+    EmplaceCommand(cmds);
+  }
+
+  void FixAll() { Fix(ids_); }
 
   void Stop(const std::set<int> ids) {
-    std::map<int, std::map<CommandType, double>> commands;
     for (const auto id : ids) {
       const auto& servo = Utils::SafeAt(servos_, id);
       if (servo) {
         servo.value()->controller_->SetStop();
-        commands[id][CommandType::POSITION] = NaN;
-        commands[id][CommandType::VELOCITY] = 0.0;
-        commands[id][CommandType::FEEDFORWARD_TORQUE] = 0.0;
       }
     }
-    InputGetter(commands);
   }
 
   void StopAll() { Stop(ids_); }
 
-  void SetBasePositions(const std::set<int> ids) {
+  void SetBasePosition(const std::set<int> ids) {
     for (const auto id : ids) {
       const auto& servo = Utils::SafeAt(servos_, id);
       if (servo) {
-        if (!servo.value()->SetBasePosition(0.0)) {
+        if (!servo.value()->SetBasePos(0.0)) {
           std::cout << "Base position setting failed for ID " << id << "."
                     << std::endl;
         } else {
@@ -308,31 +477,81 @@ class ServoSystem {
         }
       } else {
         std::cout << "No Servo of ID " << id
-                  << " found.  Base position setting failed," << std::endl;
+                  << " found.  Base position setting failed." << std::endl;
       }
     }
   }
 
-  void SetBasePositionsAll() { SetBasePositions(ids_); }
+  void SetBasePositionAll() { SetBasePosition(ids_); }
 
-  void GetOutput(const void* output, size_t size) {
-    InternalOutputSender(output, size);
+  void SetBaseAux2Position(const std::set<int> ids) {
+    for (const auto id : ids) {
+      const auto& servo = Utils::SafeAt(servos_, id);
+      if (servo) {
+        if (!servo.value()->SetBaseAux2Pos(0.0)) {
+          std::cout << "Base aux2 position setting failed for ID " << id << "."
+                    << std::endl;
+        } else {
+          std::cout << "Base aux2 position setting succeeded for ID " << id
+                    << "." << std::endl;
+        }
+      } else {
+        std::cout << "No Servo of ID " << id
+                  << " found.  Base aux2 position setting failed." << std::endl;
+      }
+    }
   }
 
-  std::set<int> GetIds() { return ids_; }
+  void SetBaseAux2PositionAll() { SetBaseAux2Position(ids_); }
 
-  void StartThread(const std::string& name) {
-    const auto& maybe_thread_manager = Utils::SafeAt(ThreadsManager, name);
+  void SetCmdPosRelTo(const std::set<int> ids, CmdPosRelTo new_val) {
+    for (const auto id : ids) {
+      const auto& servo = Utils::SafeAt(servos_, id);
+      if (servo) {
+        servo.value()->SetCmdPosRelTo(new_val);
+      }
+    }
+  }
+
+  void SetCmdPosRelToAll(CmdPosRelTo new_val) { SetCmdPosRelTo(ids_, new_val); }
+
+  void SetRplPosRelTo(const std::set<int> ids, RplPosRelTo new_val) {
+    for (const auto id : ids) {
+      const auto& servo = Utils::SafeAt(servos_, id);
+      if (servo) {
+        servo.value()->SetRplPosRelTo(new_val);
+      }
+    }
+  }
+
+  void SetRplPosRelToAll(RplPosRelTo new_val) { SetRplPosRelTo(ids_, new_val); }
+
+  void SetRplAux2PosRelTo(const std::set<int> ids, RplPosRelTo new_val) {
+    for (const auto id : ids) {
+      const auto& servo = Utils::SafeAt(servos_, id);
+      if (servo) {
+        servo.value()->SetRplAux2PosRelTo(new_val);
+      }
+    }
+  }
+
+  void SetRplAux2PosRelToAll(RplPosRelTo new_val) {
+    SetRplAux2PosRelTo(ids_, new_val);
+  }
+
+  void StartThread(const std::string& alias) {
+    const auto& maybe_thread_manager = Utils::SafeAt(threads_manager, alias);
     if (maybe_thread_manager) {
       maybe_thread_manager.value()->Start();
     } else {
-      std::cout << "Cannot find thread of name " << name << "." << std::endl;
+      std::cout << "Cannot find thread with alias " << alias << "."
+                << std::endl;
     }
   }
 
   void StartThreadAll() {
     std::set<LoopingThreadManager*> threads;
-    for (const auto& pair : ThreadsManager) {
+    for (const auto& pair : threads_manager) {
       threads.insert(pair.second);
     }
     for (const auto& thread : threads) {
@@ -340,18 +559,19 @@ class ServoSystem {
     }
   }
 
-  void TerminateThread(const std::string& name) {
-    const auto& maybe_thread_manager = Utils::SafeAt(ThreadsManager, name);
+  void TerminateThread(const std::string& alias) {
+    const auto& maybe_thread_manager = Utils::SafeAt(threads_manager, alias);
     if (maybe_thread_manager) {
       maybe_thread_manager.value()->Terminate();
     } else {
-      std::cout << "Cannot find thread of name " << name << "." << std::endl;
+      std::cout << "Cannot find thread with alias " << alias << "."
+                << std::endl;
     }
   }
 
   void TerminateThreadAll() {
     std::set<LoopingThreadManager*> threads;
-    for (const auto& pair : ThreadsManager) {
+    for (const auto& pair : threads_manager) {
       threads.insert(pair.second);
     }
     for (const auto& thread : threads) {
@@ -359,9 +579,9 @@ class ServoSystem {
     }
   }
 
-  void PrintThreads() {
+  void PrintThreadAll() {
     std::set<LoopingThreadManager*> threads;
-    for (const auto& pair : ThreadsManager) {
+    for (const auto& pair : threads_manager) {
       threads.insert(pair.second);
     }
     int i = 1;
@@ -369,11 +589,11 @@ class ServoSystem {
       std::cout << "Thread #" << i++ << ":" << std::endl;
       std::cout << "    Aliases: ";
       for (const auto& alias : thread->aliases_) {
-        std::cout << alias << ", ";
+        std::cout << alias << " || ";
       }
       std::cout << std::endl
-                << "    Is On?: " << (thread->IsOn() ? "True" : "False")
-                << std::endl;
+                << "    Is Running?: "
+                << (thread->IsRunning() ? "true" : "false") << std::endl;
     }
   }
 
@@ -384,38 +604,53 @@ class ServoSystem {
   std::set<int> ids_;
   std::map<int, std::shared_ptr<Servo>> servos_;  // ID -> Servo
   std::shared_ptr<moteus::Transport> transport_;
-  const unsigned int cycle_period_us_ = 0.01 * 1e6;
+  struct {
+    bool internal = true;
+    bool external = true;
+  } listen_;
+  const unsigned int cycle_period_us_ = static_cast<int>(1.0 / 100.0 * 1e6);
   std::mutex servo_access_mutex_;
-  LoopingThreadManager runner_thread_manager_;
-  LoopingThreadManager external_input_getter_manager_;
-  LoopingThreadManager external_output_sender_manager_;
+  std::map<std::string, LoopingThreadManager*> threads_manager;
+  LoopingThreadManager exec_mgr_;
+  LoopingThreadManager ext_cmd_mgr_;
+  LoopingThreadManager ext_rpl_mgr_;
 
-  virtual void InternalOutputSender(const void* output, size_t size) {
-    char* output_charptr = (char*)output;
+  virtual void InternalReplySender(void* const output, size_t size) {
+    char* output_charptr = reinterpret_cast<char*>(output);
     int written;
     for (const auto& id_servo : servos_) {
       const auto id = id_servo.first;
       const auto& servo = id_servo.second;
-      moteus::Query::Result recent_state;
+      moteus::Query::Result usr_rpl;
       bool updated_this_cycle;
+
       {
         std::lock_guard<std::mutex> lock(servo_access_mutex_);
-        recent_state = servo->state_.recent_reply;
-        updated_this_cycle = servo->state_.updated_this_cycle;
+        usr_rpl = servo->usr_rpl();
+        updated_this_cycle = servo->updated_last_cycle_;
       }
 
       if (updated_this_cycle) {
-        written = ::snprintf(output_charptr, size,
-                             "id=%2d/mode=%2d/pos=%3.3f/vel=%3.3f/tor=%3.3f/"
-                             "volt=%3.2f/temp=%2.1f/fault=%2d\n",
-                             id, static_cast<int>(recent_state.mode),
-                             recent_state.position - servo->base_position_,
-                             recent_state.velocity, recent_state.torque,
-                             recent_state.voltage, recent_state.temperature,
-                             recent_state.fault);
+        written =
+            ::snprintf(output_charptr, size,
+                       "id=%2d__mode=%2d__"
+                       "pos=%3.3f__aux2_pos=%3.3f__vel=%3.3f__trq=%3.3f__"
+                       "q=%3.3f__d=%3.3f__volt=%3.2f__power=%3.3f__"
+                       "motor_temp=%3.3f__temp=%2.1f__"
+                       "trj=%s__home=%2d__"
+                       "fault=%2d\n",
+                       id, static_cast<int>(usr_rpl.mode),  //
+                       usr_rpl.position, usr_rpl.abs_position, usr_rpl.velocity,
+                       usr_rpl.torque,  //
+                       usr_rpl.q_current, usr_rpl.d_current, usr_rpl.voltage,
+                       usr_rpl.power,                                   //
+                       usr_rpl.motor_temperature, usr_rpl.temperature,  //
+                       usr_rpl.trajectory_complete ? "true" : "false",
+                       static_cast<int>(usr_rpl.home_state),  //
+                       usr_rpl.fault);
       } else {
         written = ::snprintf(output_charptr, size,
-                             "id=%2d/NOT UPDATED THIS CYCLE\n", id);
+                             "id=%2d__NOT UPDATED THIS CYCLE\n", id);
       }
 
       if (written < 0) {
@@ -424,7 +659,7 @@ class ServoSystem {
             << std::endl;
         return;
       } else if (written >= size) {
-        std::cout << "Insufficient size to accommodate output." << std::endl;
+        std::cout << "Insufficient size to accommodate replies." << std::endl;
         return;
       }
 
@@ -433,28 +668,27 @@ class ServoSystem {
     }
   }
 
-  virtual void ExternalOutputSender(std::atomic_bool* terminated) {
-    std::cout << "ExternalOutputSender thread is running..." << std::endl;
+  virtual void ExternalReplySender(std::atomic_bool* terminated) {
+    std::cout << "ExternalReplySender thread is running..." << std::endl;
 
-    /// Probably let a ROS2 publisher publish servo states
-    /// or send encoded servo states as UDP packets.
+    /// Probably let a ROS2 publisher publish Servo replies
+    /// or send encoded Servo replies as UDP packets.
   }
 
-  virtual void ExternalInputGetter(std::atomic_bool* terminated) {
-    std::cout << "ExternalInputGetter thread is running..." << std::endl;
+  virtual void ExternalCommandGetter(std::atomic_bool* terminated) {
+    std::cout << "ExternalCommandGetter thread is running..." << std::endl;
 
-    while (!(*terminated).load()) {
+    while (!((*terminated).load())) {
       std::string input;
       std::getline(std::cin, input);
-      if (input.empty()) continue;
-      InputGetter(Parser::ParseStringInput(input));
+      if (!listen_.external || input.empty()) continue;
+      EmplaceCommand(Parser::ParseStrInput(input));
     }
   }
 
-  void InputGetter(
-      const std::map<int, std::map<CommandType, double>>& commands) {
-    std::cout << "Parsing input..." << std::endl;
-    for (const auto& id_cmd : commands) {
+  void EmplaceCommand(const std::map<int, std::map<CmdItem, double>>& cmds) {
+    std::cout << "Parsing command..." << std::endl;
+    for (const auto& id_cmd : cmds) {
       const auto id = id_cmd.first;
       const auto& cmd = id_cmd.second;
       const auto& maybe_servo = Utils::SafeAt(servos_, id);
@@ -466,67 +700,63 @@ class ServoSystem {
       }
       const auto& servo = maybe_servo.value();
 
-      std::cout << "Parsing input for Servo ID " << id << "..." << std::endl;
-      for (const auto& type_value : cmd) {
-        const auto type = type_value.first;
-        auto value = type_value.second;
-        std::cout << "Parsing input of CommandType " << type << "..."
-                  << std::endl;
+      std::cout << "Parsing command for Servo ID " << id << "..." << std::endl;
+      for (const auto& item_val : cmd) {
+        const auto item = item_val.first;
+        auto val = item_val.second;
+        std::cout << "Parsing command item " << item << "..." << std::endl;
         {
           std::lock_guard<std::mutex> lock(servo_access_mutex_);
           if (((moteus::Resolution*)(&(
-                  servo->controller_->options().position_format)))[type] ==
+                  servo->controller_->options().position_format)))[item] ==
               moteus::Resolution::kIgnore) {
-            std::cout << "ServoSystem PositionMode Format is set to " << type
+            std::cout << "ServoSystem command resolution is set to " << item
                       << " = " << "kIgnore.  Ignoring command." << std::endl;
             continue;
           }
-          if (type == CommandType::POSITION && std::isfinite(value)) {
-            value += servo->base_position_;
-          }
-          ((double*)(&(servo->command_)))[type] = value;
+          ((double*)(&(servo->usr_cmd_)))[item] = val;
         }
-        std::cout << "Successfully set command " << type << " = " << value
-                  << " for Servo ID " << id << std::endl;
+        std::cout << "Successfully set command " << item << " = " << val
+                  << " for Servo ID " << id << "." << std::endl;
       }
     }
   }
 
  private:
-  void Run(std::atomic_bool* terminated) {
+  void ExecuteCommand(std::atomic_bool* terminated) {
     std::cout << "Runner thread is running..." << std::endl;
 
     if (servos_.empty()) {
-      std::cout << "No Servos found. Runner thread terminating." << std::endl;
+      std::cout << "No Servos found.  Runner thread terminating." << std::endl;
       return;
     }
 
-    while (!(*terminated).load()) {
+    while (!((*terminated).load())) {
       ::usleep(cycle_period_us_);
 
-      std::vector<moteus::CanFdFrame> command_frames;
+      std::vector<moteus::CanFdFrame> cmd_frames;
       for (auto& id_servo : servos_) {
         auto id = id_servo.first;
         auto& servo = id_servo.second;
-        servo->state_.updated_this_cycle = false;
+        servo->updated_last_cycle_ = false;
         {
           std::lock_guard<std::mutex> lock(servo_access_mutex_);
-          command_frames.push_back(
-              servo->controller_->MakePosition(servo->command_));
+          cmd_frames.push_back(
+              servo->controller_->MakePosition(servo->sys_cmd()));
         }
       }
 
       std::vector<moteus::CanFdFrame> reply_frames;
-      transport_->BlockingCycle(&command_frames[0], command_frames.size(),
+      transport_->BlockingCycle(&cmd_frames[0], cmd_frames.size(),
                                 &reply_frames);
 
       for (const auto& frame : reply_frames) {
         int id = frame.source;
         const auto& maybe_servo = Utils::SafeAt(servos_, id);
         if (maybe_servo) {
-          auto& state = maybe_servo.value()->state_;
-          state.recent_reply = moteus::Query::Parse(frame.data, frame.size);
-          state.updated_this_cycle = true;
+          auto& servo = maybe_servo.value();
+          servo->SetReply(moteus::Query::Parse(frame.data, frame.size));
+          servo->updated_last_cycle_ = true;
         }
       }
     }

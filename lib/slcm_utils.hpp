@@ -22,12 +22,11 @@ struct Utils {
 
   /// @brief Safely get value by key from a map.
   /// @return Optional object that might hold the desired value.
-  ///         Use if (maybe_value) {} or maybe_value.has_value()
+  ///         Use boolean operator or .has_value() method
   ///         to check if the get operation succeeded.
-  template <typename Key, typename Value>
-  static std::optional<Value> SafeAt(const std::map<Key, Value>& map,
-                                     const Key& key) {
-    std::optional<Value> maybe_value;
+  template <typename K, typename V>
+  static std::optional<V> SafeAt(const std::map<K, V>& map, const K& key) {
+    std::optional<V> maybe_value;
     try {
       maybe_value.emplace(map.at(key));
     } catch (std::out_of_range e) {
@@ -41,7 +40,7 @@ struct Utils {
   template <class T>
   static std::string GetClassName(T* ptr) {
     int status;
-    char* class_name_buffer = static_cast<char*>(malloc(16));
+    char* class_name_buffer = static_cast<char*>(malloc(32));
     abi::__cxa_demangle(typeid(*ptr).name(), class_name_buffer, nullptr,
                         &status);
     std::string class_name_string =
@@ -53,11 +52,11 @@ struct Utils {
   /// @brief Check system endianness.
   static bool IsLittleEndian() {
     static union {
-      uint32_t i;
-      char c[4];
-    } u = {0x00cafe01};
+      uint32_t four_byte_int;
+      char four_chars[4];
+    } random_entity = {0x00cafe01};
 
-    return u.c[0];
+    return random_entity.four_chars[0];
   }
 };
 

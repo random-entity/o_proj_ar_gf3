@@ -1,0 +1,43 @@
+{
+  "position": {
+    "using": true,
+    "initial_value": "NaN"
+  },
+  "velocity": {
+    "using": true,
+    "initial_value": 0.0
+  },
+  "feedforward_torque": {
+    "using": true,
+    "initial_value": 0.0
+  },
+  "kp_scale": {
+    "using": true,
+    "initial_value": 1.0
+  },
+  "kd_scale": {
+    "using": true,
+    "initial_value": 1.0
+  },
+  "maximum_torque": {
+    "using": true,
+    "initial_value": 0.5
+  },
+  "stop_position": {
+    "using": false
+  },
+  "watchdog_timeout": {
+    "using": false
+  },
+  "velocity_limit": {
+    "using": true,
+    "initial_value": 0.1
+  },
+  "accel_limit": {
+    "using": true,
+    "initial_value": 0.1
+  },
+  "fixed_voltage_override": {
+    "using": false
+  }
+}

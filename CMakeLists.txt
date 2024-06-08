@@ -14,7 +14,7 @@ FetchContent_MakeAvailable(nlohmann_json)
 FetchContent_Declare(
   moteus
   GIT_REPOSITORY https://github.com/mjbots/moteus.git
-  GIT_TAG 0.1-20240430
+  GIT_TAG 0.1-20240520
 )
 FetchContent_MakeAvailable(moteus)
 
@@ -53,4 +53,13 @@ add_executable(udp examples/udp/main.cpp)
 target_link_libraries(udp som_linuxcppmoteus)
 set_target_properties(udp PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "../examples/udp/bin"
+)
+
+add_executable(differential examples/differential-joint/main.cpp)
+target_link_libraries(differential som_linuxcppmoteus)
+target_include_directories(
+  differential PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/examples/udp
+)
+set_target_properties(differential PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "../examples/differential-joint/bin"
 )

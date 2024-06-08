@@ -21,7 +21,7 @@
   },
   "maximum_torque": {
     "using": true,
-    "initial_value": 1.0
+    "initial_value": 10.0
   },
   "stop_position": {
     "using": false
@@ -31,11 +31,11 @@
   },
   "velocity_limit": {
     "using": true,
-    "initial_value": 8.0
+    "initial_value": 0.5
   },
   "accel_limit": {
     "using": true,
-    "initial_value": 8.0
+    "initial_value": 0.5
   },
   "fixed_voltage_override": {
     "using": false

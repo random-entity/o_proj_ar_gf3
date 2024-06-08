@@ -36,139 +36,139 @@ struct Parser {
   }
 
   /// @brief Parse string input of specific format described below
-  ///        to form a command map.
+  ///        to form a command map: ID -> CmdItem -> value
   /// @param input The format of string input is as follows:
-  ///              <id>=<3-letter-command-type-abbr><value>[,...][;...]
+  ///              <id>=<3-letter-cmd-item-abbr><value>[,...][;...]
   ///              For example,
   ///              1=pos1.0,vel0.1,mtq1.0;2=pos-1.0,vel-0.1,vlm0.5
-  static std::map<int, std::map<CommandType, double>> ParseStringInput(
+  static std::map<int, std::map<CmdItem, double>> ParseStrInput(
       std::string input) {
-    std::map<int, std::map<CommandType, double>> commands;
+    std::map<int, std::map<CmdItem, double>> cmds;
     auto sentence = Split(input, ';');
-    for (auto& id_command : sentence) {
-      auto id_and_command = Split(id_command, '=');
+    for (auto& id_cmd : sentence) {
+      auto id_and_cmd = Split(id_cmd, '=');
       try {
-        if (id_and_command.size() != 2) throw std::exception();
-        auto id = std::stoi(id_and_command[0]);
-        auto command = id_and_command[1];
-        auto fields = Split(command, ',');
+        if (id_and_cmd.size() != 2) throw std::exception();
+        auto id = std::stoi(id_and_cmd[0]);
+        auto cmd = id_and_cmd[1];
+        auto fields = Split(cmd, ',');
         for (const auto& field : fields) {
-          auto command_type_string = field.substr(0, 3);
-          CommandType command_type;
+          auto cmd_item_str = field.substr(0, 3);
+          CmdItem cmd_item;
           {
-            if (command_type_string == "pos") {
-              command_type = CommandType::POSITION;
-            } else if (command_type_string == "vel") {
-              command_type = CommandType::VELOCITY;
-            } else if (command_type_string == "fft") {
-              command_type = CommandType::FEEDFORWARD_TORQUE;
-            } else if (command_type_string == "kps") {
-              command_type = CommandType::KP_SCALE;
-            } else if (command_type_string == "kds") {
-              command_type = CommandType::KD_SCALE;
-            } else if (command_type_string == "mtq") {
-              command_type = CommandType::MAXIMUM_TORQUE;
-            } else if (command_type_string == "stp") {
-              command_type = CommandType::STOP_POSITION;
-            } else if (command_type_string == "wtl") {
-              command_type = CommandType::WATCHDOG_TIMEOUT;
-            } else if (command_type_string == "vlm") {
-              command_type = CommandType::VELOCITY_LIMIT;
-            } else if (command_type_string == "alm") {
-              command_type = CommandType::ACCEL_LIMIT;
-            } else if (command_type_string == "fvo") {
-              command_type = CommandType::FIXED_VOLTAGE_OVERRIDE;
+            if (cmd_item_str == "pos") {
+              cmd_item = CmdItem::POSITION;
+            } else if (cmd_item_str == "vel") {
+              cmd_item = CmdItem::VELOCITY;
+            } else if (cmd_item_str == "fft") {
+              cmd_item = CmdItem::FEEDFORWARD_TORQUE;
+            } else if (cmd_item_str == "kps") {
+              cmd_item = CmdItem::KP_SCALE;
+            } else if (cmd_item_str == "kds") {
+              cmd_item = CmdItem::KD_SCALE;
+            } else if (cmd_item_str == "mtq") {
+              cmd_item = CmdItem::MAXIMUM_TORQUE;
+            } else if (cmd_item_str == "stp") {
+              cmd_item = CmdItem::STOP_POSITION;
+            } else if (cmd_item_str == "wtl") {
+              cmd_item = CmdItem::WATCHDOG_TIMEOUT;
+            } else if (cmd_item_str == "vlm") {
+              cmd_item = CmdItem::VELOCITY_LIMIT;
+            } else if (cmd_item_str == "alm") {
+              cmd_item = CmdItem::ACCEL_LIMIT;
+            } else if (cmd_item_str == "fvo") {
+              cmd_item = CmdItem::FIXED_VOLTAGE_OVERRIDE;
+            } else if (cmd_item_str == "ils") {
+              cmd_item = CmdItem::ILIMIT_SCALE;
             } else {
               throw std::exception();
             }
           }
           if (field.substr(3) == "nan") {
-            commands[id][command_type] = NaN;
+            cmds[id][cmd_item] = NaN;
           } else {
-            auto command_value = stod(field.substr(3));
-            commands[id][command_type] = command_value;
+            auto cmd_val = stod(field.substr(3));
+            cmds[id][cmd_item] = cmd_val;
           }
         }
       } catch (...) {
         std::cout << "Ignoring wrong command: "
-                  << (id_command.empty() ? "<empty>" : id_command) << std::endl;
+                  << (id_cmd.empty() ? "<empty>" : id_cmd) << std::endl;
       }
     }
-    return commands;
+    return cmds;
   }
 
-  /// @brief Parse the PositionMode config JSON file.
-  /// @param config_dir_path The path to the directory where the
+  /// @brief Parse the (PositionMode) command config JSON file.
+  /// @param conf_dir The path to the directory where the
   ///        config file is located at, relative to the working directory
-  ///        within the terminal where the binary is executed, if relative.
-  ///        The config file must be named "slcm.positionmode.config.json".
-  ///        If the file is not found, the default Format and Command
-  ///        which can be found at
+  ///        within the terminal where the binary is executed, if given as
+  ///        relative.  The config file must be named
+  ///        "slcm.cmd.conf.json".  If the file is not found, the
+  ///        default PositionMode Format and Command which can be found at
   ///        https://github.com/mjbots/moteus/blob/main/lib/cpp/mjbots/moteus/moteus_protocol.h
   ///        (Look for structs PositionMode::Format and PositionMode::Command.)
   ///        will be returned.  It is always recommended to use manual
   ///        configuration since the default Format ignores maximum torque and
-  ///        velocity limit, which can cause your servo system to shut down.
+  ///        velocity limit, which can cause your ServoSystem to shut down.
   /// @return A pair of PositionMode Format and Command, which will be used for
   ///         controller options configuration and initial command respectively.
   static std::pair<moteus::PositionMode::Format, moteus::PositionMode::Command>
-  ParsePositionModeConfig(const std::string& config_dir_path) {
-    moteus::PositionMode::Format format;
-    moteus::PositionMode::Command command;
+  ParseCmdConf(const std::string& conf_dir) {
+    moteus::PositionMode::Format fmt;
+    moteus::PositionMode::Command cmd;
 
-    char* config_dir_path_absolute = (char*)(malloc(512));
-    realpath(config_dir_path.c_str(), config_dir_path_absolute);
-    std::cout << "Looking for config file at: " << config_dir_path_absolute
+    char* conf_dir_abs = (char*)(malloc(512));
+    realpath(conf_dir.c_str(), conf_dir_abs);
+    std::cout << "Looking for command config file at: " << conf_dir_abs
               << std::endl;
-    free(config_dir_path_absolute);
+    free(conf_dir_abs);
 
-    const std::string config_file_path =
-        config_dir_path + "/slcm.positionmode.config.json";
-    std::ifstream config_file(config_file_path);
-    if (!config_file) {
-      std::cout << "PositionMode config file " << config_file_path
+    const std::string conf_file_path = conf_dir + "/slcm.cmd.conf.json";
+    std::ifstream conf_file(conf_file_path);
+    if (!conf_file) {
+      std::cout << "Command config file " << conf_file_path
                 << " not found.  Using default values from moteus_protocol.h, "
-                   "which can be dangerous."
+                   "which is not recommended."
                 << std::endl;
     } else {
-      std::cout << "PositionMode config file " << config_file_path << " found."
+      std::cout << "Command config file " << conf_file_path << " found."
                 << std::endl;
 
-      json config_json;
-      config_file >> config_json;
-      config_file.close();
+      json conf_json;
+      conf_file >> conf_json;
+      conf_file.close();
 
       const std::map<std::string, std::pair<moteus::Resolution*, double*>>
           member_map{
-              {"position", {&format.position, &command.position}},
-              {"velocity", {&format.velocity, &command.velocity}},
+              {"position", {&fmt.position, &cmd.position}},
+              {"velocity", {&fmt.velocity, &cmd.velocity}},
               {"feedforward_torque",
-               {&format.feedforward_torque, &command.feedforward_torque}},
-              {"kp_scale", {&format.kp_scale, &command.kp_scale}},
-              {"kd_scale", {&format.kd_scale, &command.kd_scale}},
-              {"maximum_torque",
-               {&format.maximum_torque, &command.maximum_torque}},
-              {"stop_position",
-               {&format.stop_position, &command.stop_position}},
+               {&fmt.feedforward_torque, &cmd.feedforward_torque}},
+              {"kp_scale", {&fmt.kp_scale, &cmd.kp_scale}},
+              {"kd_scale", {&fmt.kd_scale, &cmd.kd_scale}},
+              {"maximum_torque", {&fmt.maximum_torque, &cmd.maximum_torque}},
+              {"stop_position", {&fmt.stop_position, &cmd.stop_position}},
               {"watchdog_timeout",
-               {&format.watchdog_timeout, &command.watchdog_timeout}},
-              {"velocity_limit",
-               {&format.velocity_limit, &command.velocity_limit}},
-              {"accel_limit", {&format.accel_limit, &command.accel_limit}},
+               {&fmt.watchdog_timeout, &cmd.watchdog_timeout}},
+              {"velocity_limit", {&fmt.velocity_limit, &cmd.velocity_limit}},
+              {"accel_limit", {&fmt.accel_limit, &cmd.accel_limit}},
               {"fixed_voltage_override",
-               {&format.fixed_voltage_override,
-                &command.fixed_voltage_override}},
+               {&fmt.fixed_voltage_override, &cmd.fixed_voltage_override}},
+              {"ilimit_scale", {&fmt.ilimit_scale, &cmd.ilimit_scale}},
           };
 
       bool default_used = false;
       for (auto& item : member_map) {
-        auto& member_name = item.first;
-        auto& resolution = item.second.first;
-        auto& initial_value = item.second.second;
+        const auto& item_name = item.first;
+        auto& res = item.second.first;
+        auto& init_val = item.second.second;
 
-        std::cout << "Configuring " << member_name << "..." << std::endl;
+        std::cout << "Configuring command resolution and initial command "
+                     "value for "
+                  << item_name << "..." << std::endl;
 
-        if (!config_json.contains(member_name)) {
+        if (!conf_json.contains(item_name)) {
           if (!default_used) {
             std::cout << "Default values can be found at moteus_protocol.h "
                          "of the mjbots/moteus library."
@@ -176,60 +176,159 @@ struct Parser {
             default_used = true;
           }
 
-          std::cout << "Config JSON does not contain key " << member_name
-                    << ".  Using default values " << *resolution << ", "
-                    << *initial_value << " and skipping to the next key."
+          std::cout << "Config JSON does not contain key " << item_name
+                    << ".  Using default values " << *res << ", "
+                    << *init_val << " and skipping to the next key."
                     << std::endl;
           continue;
         }
 
-        const auto& inner_json = config_json[member_name];
+        const auto& inner_json = conf_json[item_name];
 
-        if (!inner_json.contains("using")) {
-          std::cout << "JSON does not contain key " << member_name
-                    << "/using.  Using default value: " << *resolution
-                    << std::endl;
-        } else if (!inner_json["using"].is_boolean()) {
-          std::cout << "Value for key " << member_name
-                    << "/using is not boolean.  Using default value: "
-                    << *resolution << std::endl;
+        if (!inner_json.contains("resolution") ||
+            !inner_json["resolution"].is_string()) {
+          std::cout << "Config JSON does not contain key " << item_name
+                    << "/resolution, or the value is not a string.  "
+                       "Using default value: "
+                    << *res << std::endl;
         } else {
-          *resolution = static_cast<bool>(inner_json["using"])
-                            ? moteus::Resolution::kFloat
-                            : moteus::Resolution::kIgnore;
-          std::cout << "Successfully set resolution for " << member_name << ": "
-                    << *resolution << std::endl;
+          if (inner_json["resolution"] == "kInt8") {
+            *res = moteus::Resolution::kInt8;
+          } else if (inner_json["resolution"] == "kInt16") {
+            *res = moteus::Resolution::kInt16;
+          } else if (inner_json["resolution"] == "kInt32") {
+            *res = moteus::Resolution::kInt32;
+          } else if (inner_json["resolution"] == "kFloat") {
+            *res = moteus::Resolution::kFloat;
+          } else {
+            std::cout << "Unknown resolution.  Using default value: "
+                      << *res << std::endl;
+          }
         }
 
-        if (*resolution == moteus::Resolution::kIgnore) {
-          std::cout << "Skipping initial value setting " << member_name
-                    << " since resolution is set to kIgnore." << std::endl;
+        std::cout << "Command resolution for " << item_name
+                  << " is set to: " << *res << std::endl;
+
+        if (*res == moteus::Resolution::kIgnore) {
+          std::cout << "Skipping initial value setting of " << item_name
+                    << " since its resolution is set to kIgnore." << std::endl;
           continue;
         }
 
         if (!inner_json.contains("initial_value")) {
-          std::cout << "JSON does not contain key " << member_name
+          std::cout << "JSON does not contain key " << item_name
                     << "/initial_value.  Using default value: "
-                    << *initial_value << std::endl;
+                    << *init_val << std::endl;
         } else if (!inner_json["initial_value"].is_number()) {
           if (inner_json["initial_value"].is_string() &&
               inner_json["initial_value"] == "NaN") {
-            *initial_value = NaN;
+            *init_val = NaN;
           } else {
-            std::cout << "Value for key " << member_name
+            std::cout << "Value for key " << item_name
                       << "/initial_value is not a number nor NaN.  "
                          "Using default value: "
-                      << *initial_value << std::endl;
+                      << *init_val << std::endl;
           }
         } else {
-          *initial_value = static_cast<double>(inner_json["initial_value"]);
-          std::cout << "Successfully set initial value for " << member_name
-                    << ": " << *initial_value << std::endl;
+          *init_val = static_cast<double>(inner_json["initial_value"]);
         }
+
+        std::cout << "Initial command value for " << item_name
+                  << " is set to: " << *init_val << std::endl;
       }
     }
 
-    return std::pair{format, command};
+    return std::make_pair(fmt, cmd);
+  }
+
+  static moteus::Query::Format ParseRplConf(const std::string& conf_dir) {
+    moteus::Query::Format fmt;
+
+    char* conf_dir_abs = (char*)(malloc(512));
+    realpath(conf_dir.c_str(), conf_dir_abs);
+    std::cout << "Looking for reply config file at: "
+              << conf_dir_abs << std::endl;
+    free(conf_dir_abs);
+
+    const std::string conf_file_path = conf_dir + "/slcm.rpl.conf.json";
+    std::ifstream conf_file(conf_file_path);
+    if (!conf_file) {
+      std::cout << "Reply config file " << conf_file_path
+                << " not found.  Using default values from moteus_protocol.h, "
+                   "which is not suitable when using an external encoder."
+                << std::endl;
+    } else {
+      std::cout << "Reply config file " << conf_file_path << " found."
+                << std::endl;
+
+      json conf_json;
+      conf_file >> conf_json;
+      conf_file.close();
+
+      const std::map<std::string, moteus::Resolution*> member_map{
+          {"mode", &fmt.mode},
+          {"position", &fmt.position},
+          {"velocity", &fmt.velocity},
+          {"torque", &fmt.torque},
+          {"q_current", &fmt.q_current},
+          {"d_current", &fmt.d_current},
+          {"abs_position", &fmt.abs_position},
+          {"power", &fmt.power},
+          {"motor_temperature", &fmt.motor_temperature},
+          {"trajectory_complete", &fmt.trajectory_complete},
+          {"home_state", &fmt.home_state},
+          {"voltage", &fmt.voltage},
+          {"temperature", &fmt.temperature},
+          {"fault", &fmt.fault},
+      };
+
+      bool default_used = false;
+      for (auto& item : member_map) {
+        auto& item_name = item.first;
+        auto& res = item.second;
+
+        std::cout << "Configuring reply resolution for " << item_name << "..."
+                  << std::endl;
+
+        if (!conf_json.contains(item_name)) {
+          if (!default_used) {
+            std::cout << "Default values can be found at moteus_protocol.h "
+                         "of the mjbots/moteus library."
+                      << std::endl;
+            default_used = true;
+          }
+
+          std::cout << "Config JSON does not contain key " << item_name
+                    << ".  Using default resolution " << *res
+                    << " and skipping to the next key." << std::endl;
+          continue;
+        }
+
+        if (conf_json[item_name].is_string()) {
+          if (conf_json[item_name] == "kInt8") {
+            *res = moteus::Resolution::kInt8;
+          } else if (conf_json[item_name] == "kInt16") {
+            *res = moteus::Resolution::kInt16;
+          } else if (conf_json[item_name] == "kInt32") {
+            *res = moteus::Resolution::kInt32;
+          } else if (conf_json[item_name] == "kFloat") {
+            *res = moteus::Resolution::kFloat;
+          } else {
+            std::cout << "Unknown resolution.  Using default value: "
+                      << *res << std::endl;
+          }
+        } else {
+          std::cout << "Resolution value is not a string.  "
+                       "Using default value: "
+                    << *res << std::endl;
+        }
+
+        std::cout << "Reply resolution for " << item_name
+                  << " is set to: " << *res << std::endl;
+      }
+    }
+
+    return fmt;
   }
 };
 

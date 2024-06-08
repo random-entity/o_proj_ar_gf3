@@ -9,46 +9,46 @@ int main() {
   ServoSystem servo_system{{{1, 1}, {2, 1}, {3, 1}}};
   const auto& ids = servo_system.GetIds();
 
-  // Initialize empty internal input vectors. We will fill
+  // Initialize empty internal command maps. We will fill
   // them up with commands we want to send to the Servos.
-  std::map<int, std::map<CommandType, double>> input;
-  std::map<CommandType, double> input_all;
+  std::map<int, std::map<CmdItem, double>> cmd;
+  std::map<CmdItem, double> cmd_all;
 
-  // Initialize empty output buffer. We will let the
-  // ServoSystem to fill it up with servo states.
-  char output_buffer[256] = {};
+  // Initialize empty reply buffer. We will let the
+  // ServoSystem to fill it up with servo replies.
+  char replies[1024] = {};
 
-  // Make sure to start the Runner thread which is responsible for
+  // Make sure to start the Executor thread which is responsible for
   // the continuous communication with the ServoSystem.
-  servo_system.StartThread("Runner");
+  servo_system.StartThread("Executor");
 
   ///////////////////////////////////////////////////////////////
   /// Demonstrate controlling the ServoSystem by internal commands
   /// for the first 10 + 10 seconds. No additional threads are
-  /// required for internal input and output.
+  /// required for internal command and reply.
 
   // Imitate a clock for 10 seconds.
   double time_init = Utils::GetNow();
   for (int i = 0; Utils::GetNow() - time_init < 10.0; i++, sleep(1)) {
-    input_all[CommandType::POSITION] = 0.25 * i;
-    input_all[CommandType::VELOCITY] = 0.0;
-    servo_system.InputAll(input_all);
+    cmd_all[POSITION] = 0.25 * i;
+    cmd_all[VELOCITY] = 0.0;
+    servo_system.CommandAll(cmd_all);
 
-    servo_system.GetOutput(output_buffer, sizeof(output_buffer));
-    printf("ServoSystem ouput:\n%s\n", output_buffer);
+    servo_system.GetReplyAll(replies, sizeof(replies));
+    printf("ServoSystem replies:\n%s\n", replies);
   }
 
   // Wave motion for 10 seconds.
   for (time_init = Utils::GetNow(); Utils::GetNow() - time_init < 10.0;
        usleep(0.01 * 1e6)) {
     for (const auto id : ids) {
-      input[id][CommandType::POSITION] = NaN;
-      input[id][CommandType::VELOCITY] = std::sin(2 * Utils::GetNow() + id);
+      cmd[id][POSITION] = NaN;
+      cmd[id][VELOCITY] = std::sin(2 * Utils::GetNow() + id);
     }
-    servo_system.Input(input);
+    servo_system.Command(cmd);
 
-    servo_system.GetOutput(output_buffer, sizeof(output_buffer));
-    printf("ServoSystem ouput:\n%s\n", output_buffer);
+    servo_system.GetReplyAll(replies, sizeof(replies));
+    printf("ServoSystem replies:\n%s\n", replies);
   }
 
   ///////////////////////////////////////////////////////////////
@@ -59,24 +59,27 @@ int main() {
        usleep(0.1 * 1e6)) {
     servo_system.StopAll();
   }
-  servo_system.SetBasePositionsAll();
+  servo_system.SetBasePositionAll();
 
-  servo_system.GetOutput(output_buffer, sizeof(output_buffer));
-  printf("ServoSystem ouput:\n%s\n", output_buffer);
+  servo_system.GetReplyAll(replies, sizeof(replies));
+  printf("ServoSystem replies:\n%s\n", replies);
 
   ///////////////////////////////////////////////////////////////
-  // Now start the ServoSystem ExternalInputGetter thread
+  // Now start the ServoSystem ExternalCommandGetter thread
   // to listen to external commands coming through standard input
   // while suspending main thread termination for 1 minute.
-  servo_system.StartThread("ExternalInputGetter");
+  servo_system.StartThread("ExternalCommandGetter");
 
   for (time_init = Utils::GetNow(); Utils::GetNow() - time_init < 60.0;
        sleep(1)) {
-    servo_system.GetOutput(output_buffer, sizeof(output_buffer));
-    printf("Servo ouput:\n%s\n", output_buffer);
+    servo_system.GetReplyAll(replies, sizeof(replies));
+    printf("Servo ouput:\n%s\n", replies);
   }
 
-  servo_system.TerminateThreadAll();
+  ///////////////////////////////////////////////////////////////
+  /// Terminate the ServoSystem.
+  servo_system.TerminateThreadAll();  // This may get stuck at std::getline().
+                                      // Just use Ctrl-c for now to terminate.
   sleep(1);
   return 0;
 }

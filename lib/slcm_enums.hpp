@@ -29,13 +29,19 @@ inline std::ostream& operator<<(std::ostream& os,
       os << "kIgnore";
       break;
     default:
-      os << "<Unknown Resolution>";
+      os << "<Unknown>";
       break;
   }
   return os;
 }
 
-enum CommandType : size_t {
+enum CmdPosRelTo { cmdABSOLUTE, cmdBASE, cmdRECENT };
+
+enum RplPosRelTo { rplABSOLUTE, rplBASE };
+
+enum WhichPos { posINTERNAL, posAUX2 };
+
+enum CmdItem : size_t {
   POSITION = 0,
   VELOCITY = 1,
   FEEDFORWARD_TORQUE = 2,
@@ -46,11 +52,12 @@ enum CommandType : size_t {
   WATCHDOG_TIMEOUT = 7,
   VELOCITY_LIMIT = 8,
   ACCEL_LIMIT = 9,
-  FIXED_VOLTAGE_OVERRIDE = 10
+  FIXED_VOLTAGE_OVERRIDE = 10,
+  ILIMIT_SCALE = 11
 };
 
-inline std::ostream& operator<<(std::ostream& os, const CommandType& type) {
-  switch (type) {
+inline std::ostream& operator<<(std::ostream& os, const CmdItem& item) {
+  switch (item) {
     case POSITION:
       os << "Position";
       break;
@@ -84,8 +91,11 @@ inline std::ostream& operator<<(std::ostream& os, const CommandType& type) {
     case FIXED_VOLTAGE_OVERRIDE:
       os << "Fixed Voltage Override";
       break;
+    case ILIMIT_SCALE:
+      os << "Ilimit Scale";
+      break;
     default:
-      os << "<Unknown CommandType>";
+      os << "<Unknown>";
       break;
   }
   return os;
