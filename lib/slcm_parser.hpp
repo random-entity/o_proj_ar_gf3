@@ -177,9 +177,8 @@ struct Parser {
           }
 
           std::cout << "Config JSON does not contain key " << item_name
-                    << ".  Using default values " << *res << ", "
-                    << *init_val << " and skipping to the next key."
-                    << std::endl;
+                    << ".  Using default values " << *res << ", " << *init_val
+                    << " and skipping to the next key." << std::endl;
           continue;
         }
 
@@ -200,9 +199,11 @@ struct Parser {
             *res = moteus::Resolution::kInt32;
           } else if (inner_json["resolution"] == "kFloat") {
             *res = moteus::Resolution::kFloat;
+          } else if (inner_json["resolution"] == "kIgnore") {
+            *res = moteus::Resolution::kIgnore;
           } else {
-            std::cout << "Unknown resolution.  Using default value: "
-                      << *res << std::endl;
+            std::cout << "Unknown resolution.  Using default value: " << *res
+                      << std::endl;
           }
         }
 
@@ -217,8 +218,8 @@ struct Parser {
 
         if (!inner_json.contains("initial_value")) {
           std::cout << "JSON does not contain key " << item_name
-                    << "/initial_value.  Using default value: "
-                    << *init_val << std::endl;
+                    << "/initial_value.  Using default value: " << *init_val
+                    << std::endl;
         } else if (!inner_json["initial_value"].is_number()) {
           if (inner_json["initial_value"].is_string() &&
               inner_json["initial_value"] == "NaN") {
@@ -246,8 +247,8 @@ struct Parser {
 
     char* conf_dir_abs = (char*)(malloc(512));
     realpath(conf_dir.c_str(), conf_dir_abs);
-    std::cout << "Looking for reply config file at: "
-              << conf_dir_abs << std::endl;
+    std::cout << "Looking for reply config file at: " << conf_dir_abs
+              << std::endl;
     free(conf_dir_abs);
 
     const std::string conf_file_path = conf_dir + "/slcm.rpl.conf.json";
@@ -313,9 +314,11 @@ struct Parser {
             *res = moteus::Resolution::kInt32;
           } else if (conf_json[item_name] == "kFloat") {
             *res = moteus::Resolution::kFloat;
+          } else if (conf_json[item_name] == "kIgnore") {
+            *res = moteus::Resolution::kIgnore;
           } else {
-            std::cout << "Unknown resolution.  Using default value: "
-                      << *res << std::endl;
+            std::cout << "Unknown resolution.  Using default value: " << *res
+                      << std::endl;
           }
         } else {
           std::cout << "Resolution value is not a string.  "

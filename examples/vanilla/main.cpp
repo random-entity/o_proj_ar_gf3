@@ -6,7 +6,7 @@ int main() {
   ///////////////////////////////////////////////////////////////
   /// Initialize the ServoSystem,
   /// and get Servo IDs that succeeded at initialization.
-  ServoSystem servo_system{{{1, 1}, {2, 1}, {3, 1}}};
+  ServoSystem servo_system{{{1, 1}}};
   const auto& ids = servo_system.GetIds();
 
   // Initialize empty internal command maps. We will fill
@@ -57,7 +57,7 @@ int main() {
   /// completely stop before setting base positions.
   for (time_init = Utils::GetNow(); Utils::GetNow() - time_init < 1.0;
        usleep(0.1 * 1e6)) {
-    servo_system.StopAll();
+    servo_system.FixAll();
   }
   servo_system.SetBasePositionAll();
 

@@ -1,40 +1,46 @@
 {
   "position": {
-    "using": true,
+    "resolution": "kFloat",
     "initial_value": "NaN"
   },
   "velocity": {
-    "using": true,
+    "resolution": "kFloat",
     "initial_value": 0.0
   },
   "feedforward_torque": {
-    "using": false
+    "resolution": "kFloat",
+    "initial_value": 0.0
   },
   "kp_scale": {
-    "using": false
-  },
-  "kd_scale": {
-    "using": false
-  },
-  "maximum_torque": {
-    "using": true,
+    "resolution": "kFloat",
     "initial_value": 1.0
   },
-  "stop_position": {
-    "using": false
+  "kd_scale": {
+    "resolution": "kFloat",
+    "initial_value": 1.0
   },
-  "watchdog_timeout": {
-    "using": false
-  },
-  "velocity_limit": {
-    "using": true,
-    "initial_value": 8.0
-  },
-  "accel_limit": {
-    "using": true,
+  "maximum_torque": {
+    "resolution": "kFloat",
     "initial_value": 4.0
   },
+  "stop_position": {
+    "resolution": "kIgnore"
+  },
+  "watchdog_timeout": {
+    "resolution": "kIgnore"
+  },
+  "velocity_limit": {
+    "resolution": "kFloat",
+    "initial_value": 2.0
+  },
+  "accel_limit": {
+    "resolution": "kFloat",
+    "initial_value": 2.0
+  },
   "fixed_voltage_override": {
-    "using": false
+    "resolution": "kIgnore"
+  },
+  "ilimit_scale": {
+    "resolution": "kIgnore"
   }
 }

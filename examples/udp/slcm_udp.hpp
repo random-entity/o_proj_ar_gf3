@@ -74,8 +74,7 @@ class UdpServoSystem : public ServoSystem {
       const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::cmdBASE,
       const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::rplBASE,
       const std::string& cmd_conf_dir = "../config",
-      const std::string& rpl_conf_dir = "../config",
-      const bool use_aux2 = false,
+      const std::string& rpl_conf_dir = "../config", const bool use_aux2 = true,
       const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::rplABSOLUTE)
       : ServoSystem{id_bus_map,         cmd_pos_rel_to, rpl_pos_rel_to,
                     cmd_conf_dir,       rpl_conf_dir,   use_aux2,
@@ -202,13 +201,14 @@ class UdpServoSystem : public ServoSystem {
         {
           std::lock_guard<std::mutex> lock(servo_access_mutex_);
           buffer.rpl.id = static_cast<uint8_t>(id);
-          buffer.rpl.position = rpl.position;
-          buffer.rpl.velocity = rpl.velocity;
-          buffer.rpl.torque = rpl.torque;
-          buffer.rpl.q_curr = rpl.q_current;
-          buffer.rpl.d_curr = rpl.d_current;
-          buffer.rpl.voltage = rpl.voltage;
-          buffer.rpl.temperature = rpl.temperature;
+          buffer.rpl.position = static_cast<float>(rpl.position);
+          buffer.rpl.aux2_position = static_cast<float>(rpl.abs_position);
+          buffer.rpl.velocity = static_cast<float>(rpl.velocity);
+          buffer.rpl.torque = static_cast<float>(rpl.torque);
+          buffer.rpl.q_curr = static_cast<float>(rpl.q_current);
+          buffer.rpl.d_curr = static_cast<float>(rpl.d_current);
+          buffer.rpl.voltage = static_cast<float>(rpl.voltage);
+          buffer.rpl.temperature = static_cast<float>(rpl.temperature);
         }
 
         if (Utils::IsLittleEndian) {

@@ -67,16 +67,15 @@ class ServoSystem {
     moteus::Query::Result GetReply() { return usr_rpl(); }
 
     void SetReply(const moteus::Query::Result& new_sys_repl) {
-      if (sys_rpl_.velocity > 0.0 &&
-          sys_rpl_.abs_position > new_sys_repl.abs_position) {
-        aux2_revs_++;
-      } else if (sys_rpl_.velocity < 0.0 &&
-                 sys_rpl_.abs_position < new_sys_repl.abs_position) {
-        aux2_revs_--;
-      }
+      // if (sys_rpl_.abs_position > 0.9 && new_sys_repl.abs_position < 0.1) {
+      //   aux2_revs_++;
+      // } else if (sys_rpl_.abs_position < 1.0 &&
+      //            new_sys_repl.abs_position > 0.9) {
+      //   aux2_revs_--;
+      // }
 
       sys_rpl_ = new_sys_repl;
-      sys_rpl_.abs_position += aux2_revs_;
+      // sys_rpl_.abs_position += aux2_revs_;
     }
 
    protected:

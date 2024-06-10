@@ -100,7 +100,8 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
           }
         }
 
-        cmd[id][CmdItem::FIXED_VOLTAGE_OVERRIDE] =
+        cmd[id][CmdItem::POSITION] =  // Temporarily save target output in
+                                      // CmdItem::POSITION
             static_cast<double>(buffer.cmd.position);
         cmd[id][CmdItem::VELOCITY_LIMIT] =
             static_cast<double>(buffer.cmd.velocity);
@@ -119,10 +120,10 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
       const double target_delta_diff = target_diff - cur_diff;
       const double target_delta_avg = target_avg - cur_avg;
       cmd[4][CmdItem::POSITION] =
-          41.0 * 127.0 / 92.0 *
+          // 41.0 * 127.0 / 92.0 *
           (target_delta_avg + 145.0 / 127.0 * target_delta_diff);
       cmd[5][CmdItem::POSITION] =
-          41.0 * 127.0 / 92.0 *
+          // 41.0 * 127.0 / 92.0 *
           (target_delta_avg - 145.0 / 127.0 * target_delta_diff);
 
       EmplaceCommand(cmd);
