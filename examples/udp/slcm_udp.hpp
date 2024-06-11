@@ -86,9 +86,22 @@ class UdpServoSystem : public ServoSystem {
         } {}
 
  protected:
-  void ExternalCommandGetter(std::atomic_bool* terminated) override {
+  virtual void ExternalCommandGetter(std::atomic_bool* terminated) override {
     std::cout << "UDP variant ExternalCommandGetter thread is running..."
               << std::endl;
+
+    const auto& maybe_servo_l = Utils::SafeAt(servos_, 4);
+    const auto& maybe_servo_r = Utils::SafeAt(servos_, 5);
+    if (!maybe_servo_l) {
+      std::cout << "Servo ID 4 not ready.  Now terminating." << std::endl;
+      return;
+    }
+    const auto& servo_l = maybe_servo_l.value();
+    if (!maybe_servo_r) {
+      std::cout << "Servo ID 5 not ready.  Now terminating." << std::endl;
+      return;
+    }
+    const auto& servo_r = maybe_servo_r.value();
 
     /// Setup UDP socket
     int udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -152,7 +165,8 @@ class UdpServoSystem : public ServoSystem {
         }
 
         cmd[id][CmdItem::POSITION] = static_cast<double>(buffer.cmd.position);
-        cmd[id][CmdItem::VELOCITY] = static_cast<double>(buffer.cmd.velocity);
+        cmd[id][CmdItem::VELOCITY_LIMIT] =
+            static_cast<double>(buffer.cmd.velocity);
         cmd[id][CmdItem::MAXIMUM_TORQUE] =
             static_cast<double>(buffer.cmd.maximum_torque);
         cmd[id][CmdItem::ACCEL_LIMIT] =
@@ -160,6 +174,19 @@ class UdpServoSystem : public ServoSystem {
 
         receive_states[id] = true;
       }
+
+      const double target_diff = cmd[4][CmdItem::POSITION];
+      const double target_avg = cmd[5][CmdItem::POSITION];
+      const double cur_diff = servo_l->GetReply().abs_position;
+      const double cur_avg = servo_r->GetReply().abs_position;
+      const double target_delta_diff = target_diff - cur_diff;
+      const double target_delta_avg = target_avg - cur_avg;
+      cmd[4][CmdItem::POSITION] =
+          41.0 * 127.0 / 92.0 *
+          (target_delta_avg + 145.0 / 127.0 * target_delta_diff);
+      cmd[5][CmdItem::POSITION] =
+          41.0 * 127.0 / 92.0 *
+          (target_delta_avg - 145.0 / 127.0 * target_delta_diff);
 
       EmplaceCommand(cmd);
     }
@@ -211,7 +238,7 @@ class UdpServoSystem : public ServoSystem {
           buffer.rpl.temperature = static_cast<float>(rpl.temperature);
         }
 
-        if (Utils::IsLittleEndian) {
+        if (Utils::IsLittleEndian()) {
           for (int i = 4; i + 4 <= sizeof(buffer.raw_bytes); i += 4) {
             std::reverse(buffer.raw_bytes + i, buffer.raw_bytes + i + 4);
           }

@@ -334,11 +334,9 @@ class ServoSystem {
           std::cout << "Default transport found: " << transport_name
                     << std::endl;
         } else {
-          std::cout
-              << "Default transport found, but failed to get its class "
-                 "name.  Returning from ServoSystem constructor without any "
-                 "initialization for safety."
-              << std::endl;
+          std::cout << "Default transport found, but failed to get its class "
+                       "name."
+                    << std::endl;
         }
       } else {
         std::cout << "Default transport not found.  Returning from "
@@ -723,10 +721,11 @@ class ServoSystem {
 
  private:
   void ExecuteCommand(std::atomic_bool* terminated) {
-    std::cout << "Runner thread is running..." << std::endl;
+    std::cout << "Executor thread is running..." << std::endl;
 
     if (servos_.empty()) {
-      std::cout << "No Servos found.  Runner thread terminating." << std::endl;
+      std::cout << "No Servos found.  Executor thread terminating."
+                << std::endl;
       return;
     }
 
@@ -738,6 +737,7 @@ class ServoSystem {
         auto id = id_servo.first;
         auto& servo = id_servo.second;
         servo->updated_last_cycle_ = false;
+        std::cout << "Making CAN FD frame for Servo ID " << id << std::endl;
         {
           std::lock_guard<std::mutex> lock(servo_access_mutex_);
           cmd_frames.push_back(
@@ -758,6 +758,8 @@ class ServoSystem {
           servo->updated_last_cycle_ = true;
         }
       }
+
+      std::cout << "Command execution complete." << std::endl;
     }
   }
 

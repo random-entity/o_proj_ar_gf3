@@ -11,7 +11,7 @@ int main() {
   ///////////////////////////////////////////////////////////////
   /// Initialize the UdpServoSystem.
   UdpServoSystem servo_system{
-      {{12, 1}}, host, udp_recv_port, udp_send_port};
+      {{4, 1}, {5, 1}}, host, udp_recv_port, udp_send_port};
   sleep(1);
 
   ///////////////////////////////////////////////////////////////
