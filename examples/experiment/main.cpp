@@ -1,5 +1,3 @@
-#pragma once
-
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -10,28 +8,7 @@
 #include "som_linuxcppmoteus.hpp"
 
 namespace som {
-
-///                           commands
-///                          |--------|
-///         |----------|---->| Port R |---->|----------------|
-///         |          |     |--------|     |                |
-///         | Pd Patch |         UDP        | UdpServoSystem |
-///         |          |     |--------|     |                |
-///         |----------|<----| Port S |<----|----------------|
-///                          |--------|
-///                            states
-///
-/// This ServoSystem variant can be used for the following scenario:
-/// An external program (probably a Pure Data patch for GUI capability)
-/// sends UDP packets that represent commands to send to the Servos to a port,
-/// named `recv_port` in this script. The ServoSystem receives the UDP
-/// packets through the same port, translates them into Servo commands, and
-/// sends them to the Servos. The Servos reply their current state, and the
-/// ServoSystem translates those replies back to UDP packets then sends them to
-/// a port named `send_port` here. An external program (probably the same Pure
-/// Data patch) receives them from the same port and translates them to a format
-/// suitable to monitor the Servos.
-class UdpServoSystem : public ServoSystem {
+class Child : public ServoSystem {
  protected:
   struct Udp {
     const std::string host;
@@ -68,14 +45,14 @@ class UdpServoSystem : public ServoSystem {
   };
 
  public:
-  UdpServoSystem(
-      const std::map<int, int>& id_bus_map, const std::string& udp_host,
-      const int udp_recv_port, const int udp_send_port,
-      const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::cmdRECENT,
-      const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::rplBASE,
-      const std::string& cmd_conf_dir = "../config",
-      const std::string& rpl_conf_dir = "../config", const bool use_aux2 = true,
-      const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::rplABSOLUTE)
+  Child(const std::map<int, int>& id_bus_map, const std::string& udp_host,
+        const int udp_recv_port, const int udp_send_port,
+        const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::cmdBASE,
+        const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::rplBASE,
+        const std::string& cmd_conf_dir = "../config",
+        const std::string& rpl_conf_dir = "../config",
+        const bool use_aux2 = true,
+        const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::rplABSOLUTE)
       : ServoSystem{id_bus_map,         cmd_pos_rel_to, rpl_pos_rel_to,
                     cmd_conf_dir,       rpl_conf_dir,   use_aux2,
                     rpl_aux2_pos_rel_to},
@@ -85,7 +62,6 @@ class UdpServoSystem : public ServoSystem {
             .send_port = udp_send_port,
         } {}
 
- protected:
   virtual void ExternalCommandGetter(std::atomic_bool* terminated) override {
     std::cout << "UDP variant ExternalCommandGetter thread is running..."
               << std::endl;
@@ -181,24 +157,12 @@ class UdpServoSystem : public ServoSystem {
       const double cur_avg = servo_r->GetReply().abs_position;
       const double target_delta_diff = target_diff - cur_diff;
       const double target_delta_avg = target_avg - cur_avg;
-
       cmd[4][CmdItem::POSITION] =
           41.0 * 127.0 / 92.0 *
           (target_delta_avg + 145.0 / 127.0 * target_delta_diff);
       cmd[5][CmdItem::POSITION] =
           41.0 * 127.0 / 92.0 *
           (target_delta_avg - 145.0 / 127.0 * target_delta_diff);
-
-      std::cout << "target_diff = " << target_diff << std::endl;
-      std::cout << "target_avg = " << target_avg << std::endl;
-      std::cout << "cur_diff = " << cur_diff << std::endl;
-      std::cout << "cur_avg = " << cur_avg << std::endl;
-      std::cout << "target_delta_diff = " << target_delta_diff << std::endl;
-      std::cout << "target_delta_avg = " << target_delta_avg << std::endl;
-      std::cout << "target_delta_l = " << cmd[4][CmdItem::POSITION]
-                << std::endl;
-      std::cout << "target_delta_r = " << cmd[5][CmdItem::POSITION]
-                << std::endl;
 
       EmplaceCommand(cmd);
     }
@@ -265,4 +229,43 @@ class UdpServoSystem : public ServoSystem {
   }
 };
 
+class Grandchild : public Child {
+ public:
+  Grandchild(const std::map<int, int>& id_bus_map, const std::string& udp_host,
+             const int udp_recv_port, const int udp_send_port,
+             const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::cmdBASE,
+             const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::rplBASE,
+             const std::string& cmd_conf_dir = "../config",
+             const std::string& rpl_conf_dir = "../config",
+             const bool use_aux2 = true,
+             const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::rplABSOLUTE)
+      : Child{id_bus_map,     udp_host,       udp_recv_port, udp_send_port,
+              cmd_pos_rel_to, rpl_pos_rel_to, cmd_conf_dir,  rpl_conf_dir,
+              true,           rpl_pos_rel_to} {}
+};
 }  // namespace som
+
+using namespace som;
+
+int main() {
+  std::string host = "127.0.0.1";
+  const int udp_recv_port = 5555;
+  const int udp_send_port = 8888;
+
+  ///////////////////////////////////////////////////////////////
+  /// Initialize the UdpServoSystem.
+  Child servo_system{{{4, 1}, {5, 1}}, host, udp_recv_port, udp_send_port};
+  sleep(1);
+
+  ///////////////////////////////////////////////////////////////
+  /// Suspend main thread termination while listening to
+  /// external commands and sending replies through UDP.
+  servo_system.StartThreadAll();
+  while (true) sleep(1);
+
+  ///////////////////////////////////////////////////////////////
+  /// Terminate the ServoSystem.
+  servo_system.TerminateThreadAll();
+  sleep(1);
+  return 0;
+}

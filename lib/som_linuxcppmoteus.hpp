@@ -191,13 +191,13 @@ class ServoSystem {
                          "system command position."
                       << std::endl;
           } else {
-            if (updated_last_cycle_) {
+            // if (updated_last_cycle_) {
               cmd.position += sys_rpl_.position;
-            } else {
+            // } else {
               // Should experiment physically whether considering or ignoring
               // updated_last_cycle works better.
-              cmd.position = NaN;
-            }
+              // cmd.position = NaN;
+            // }
           }
           break;
         default:
@@ -742,6 +742,8 @@ class ServoSystem {
           std::lock_guard<std::mutex> lock(servo_access_mutex_);
           cmd_frames.push_back(
               servo->controller_->MakePosition(servo->sys_cmd()));
+          std::cout << "System command position: " << servo->sys_cmd().position
+                    << std::endl;
         }
       }
 

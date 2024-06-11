@@ -63,3 +63,9 @@ target_include_directories(
 set_target_properties(differential PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "../examples/differential-joint/bin"
 )
+
+add_executable(experiment examples/experiment/main.cpp)
+target_link_libraries(experiment som_linuxcppmoteus)
+set_target_properties(experiment PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "../examples/experiment/bin"
+)
