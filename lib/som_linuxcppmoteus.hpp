@@ -67,15 +67,13 @@ class ServoSystem {
     moteus::Query::Result GetReply() { return usr_rpl(); }
 
     void SetReply(const moteus::Query::Result& new_sys_repl) {
-      // if (sys_rpl_.abs_position > 0.9 && new_sys_repl.abs_position < 0.1) {
-      //   aux2_revs_++;
-      // } else if (sys_rpl_.abs_position < 1.0 &&
-      //            new_sys_repl.abs_position > 0.9) {
-      //   aux2_revs_--;
-      // }
+      if (new_sys_repl.abs_position - sys_rpl_.abs_position > 0.5) {
+        aux2_revs_--;
+      } else if (new_sys_repl.abs_position - sys_rpl_.abs_position < -0.5) {
+        aux2_revs_++;
+      }
 
       sys_rpl_ = new_sys_repl;
-      // sys_rpl_.abs_position += aux2_revs_;
     }
 
    protected:
@@ -191,13 +189,11 @@ class ServoSystem {
                          "system command position."
                       << std::endl;
           } else {
-            // if (updated_last_cycle_) {
+            if (updated_last_cycle_) {
               cmd.position += sys_rpl_.position;
-            // } else {
-              // Should experiment physically whether considering or ignoring
-              // updated_last_cycle works better.
-              // cmd.position = NaN;
-            // }
+            } else {
+              cmd.position = NaN;
+            }
           }
           break;
         default:
@@ -207,11 +203,12 @@ class ServoSystem {
     }
     RplPosRelTo usr_rpl_pos_rel_to_;
     RplPosRelTo usr_rpl_aux2_pos_rel_to_;
-    moteus::Query::Result sys_rpl_;  // aux2 position uncoiled.
+    moteus::Query::Result sys_rpl_;  // aux2 position coiled.
                                      // Must update via dedicated setter
                                      // to track aux2 revolutions.
     moteus::Query::Result usr_rpl() {
       auto rpl = sys_rpl_;
+      rpl.abs_position += aux2_revs_;  // Uncoil aux2 position.
       if (usr_rpl_pos_rel_to_ == RplPosRelTo::rplBASE) {
         rpl.position -= base_pos_;
       }
@@ -733,34 +730,33 @@ class ServoSystem {
       ::usleep(cycle_period_us_);
 
       std::vector<moteus::CanFdFrame> cmd_frames;
-      for (auto& id_servo : servos_) {
-        auto id = id_servo.first;
-        auto& servo = id_servo.second;
-        servo->updated_last_cycle_ = false;
-        std::cout << "Making CAN FD frame for Servo ID " << id << std::endl;
-        {
-          std::lock_guard<std::mutex> lock(servo_access_mutex_);
+      {
+        std::lock_guard<std::mutex> lock(servo_access_mutex_);
+        for (auto& id_servo : servos_) {
+          auto id = id_servo.first;
+          auto& servo = id_servo.second;
+          std::cout << "Making CAN FD frame for Servo ID " << id << std::endl;
           cmd_frames.push_back(
               servo->controller_->MakePosition(servo->sys_cmd()));
           std::cout << "System command position: " << servo->sys_cmd().position
                     << std::endl;
+          servo->updated_last_cycle_ = false;
+        }
+
+        std::vector<moteus::CanFdFrame> reply_frames;
+        transport_->BlockingCycle(&cmd_frames[0], cmd_frames.size(),
+                                  &reply_frames);
+
+        for (const auto& frame : reply_frames) {
+          int id = frame.source;
+          const auto& maybe_servo = Utils::SafeAt(servos_, id);
+          if (maybe_servo) {
+            auto& servo = maybe_servo.value();
+            servo->SetReply(moteus::Query::Parse(frame.data, frame.size));
+            servo->updated_last_cycle_ = true;
+          }
         }
       }
-
-      std::vector<moteus::CanFdFrame> reply_frames;
-      transport_->BlockingCycle(&cmd_frames[0], cmd_frames.size(),
-                                &reply_frames);
-
-      for (const auto& frame : reply_frames) {
-        int id = frame.source;
-        const auto& maybe_servo = Utils::SafeAt(servos_, id);
-        if (maybe_servo) {
-          auto& servo = maybe_servo.value();
-          servo->SetReply(moteus::Query::Parse(frame.data, frame.size));
-          servo->updated_last_cycle_ = true;
-        }
-      }
-
       std::cout << "Command execution complete." << std::endl;
     }
   }

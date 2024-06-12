@@ -71,7 +71,7 @@ class UdpServoSystem : public ServoSystem {
   UdpServoSystem(
       const std::map<int, int>& id_bus_map, const std::string& udp_host,
       const int udp_recv_port, const int udp_send_port,
-      const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::cmdRECENT,
+      const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::cmdBASE,
       const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::rplBASE,
       const std::string& cmd_conf_dir = "../config",
       const std::string& rpl_conf_dir = "../config", const bool use_aux2 = true,
@@ -89,19 +89,6 @@ class UdpServoSystem : public ServoSystem {
   virtual void ExternalCommandGetter(std::atomic_bool* terminated) override {
     std::cout << "UDP variant ExternalCommandGetter thread is running..."
               << std::endl;
-
-    const auto& maybe_servo_l = Utils::SafeAt(servos_, 4);
-    const auto& maybe_servo_r = Utils::SafeAt(servos_, 5);
-    if (!maybe_servo_l) {
-      std::cout << "Servo ID 4 not ready.  Now terminating." << std::endl;
-      return;
-    }
-    const auto& servo_l = maybe_servo_l.value();
-    if (!maybe_servo_r) {
-      std::cout << "Servo ID 5 not ready.  Now terminating." << std::endl;
-      return;
-    }
-    const auto& servo_r = maybe_servo_r.value();
 
     /// Setup UDP socket
     int udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -174,31 +161,6 @@ class UdpServoSystem : public ServoSystem {
 
         receive_states[id] = true;
       }
-
-      const double target_diff = cmd[4][CmdItem::POSITION];
-      const double target_avg = cmd[5][CmdItem::POSITION];
-      const double cur_diff = servo_l->GetReply().abs_position;
-      const double cur_avg = servo_r->GetReply().abs_position;
-      const double target_delta_diff = target_diff - cur_diff;
-      const double target_delta_avg = target_avg - cur_avg;
-
-      cmd[4][CmdItem::POSITION] =
-          41.0 * 127.0 / 92.0 *
-          (target_delta_avg + 145.0 / 127.0 * target_delta_diff);
-      cmd[5][CmdItem::POSITION] =
-          41.0 * 127.0 / 92.0 *
-          (target_delta_avg - 145.0 / 127.0 * target_delta_diff);
-
-      std::cout << "target_diff = " << target_diff << std::endl;
-      std::cout << "target_avg = " << target_avg << std::endl;
-      std::cout << "cur_diff = " << cur_diff << std::endl;
-      std::cout << "cur_avg = " << cur_avg << std::endl;
-      std::cout << "target_delta_diff = " << target_delta_diff << std::endl;
-      std::cout << "target_delta_avg = " << target_delta_avg << std::endl;
-      std::cout << "target_delta_l = " << cmd[4][CmdItem::POSITION]
-                << std::endl;
-      std::cout << "target_delta_r = " << cmd[5][CmdItem::POSITION]
-                << std::endl;
 
       EmplaceCommand(cmd);
     }
