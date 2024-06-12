@@ -31,11 +31,11 @@
   },
   "velocity_limit": {
     "resolution": "kFloat",
-    "initial_value": 2.0
+    "initial_value": 8.0
   },
   "accel_limit": {
     "resolution": "kFloat",
-    "initial_value": 2.0
+    "initial_value": 4.0
   },
   "fixed_voltage_override": {
     "resolution": "kIgnore"

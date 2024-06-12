@@ -35,7 +35,7 @@ int main() {
     servo_system.CommandAll(cmd_all);
 
     servo_system.GetReplyAll(replies, sizeof(replies));
-    printf("ServoSystem replies:\n%s\n", replies);
+    printf("Servo replies:\n%s\n", replies);
   }
 
   // Wave motion for 10 seconds.
@@ -48,7 +48,7 @@ int main() {
     servo_system.Command(cmd);
 
     servo_system.GetReplyAll(replies, sizeof(replies));
-    printf("ServoSystem replies:\n%s\n", replies);
+    printf("Servo replies:\n%s\n", replies);
   }
 
   ///////////////////////////////////////////////////////////////
@@ -62,7 +62,7 @@ int main() {
   servo_system.SetBasePositionAll();
 
   servo_system.GetReplyAll(replies, sizeof(replies));
-  printf("ServoSystem replies:\n%s\n", replies);
+  printf("Servo replies:\n%s\n", replies);
 
   ///////////////////////////////////////////////////////////////
   // Now start the ServoSystem ExternalCommandGetter thread
@@ -73,13 +73,15 @@ int main() {
   for (time_init = Utils::GetNow(); Utils::GetNow() - time_init < 60.0;
        sleep(1)) {
     servo_system.GetReplyAll(replies, sizeof(replies));
-    printf("Servo ouput:\n%s\n", replies);
+    printf("Servo replies:\n%s\n", replies);
   }
 
   ///////////////////////////////////////////////////////////////
   /// Terminate the ServoSystem.
-  servo_system.TerminateThreadAll();  // This may get stuck at std::getline().
-                                      // Just use Ctrl-c for now to terminate.
+  servo_system
+      .TerminateThreadAll();  // This may get stuck at std::getline().
+                              // Hit Enter on input console
+                              // or just use Ctrl-c for now to terminate.
   sleep(1);
   return 0;
 }

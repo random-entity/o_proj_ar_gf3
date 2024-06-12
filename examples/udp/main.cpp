@@ -4,14 +4,9 @@
 using namespace som;
 
 int main() {
-  std::string host = "127.0.0.1";
-  const int udp_recv_port = 5555;
-  const int udp_send_port = 8888;
-
   ///////////////////////////////////////////////////////////////
   /// Initialize the UdpServoSystem.
-  UdpServoSystem servo_system{
-      {{4, 1}, {5, 1}}, host, udp_recv_port, udp_send_port};
+  UdpServoSystem servo_system{{{4, 1}, {5, 1}}, "127.0.0.1", 5555, 8888};
   sleep(1);
 
   ///////////////////////////////////////////////////////////////

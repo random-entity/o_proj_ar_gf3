@@ -263,7 +263,7 @@ class ServoSystem {
         return;
       }
       for (const auto& alias : aliases_) {
-        servo_system_->threads_manager[alias] = this;
+        servo_system_->threads_mgr_[alias] = this;
       }
     }
 
@@ -534,7 +534,7 @@ class ServoSystem {
   }
 
   void StartThread(const std::string& alias) {
-    const auto& maybe_thread_manager = Utils::SafeAt(threads_manager, alias);
+    const auto& maybe_thread_manager = Utils::SafeAt(threads_mgr_, alias);
     if (maybe_thread_manager) {
       maybe_thread_manager.value()->Start();
     } else {
@@ -545,7 +545,7 @@ class ServoSystem {
 
   void StartThreadAll() {
     std::set<LoopingThreadManager*> threads;
-    for (const auto& pair : threads_manager) {
+    for (const auto& pair : threads_mgr_) {
       threads.insert(pair.second);
     }
     for (const auto& thread : threads) {
@@ -554,7 +554,7 @@ class ServoSystem {
   }
 
   void TerminateThread(const std::string& alias) {
-    const auto& maybe_thread_manager = Utils::SafeAt(threads_manager, alias);
+    const auto& maybe_thread_manager = Utils::SafeAt(threads_mgr_, alias);
     if (maybe_thread_manager) {
       maybe_thread_manager.value()->Terminate();
     } else {
@@ -565,7 +565,7 @@ class ServoSystem {
 
   void TerminateThreadAll() {
     std::set<LoopingThreadManager*> threads;
-    for (const auto& pair : threads_manager) {
+    for (const auto& pair : threads_mgr_) {
       threads.insert(pair.second);
     }
     for (const auto& thread : threads) {
@@ -575,7 +575,7 @@ class ServoSystem {
 
   void PrintThreadAll() {
     std::set<LoopingThreadManager*> threads;
-    for (const auto& pair : threads_manager) {
+    for (const auto& pair : threads_mgr_) {
       threads.insert(pair.second);
     }
     int i = 1;
@@ -602,9 +602,10 @@ class ServoSystem {
     bool internal = true;
     bool external = true;
   } listen_;
-  const unsigned int cycle_period_us_ = static_cast<int>(1.0 / 100.0 * 1e6);
+  const unsigned int cycle_period_us_ =
+      static_cast<unsigned int>(1.0 / 100.0 * 1e6);
   std::mutex servo_access_mutex_;
-  std::map<std::string, LoopingThreadManager*> threads_manager;
+  std::map<std::string, LoopingThreadManager*> threads_mgr_;
   LoopingThreadManager exec_mgr_;
   LoopingThreadManager ext_cmd_mgr_;
   LoopingThreadManager ext_rpl_mgr_;
@@ -729,17 +730,18 @@ class ServoSystem {
     while (!((*terminated).load())) {
       ::usleep(cycle_period_us_);
 
+      std::cout << "Command execution begins." << std::endl;
       std::vector<moteus::CanFdFrame> cmd_frames;
       {
         std::lock_guard<std::mutex> lock(servo_access_mutex_);
         for (auto& id_servo : servos_) {
           auto id = id_servo.first;
           auto& servo = id_servo.second;
-          std::cout << "Making CAN FD frame for Servo ID " << id << std::endl;
-          cmd_frames.push_back(
-              servo->controller_->MakePosition(servo->sys_cmd()));
-          std::cout << "System command position: " << servo->sys_cmd().position
+          const auto sys_cmd = servo->sys_cmd();
+          std::cout << "Making CAN FD frame for Servo ID " << id << ".  "
+                    << "System command position: " << servo->sys_cmd().position
                     << std::endl;
+          cmd_frames.push_back(servo->controller_->MakePosition(sys_cmd));
           servo->updated_last_cycle_ = false;
         }
 
