@@ -13,7 +13,7 @@ namespace som {
 ///        All methods are declared as static.
 struct Utils {
   /// @brief Get precise current time in seconds.
-  static double GetNow() {
+  static double GetTime() {
     struct timespec ts;
     ::clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
     return static_cast<double>(ts.tv_sec) +
@@ -35,6 +35,14 @@ struct Utils {
     return maybe_value;
   }
 
+  template <typename T, typename U>
+  static std::ptrdiff_t GetAddrOffset(const T& from, const U& to) {
+    auto* from_non_const = const_cast<T*>(&from);
+    auto* to_non_const = const_cast<U*>(&to);
+    return reinterpret_cast<char*>(&to_non_const) -
+           reinterpret_cast<char*>(&from_non_const);
+  }
+
   /// @brief Get class name of an object pointed to by the given pointer.
   /// @return The name of the class at success, an empty string elsewhere.
   template <class T>
@@ -52,11 +60,11 @@ struct Utils {
   /// @brief Check system endianness.
   static bool IsLittleEndian() {
     static union {
-      uint32_t four_byte_int;
-      char four_chars[4];
-    } random_entity = {0x00cafe01};
+      uint64_t eight_byte_int;
+      char eight_chars[8];
+    } random_entity = {0x00feeddeadbeef01};
 
-    return random_entity.four_chars[0];
+    return random_entity.eight_chars[0];
   }
 };
 

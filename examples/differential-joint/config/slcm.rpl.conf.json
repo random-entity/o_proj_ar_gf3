@@ -7,10 +7,10 @@
   "d_current": "kInt16",
   "abs_position": "kFloat",
   "power": "kInt16",
-  "motor_temperature": "kInt16",
+  "motor_temperature": "kFloat",
   "trajectory_complete": "kInt8",
   "home_state": "kInt8",
   "voltage": "kInt16",
-  "temperature": "kInt16",
+  "temperature": "kFloat",
   "fault": "kInt8"
 }

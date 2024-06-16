@@ -5,7 +5,7 @@
 
 #include "moteus_protocol.h"
 #include "nlohmann/json.hpp"
-#include "slcm_enums.hpp"
+#include "slcm_multiplex.hpp"
 
 #ifdef NaN
 #undef NaN
@@ -36,9 +36,9 @@ struct Parser {
   }
 
   /// @brief Parse string input of specific format described below
-  ///        to form a command map: ID -> CmdItem -> value
+  ///        to form a command map: ID -> Item -> value
   /// @param input The format of string input is as follows:
-  ///              <id>=<3-letter-cmd-item-abbr><value>[,...][;...]
+  ///              <id>=<3-letter-item-abbr><value>[,...][;...]
   ///              For example,
   ///              1=pos1.0,vel0.1,mtq1.0;2=pos-1.0,vel-0.1,vlm0.5
   static std::map<int, std::map<CmdItem, double>> ParseStrInput(
@@ -54,41 +54,15 @@ struct Parser {
         auto fields = Split(cmd, ',');
         for (const auto& field : fields) {
           auto cmd_item_str = field.substr(0, 3);
-          CmdItem cmd_item;
-          {
-            if (cmd_item_str == "pos") {
-              cmd_item = CmdItem::POSITION;
-            } else if (cmd_item_str == "vel") {
-              cmd_item = CmdItem::VELOCITY;
-            } else if (cmd_item_str == "fft") {
-              cmd_item = CmdItem::FEEDFORWARD_TORQUE;
-            } else if (cmd_item_str == "kps") {
-              cmd_item = CmdItem::KP_SCALE;
-            } else if (cmd_item_str == "kds") {
-              cmd_item = CmdItem::KD_SCALE;
-            } else if (cmd_item_str == "mtq") {
-              cmd_item = CmdItem::MAXIMUM_TORQUE;
-            } else if (cmd_item_str == "stp") {
-              cmd_item = CmdItem::STOP_POSITION;
-            } else if (cmd_item_str == "wtl") {
-              cmd_item = CmdItem::WATCHDOG_TIMEOUT;
-            } else if (cmd_item_str == "vlm") {
-              cmd_item = CmdItem::VELOCITY_LIMIT;
-            } else if (cmd_item_str == "alm") {
-              cmd_item = CmdItem::ACCEL_LIMIT;
-            } else if (cmd_item_str == "fvo") {
-              cmd_item = CmdItem::FIXED_VOLTAGE_OVERRIDE;
-            } else if (cmd_item_str == "ils") {
-              cmd_item = CmdItem::ILIMIT_SCALE;
-            } else {
-              throw std::exception();
-            }
+          const auto* cmd_item = CmdItems::Find(cmd_item_str);
+          if (!cmd_item) {
+            throw std::exception();
           }
           if (field.substr(3) == "nan") {
-            cmds[id][cmd_item] = NaN;
+            cmds[id][*cmd_item] = NaN;
           } else {
             auto cmd_val = stod(field.substr(3));
-            cmds[id][cmd_item] = cmd_val;
+            cmds[id][*cmd_item] = cmd_val;
           }
         }
       } catch (...) {
@@ -120,7 +94,7 @@ struct Parser {
 
     char* conf_dir_abs = (char*)(malloc(512));
     realpath(conf_dir.c_str(), conf_dir_abs);
-    std::cout << "Looking for command config file at: " << conf_dir_abs
+    std::cout << "Looking for Command config file at: " << conf_dir_abs
               << std::endl;
     free(conf_dir_abs);
 
@@ -139,54 +113,20 @@ struct Parser {
       conf_file >> conf_json;
       conf_file.close();
 
-      const std::map<std::string, std::pair<moteus::Resolution*, double*>>
-          member_map{
-              {"position", {&fmt.position, &cmd.position}},
-              {"velocity", {&fmt.velocity, &cmd.velocity}},
-              {"feedforward_torque",
-               {&fmt.feedforward_torque, &cmd.feedforward_torque}},
-              {"kp_scale", {&fmt.kp_scale, &cmd.kp_scale}},
-              {"kd_scale", {&fmt.kd_scale, &cmd.kd_scale}},
-              {"maximum_torque", {&fmt.maximum_torque, &cmd.maximum_torque}},
-              {"stop_position", {&fmt.stop_position, &cmd.stop_position}},
-              {"watchdog_timeout",
-               {&fmt.watchdog_timeout, &cmd.watchdog_timeout}},
-              {"velocity_limit", {&fmt.velocity_limit, &cmd.velocity_limit}},
-              {"accel_limit", {&fmt.accel_limit, &cmd.accel_limit}},
-              {"fixed_voltage_override",
-               {&fmt.fixed_voltage_override, &cmd.fixed_voltage_override}},
-              {"ilimit_scale", {&fmt.ilimit_scale, &cmd.ilimit_scale}},
-          };
-
-      bool default_used = false;
-      for (auto& item : member_map) {
-        const auto& item_name = item.first;
-        auto& res = item.second.first;
-        auto& init_val = item.second.second;
-
-        std::cout << "Configuring command resolution and initial command "
-                     "value for "
-                  << item_name << "..." << std::endl;
-
-        if (!conf_json.contains(item_name)) {
-          if (!default_used) {
-            std::cout << "Default values can be found at moteus_protocol.h "
-                         "of the mjbots/moteus library."
-                      << std::endl;
-            default_used = true;
-          }
-
-          std::cout << "Config JSON does not contain key " << item_name
-                    << ".  Using default values " << *res << ", " << *init_val
-                    << " and skipping to the next key." << std::endl;
+      for (const auto& element : conf_json.items()) {
+        const auto& item_str = element.key();
+        const auto* item = CmdItems::Find(item_str);
+        if (!item) {
+          std::cout << "Unsupported Command Item: " << item_str << std::endl;
           continue;
         }
-
-        const auto& inner_json = conf_json[item_name];
-
+        std::cout << "Configuring Command resolution and initial value for "
+                  << item_str << "..." << std::endl;
+        const auto& inner_json = element.value();
+        auto* res = CmdItems::Get(item_str, fmt);
         if (!inner_json.contains("resolution") ||
             !inner_json["resolution"].is_string()) {
-          std::cout << "Config JSON does not contain key " << item_name
+          std::cout << "Config JSON does not contain key " << item_str
                     << "/resolution, or the value is not a string.  "
                        "Using default value: "
                     << *res << std::endl;
@@ -206,18 +146,16 @@ struct Parser {
                       << std::endl;
           }
         }
-
-        std::cout << "Command resolution for " << item_name
+        std::cout << "Command resolution for " << item_str
                   << " is set to: " << *res << std::endl;
-
         if (*res == moteus::Resolution::kIgnore) {
-          std::cout << "Skipping initial value setting of " << item_name
+          std::cout << "Skipping initial value setting of " << item_str
                     << " since its resolution is set to kIgnore." << std::endl;
           continue;
         }
-
+        auto* init_val = CmdItems::Get(item_str, cmd);
         if (!inner_json.contains("initial_value")) {
-          std::cout << "JSON does not contain key " << item_name
+          std::cout << "JSON does not contain key " << item_str
                     << "/initial_value.  Using default value: " << *init_val
                     << std::endl;
         } else if (!inner_json["initial_value"].is_number()) {
@@ -225,7 +163,7 @@ struct Parser {
               inner_json["initial_value"] == "NaN") {
             *init_val = NaN;
           } else {
-            std::cout << "Value for key " << item_name
+            std::cout << "Value for key " << item_str
                       << "/initial_value is not a number nor NaN.  "
                          "Using default value: "
                       << *init_val << std::endl;
@@ -234,10 +172,14 @@ struct Parser {
           *init_val = static_cast<double>(inner_json["initial_value"]);
         }
 
-        std::cout << "Initial command value for " << item_name
+        std::cout << "Initial command value for " << item_str
                   << " is set to: " << *init_val << std::endl;
       }
     }
+
+    std::cout << "Default values can be found at moteus_protocol.h "
+                 "of the mjbots/moteus library."
+              << std::endl;
 
     return std::make_pair(fmt, cmd);
   }
@@ -247,7 +189,7 @@ struct Parser {
 
     char* conf_dir_abs = (char*)(malloc(512));
     realpath(conf_dir.c_str(), conf_dir_abs);
-    std::cout << "Looking for reply config file at: " << conf_dir_abs
+    std::cout << "Looking for Reply config file at: " << conf_dir_abs
               << std::endl;
     free(conf_dir_abs);
 
@@ -266,55 +208,27 @@ struct Parser {
       conf_file >> conf_json;
       conf_file.close();
 
-      const std::map<std::string, moteus::Resolution*> member_map{
-          {"mode", &fmt.mode},
-          {"position", &fmt.position},
-          {"velocity", &fmt.velocity},
-          {"torque", &fmt.torque},
-          {"q_current", &fmt.q_current},
-          {"d_current", &fmt.d_current},
-          {"abs_position", &fmt.abs_position},
-          {"power", &fmt.power},
-          {"motor_temperature", &fmt.motor_temperature},
-          {"trajectory_complete", &fmt.trajectory_complete},
-          {"home_state", &fmt.home_state},
-          {"voltage", &fmt.voltage},
-          {"temperature", &fmt.temperature},
-          {"fault", &fmt.fault},
-      };
-
-      bool default_used = false;
-      for (auto& item : member_map) {
-        auto& item_name = item.first;
-        auto& res = item.second;
-
-        std::cout << "Configuring reply resolution for " << item_name << "..."
-                  << std::endl;
-
-        if (!conf_json.contains(item_name)) {
-          if (!default_used) {
-            std::cout << "Default values can be found at moteus_protocol.h "
-                         "of the mjbots/moteus library."
-                      << std::endl;
-            default_used = true;
-          }
-
-          std::cout << "Config JSON does not contain key " << item_name
-                    << ".  Using default resolution " << *res
-                    << " and skipping to the next key." << std::endl;
+      for (const auto& element : conf_json.items()) {
+        const auto& item_str = element.key();
+        const auto* item = RplItems::Find(item_str);
+        if (!item) {
+          std::cout << "Unsupported Reply Item: " << item_str << std::endl;
           continue;
         }
-
-        if (conf_json[item_name].is_string()) {
-          if (conf_json[item_name] == "kInt8") {
+        std::cout << "Configuring Reply resolution for " << item_str << "..."
+                  << std::endl;
+        const auto& val = element.value();
+        auto* res = RplItems::Get(item_str, fmt);
+        if (val.is_string()) {
+          if (val == "kInt8") {
             *res = moteus::Resolution::kInt8;
-          } else if (conf_json[item_name] == "kInt16") {
+          } else if (val == "kInt16") {
             *res = moteus::Resolution::kInt16;
-          } else if (conf_json[item_name] == "kInt32") {
+          } else if (val == "kInt32") {
             *res = moteus::Resolution::kInt32;
-          } else if (conf_json[item_name] == "kFloat") {
+          } else if (val == "kFloat") {
             *res = moteus::Resolution::kFloat;
-          } else if (conf_json[item_name] == "kIgnore") {
+          } else if (val == "kIgnore") {
             *res = moteus::Resolution::kIgnore;
           } else {
             std::cout << "Unknown resolution.  Using default value: " << *res
@@ -325,9 +239,12 @@ struct Parser {
                        "Using default value: "
                     << *res << std::endl;
         }
-
-        std::cout << "Reply resolution for " << item_name
+        std::cout << "Reply resolution for " << item_str
                   << " is set to: " << *res << std::endl;
+
+        std::cout << "Default values can be found at moteus_protocol.h "
+                     "of the mjbots/moteus library."
+                  << std::endl;
       }
     }
 

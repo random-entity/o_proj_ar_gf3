@@ -28,10 +28,10 @@ int main() {
   /// required for internal command and reply.
 
   // Imitate a clock for 10 seconds.
-  double time_init = Utils::GetNow();
-  for (int i = 0; Utils::GetNow() - time_init < 10.0; i++, sleep(1)) {
-    cmd_all[POSITION] = 0.25 * i;
-    cmd_all[VELOCITY] = 0.0;
+  double time_init = Utils::GetTime();
+  for (int i = 0; Utils::GetTime() - time_init < 10.0; i++, sleep(1)) {
+    cmd_all[CmdItems::position] = 0.25 * i;
+    cmd_all[CmdItems::velocity] = 0.0;
     servo_system.CommandAll(cmd_all);
 
     servo_system.GetReplyAll(replies, sizeof(replies));
@@ -39,11 +39,11 @@ int main() {
   }
 
   // Wave motion for 10 seconds.
-  for (time_init = Utils::GetNow(); Utils::GetNow() - time_init < 10.0;
+  for (time_init = Utils::GetTime(); Utils::GetTime() - time_init < 10.0;
        usleep(0.01 * 1e6)) {
     for (const auto id : ids) {
-      cmd[id][POSITION] = NaN;
-      cmd[id][VELOCITY] = std::sin(2 * Utils::GetNow() + id);
+      cmd[id][CmdItems::position] = NaN;
+      cmd[id][CmdItems::velocity] = std::sin(2 * Utils::GetTime() + id);
     }
     servo_system.Command(cmd);
 
@@ -55,7 +55,7 @@ int main() {
   /// Stop and set base positions to current positions.
   /// Send stop command for 1 second to make sure the motors
   /// completely stop before setting base positions.
-  for (time_init = Utils::GetNow(); Utils::GetNow() - time_init < 1.0;
+  for (time_init = Utils::GetTime(); Utils::GetTime() - time_init < 1.0;
        usleep(0.1 * 1e6)) {
     servo_system.FixAll();
   }
@@ -70,7 +70,7 @@ int main() {
   // while suspending main thread termination for 1 minute.
   servo_system.StartThread("ExternalCommandGetter");
 
-  for (time_init = Utils::GetNow(); Utils::GetNow() - time_init < 60.0;
+  for (time_init = Utils::GetTime(); Utils::GetTime() - time_init < 60.0;
        sleep(1)) {
     servo_system.GetReplyAll(replies, sizeof(replies));
     printf("Servo replies:\n%s\n", replies);

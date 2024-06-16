@@ -53,8 +53,8 @@ class UdpServoSystem : public ServoSystem {
   union SendBuf {
     struct Encoded {
       uint8_t id;
-      uint16_t false_code;  // Dummy to match SOM Pd patch.
-      uint8_t rezero;       // Dummy to match SOM Pd patch.
+      uint16_t false_code;
+      uint8_t rezero;
       float position;
       float aux2_position;
       float velocity;
@@ -68,14 +68,15 @@ class UdpServoSystem : public ServoSystem {
   };
 
  public:
-  UdpServoSystem(
-      const std::map<int, int>& id_bus_map, const std::string& udp_host,
-      const int udp_recv_port, const int udp_send_port,
-      const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::cmdBASE,
-      const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::rplBASE,
-      const std::string& cmd_conf_dir = "../config",
-      const std::string& rpl_conf_dir = "../config", const bool use_aux2 = true,
-      const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::rplABSOLUTE)
+  UdpServoSystem(const std::map<int, int>& id_bus_map,
+                 const std::string& udp_host, const int udp_recv_port,
+                 const int udp_send_port,
+                 const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::cBASE,
+                 const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::rBASE,
+                 const std::string& cmd_conf_dir = "../config",
+                 const std::string& rpl_conf_dir = "../config",
+                 const bool use_aux2 = true,
+                 const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::rABSOLUTE)
       : ServoSystem{id_bus_map,         cmd_pos_rel_to, rpl_pos_rel_to,
                     cmd_conf_dir,       rpl_conf_dir,   use_aux2,
                     rpl_aux2_pos_rel_to},
@@ -151,12 +152,12 @@ class UdpServoSystem : public ServoSystem {
           }
         }
 
-        cmd[id][CmdItem::POSITION] = static_cast<double>(buffer.cmd.position);
-        cmd[id][CmdItem::VELOCITY_LIMIT] =
+        cmd[id][CmdItems::position] = static_cast<double>(buffer.cmd.position);
+        cmd[id][CmdItems::velocity_limit] =
             static_cast<double>(buffer.cmd.velocity);
-        cmd[id][CmdItem::MAXIMUM_TORQUE] =
+        cmd[id][CmdItems::maximum_torque] =
             static_cast<double>(buffer.cmd.maximum_torque);
-        cmd[id][CmdItem::ACCEL_LIMIT] =
+        cmd[id][CmdItems::accel_limit] =
             static_cast<double>(buffer.cmd.accel_limit);
 
         receive_states[id] = true;
@@ -172,6 +173,7 @@ class UdpServoSystem : public ServoSystem {
     std::cout << "UDP variant ExternalReplySender thread is running..."
               << std::endl;
 
+    /// Setup UDP socket
     /// Setup UDP socket
     int udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
     if (udp_socket == -1) {
@@ -195,22 +197,24 @@ class UdpServoSystem : public ServoSystem {
       for (const auto& id_servo : servos_) {
         const int id = id_servo.first;
         const auto& servo = id_servo.second;
-        const auto& rpl = servo->GetReply();
-
+        moteus::Query::Result rpl;
         SendBuf buffer;
-
         {
           std::lock_guard<std::mutex> lock(servo_access_mutex_);
-          buffer.rpl.id = static_cast<uint8_t>(id);
-          buffer.rpl.position = static_cast<float>(rpl.position);
-          buffer.rpl.aux2_position = static_cast<float>(rpl.abs_position);
-          buffer.rpl.velocity = static_cast<float>(rpl.velocity);
-          buffer.rpl.torque = static_cast<float>(rpl.torque);
-          buffer.rpl.q_curr = static_cast<float>(rpl.q_current);
-          buffer.rpl.d_curr = static_cast<float>(rpl.d_current);
-          buffer.rpl.voltage = static_cast<float>(rpl.voltage);
-          buffer.rpl.temperature = static_cast<float>(rpl.temperature);
+          rpl = servo->GetReply();
         }
+        buffer.rpl.id = static_cast<uint8_t>(id);
+        buffer.rpl.position = static_cast<float>(rpl.position);
+        buffer.rpl.aux2_position = static_cast<float>(rpl.abs_position);
+        buffer.rpl.velocity = static_cast<float>(rpl.velocity);
+        buffer.rpl.torque = static_cast<float>(rpl.torque);
+        buffer.rpl.q_curr = static_cast<float>(rpl.q_current);
+        buffer.rpl.d_curr = static_cast<float>(rpl.d_current);
+        buffer.rpl.voltage = static_cast<float>(rpl.voltage);
+        buffer.rpl.temperature = static_cast<float>(rpl.motor_temperature);
+
+        std::cout << id << " Temperature: " << rpl.motor_temperature
+                  << std::endl;
 
         if (Utils::IsLittleEndian()) {
           for (int i = 4; i + 4 <= sizeof(buffer.raw_bytes); i += 4) {
@@ -219,7 +223,7 @@ class UdpServoSystem : public ServoSystem {
         }
 
         sendto(udp_socket, static_cast<void*>(buffer.raw_bytes), sizeof(buffer),
-               0, (struct sockaddr*)&addr, sizeof(addr));
+               0, (struct sockaddr*)&(addr), sizeof(addr));
       }
     }
 
