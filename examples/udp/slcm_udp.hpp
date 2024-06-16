@@ -37,6 +37,11 @@ class UdpServoSystem : public ServoSystem {
     const std::string host;
     const int recv_port;
     const int send_port;
+    int sock_r;
+    sockaddr_in addr_r;
+    socklen_t addrlen_r = sizeof(addr_r);
+    int sock_s;
+    sockaddr_in addr_s;
   } udp_;
 
   union RecvBuf {
@@ -87,31 +92,36 @@ class UdpServoSystem : public ServoSystem {
         } {}
 
  protected:
+  bool SetupUdpReceive() {
+    udp_.sock_r = socket(AF_INET, SOCK_DGRAM, 0);
+    if (udp_.sock_r < 0) {
+      std::cout << "Failed to create UDP receive socket." << std::endl;
+      return false;
+    }
+    udp_.addr_r.sin_family = AF_INET;
+    udp_.addr_r.sin_addr.s_addr = inet_addr(udp_.host.c_str());
+    udp_.addr_r.sin_port = htons(udp_.recv_port);
+    if (bind(udp_.sock_r, (struct sockaddr*)&udp_.addr_r, sizeof(udp_.addr_r)) <
+        0) {
+      std::cout << "Failed to bind UDP socket." << std::endl;
+      close(udp_.sock_r);
+      return false;
+    }
+    return true;
+  }
+
   virtual void ExternalCommandGetter(std::atomic_bool* terminated) override {
     std::cout << "UDP variant ExternalCommandGetter thread is running..."
               << std::endl;
 
-    /// Setup UDP socket
-    int udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
-    if (udp_socket < 0) {
+    if (SetupUdpReceive() < 0) {
       std::cout
-          << "Failed to create UDP socket. "
+          << "Failed to create UDP socket.  "
              "UDP variant ExternalCommandGetter thread will now terminate."
           << std::endl;
       return;
     }
-    sockaddr_in address;
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr(udp_.host.c_str());
-    address.sin_port = htons(udp_.recv_port);
-    if (bind(udp_socket, (struct sockaddr*)&address, sizeof(address)) < 0) {
-      std::cout
-          << "Failed to bind UDP socket.  "
-             "UDP variant ExternalCommandGetter thread will now terminate."
-          << std::endl;
-      close(udp_socket);
-      return;
-    }
+
     std::cout
         << "UDP variant ExternalCommandGetter thread started listening for "
            "UDP packets on "
@@ -130,35 +140,35 @@ class UdpServoSystem : public ServoSystem {
       /// Inner loop until data are received for all IDs
       while (!std::all_of(receive_states.begin(), receive_states.end(),
                           [](const auto& pair) { return pair.second; })) {
-        RecvBuf buffer;
+        RecvBuf rbuf;
 
         sockaddr_in client_address;
         socklen_t client_address_len = sizeof(client_address);
         ssize_t bytes_received =
-            recvfrom(udp_socket, buffer.raw_bytes, sizeof(buffer.raw_bytes), 0,
-                     (struct sockaddr*)&client_address, &client_address_len);
+            recvfrom(udp_.sock_r, rbuf.raw_bytes, sizeof(rbuf.raw_bytes), 0,
+                     (struct sockaddr*)&(udp_.addr_r), &(udp_.addrlen_r));
         if (bytes_received < 0) {
           std::cout << "UDP receive error!" << std::endl;
           continue;
         }
 
-        int id = static_cast<int>(buffer.cmd.id);
+        int id = static_cast<int>(rbuf.cmd.id);
         if (ids_.find(id) == ids_.end()) continue;
         if (receive_states[id]) continue;
 
         if (Utils::IsLittleEndian()) {
-          for (int i = 1; i + 4 <= sizeof(buffer.raw_bytes); i += 4) {
-            std::reverse(buffer.raw_bytes + i, buffer.raw_bytes + i + 4);
+          for (int i = 1; i + 4 <= sizeof(rbuf.raw_bytes); i += 4) {
+            std::reverse(rbuf.raw_bytes + i, rbuf.raw_bytes + i + 4);
           }
         }
 
-        cmd[id][CmdItems::position] = static_cast<double>(buffer.cmd.position);
+        cmd[id][CmdItems::position] = static_cast<double>(rbuf.cmd.position);
         cmd[id][CmdItems::velocity_limit] =
-            static_cast<double>(buffer.cmd.velocity);
+            static_cast<double>(rbuf.cmd.velocity);
         cmd[id][CmdItems::maximum_torque] =
-            static_cast<double>(buffer.cmd.maximum_torque);
+            static_cast<double>(rbuf.cmd.maximum_torque);
         cmd[id][CmdItems::accel_limit] =
-            static_cast<double>(buffer.cmd.accel_limit);
+            static_cast<double>(rbuf.cmd.accel_limit);
 
         receive_states[id] = true;
       }
@@ -166,26 +176,33 @@ class UdpServoSystem : public ServoSystem {
       EmplaceCommand(cmd);
     }
 
-    close(udp_socket);
+    close(udp_.sock_r);
+  }
+
+  bool SetupUdpSend() {
+    udp_.sock_s = socket(AF_INET, SOCK_DGRAM, 0);
+    if (udp_.sock_s < 0) {
+      std::cout << "Failed to create UDP socket." << std::endl;
+      return false;
+    }
+    struct sockaddr_in addr;
+    udp_.addr_s.sin_family = AF_INET;
+    udp_.addr_s.sin_addr.s_addr = inet_addr(udp_.host.c_str());
+    udp_.addr_s.sin_port = htons(udp_.send_port);
+    return true;
   }
 
   void ExternalReplySender(std::atomic_bool* terminated) override {
     std::cout << "UDP variant ExternalReplySender thread is running..."
               << std::endl;
 
-    /// Setup UDP socket
-    /// Setup UDP socket
-    int udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
-    if (udp_socket == -1) {
+    if (SetupUdpSend() < 0) {
       std::cout << "Failed to create UDP socket. "
                    "UDP variant ExternalReplySender thread will now terminate."
                 << std::endl;
       return;
     }
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(udp_.host.c_str());
-    addr.sin_port = htons(udp_.send_port);
+
     std::cout << "UDP variant ExternalReplySender thread started sending "
                  "UDP packets to "
               << udp_.host << ":" << udp_.send_port << "..." << std::endl;
@@ -198,36 +215,33 @@ class UdpServoSystem : public ServoSystem {
         const int id = id_servo.first;
         const auto& servo = id_servo.second;
         moteus::Query::Result rpl;
-        SendBuf buffer;
+        SendBuf sbuf;
         {
           std::lock_guard<std::mutex> lock(servo_access_mutex_);
           rpl = servo->GetReply();
         }
-        buffer.rpl.id = static_cast<uint8_t>(id);
-        buffer.rpl.position = static_cast<float>(rpl.position);
-        buffer.rpl.aux2_position = static_cast<float>(rpl.abs_position);
-        buffer.rpl.velocity = static_cast<float>(rpl.velocity);
-        buffer.rpl.torque = static_cast<float>(rpl.torque);
-        buffer.rpl.q_curr = static_cast<float>(rpl.q_current);
-        buffer.rpl.d_curr = static_cast<float>(rpl.d_current);
-        buffer.rpl.voltage = static_cast<float>(rpl.voltage);
-        buffer.rpl.temperature = static_cast<float>(rpl.motor_temperature);
-
-        std::cout << id << " Temperature: " << rpl.motor_temperature
-                  << std::endl;
+        sbuf.rpl.id = static_cast<uint8_t>(id);
+        sbuf.rpl.position = static_cast<float>(rpl.position);
+        sbuf.rpl.aux2_position = static_cast<float>(rpl.abs_position);
+        sbuf.rpl.velocity = static_cast<float>(rpl.velocity);
+        sbuf.rpl.torque = static_cast<float>(rpl.torque);
+        sbuf.rpl.q_curr = static_cast<float>(rpl.q_current);
+        sbuf.rpl.d_curr = static_cast<float>(rpl.d_current);
+        sbuf.rpl.voltage = static_cast<float>(rpl.voltage);
+        sbuf.rpl.temperature = static_cast<float>(rpl.motor_temperature);
 
         if (Utils::IsLittleEndian()) {
-          for (int i = 4; i + 4 <= sizeof(buffer.raw_bytes); i += 4) {
-            std::reverse(buffer.raw_bytes + i, buffer.raw_bytes + i + 4);
+          for (int i = 4; i + 4 <= sizeof(sbuf.raw_bytes); i += 4) {
+            std::reverse(sbuf.raw_bytes + i, sbuf.raw_bytes + i + 4);
           }
         }
 
-        sendto(udp_socket, static_cast<void*>(buffer.raw_bytes), sizeof(buffer),
-               0, (struct sockaddr*)&(addr), sizeof(addr));
+        sendto(udp_.sock_s, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,
+               (struct sockaddr*)&(udp_.addr_s), sizeof(udp_.addr_s));
       }
     }
 
-    close(udp_socket);
+    close(udp_.sock_s);
   }
 };
 
