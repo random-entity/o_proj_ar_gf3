@@ -142,11 +142,9 @@ class UdpServoSystem : public ServoSystem {
                           [](const auto& pair) { return pair.second; })) {
         RecvBuf rbuf;
 
-        sockaddr_in client_address;
-        socklen_t client_address_len = sizeof(client_address);
         ssize_t bytes_received =
             recvfrom(udp_.sock_r, rbuf.raw_bytes, sizeof(rbuf.raw_bytes), 0,
-                     (struct sockaddr*)&(udp_.addr_r), &(udp_.addrlen_r));
+                     (sockaddr*)&(udp_.addr_r), &(udp_.addrlen_r));
         if (bytes_received < 0) {
           std::cout << "UDP receive error!" << std::endl;
           continue;
