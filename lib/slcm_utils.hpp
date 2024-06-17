@@ -39,8 +39,8 @@ struct Utils {
   static std::ptrdiff_t GetAddrOffset(const T& from, const U& to) {
     auto* from_non_const = const_cast<T*>(&from);
     auto* to_non_const = const_cast<U*>(&to);
-    return reinterpret_cast<char*>(&to_non_const) -
-           reinterpret_cast<char*>(&from_non_const);
+    return reinterpret_cast<char*>(to_non_const) -
+           reinterpret_cast<char*>(from_non_const);
   }
 
   /// @brief Get class name of an object pointed to by the given pointer.

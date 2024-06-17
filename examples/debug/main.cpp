@@ -8,7 +8,7 @@ int main() {
                            RplPosRelTo::Base,
                            "../config",
                            "../config",
-                           true,
+                           false,
                            RplPosRelTo::Absolute};
   servo_system.StartThread("x");
   servo_system.StartThread("ec");

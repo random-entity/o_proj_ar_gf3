@@ -126,7 +126,7 @@ struct Parser {
         const auto item = maybe_item.value();
 
         std::cout << "Configuring Command resolution and initial value for "
-                  << item_str << "..." << std::endl;
+                  << item << "..." << std::endl;
 
         const auto& inner_json = element.value();
         auto* res = CmdItemsMgr::ItemToPtr(item, fmt);

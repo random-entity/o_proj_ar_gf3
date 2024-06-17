@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "moteus_protocol.h"
+#include "slcm_printer.hpp"
 #include "slcm_utils.hpp"
 
 namespace som {
@@ -25,15 +26,59 @@ enum class CommandItem {
   kp_scale,
   kd_scale,
   maximum_torque,
-  /* Command Item stop_position is omitted to prevent faults since
-     using it with velocity_limit or accel_limit causes fault. */
-  // stop_position,
+  stop_position, /* Command Item stop_position causes fault
+                    if used with velocity_limit or accel_limit */
   watchdog_timeout,
   velocity_limit,
   accel_limit,
   fixed_voltage_override,
   ilimit_scale
 };
+
+inline std::ostream& operator<<(std::ostream& os, const CommandItem& item) {
+  switch (item) {
+    case CommandItem::position:
+      os << "position";
+      break;
+    case CommandItem::velocity:
+      os << "velocity";
+      break;
+    case CommandItem::feedforward_torque:
+      os << "feedforward_torque";
+      break;
+    case CommandItem::kp_scale:
+      os << "kp_scale";
+      break;
+    case CommandItem::kd_scale:
+      os << "kd_scale";
+      break;
+    case CommandItem::maximum_torque:
+      os << "maximum_torque";
+      break;
+    case CommandItem::stop_position:
+      os << "stop_position";
+      break;
+    case CommandItem::watchdog_timeout:
+      os << "watchdog_timeout";
+      break;
+    case CommandItem::velocity_limit:
+      os << "velocity_limit";
+      break;
+    case CommandItem::accel_limit:
+      os << "accel_limit";
+      break;
+    case CommandItem::fixed_voltage_override:
+      os << "fixed_voltage_override";
+      break;
+    case CommandItem::ilimit_scale:
+      os << "ilimit_scale";
+      break;
+    default:
+      os << "<Unknown>";
+      break;
+  }
+  return os;
+}
 
 enum class ReplyItem {
   mode,
@@ -115,8 +160,12 @@ class CmdItemsMgr {
       Utils::GetAddrOffset(c_, c_.maximum_torque),  //
       Utils::GetAddrOffset(f_, f_.maximum_torque)   //
   };
-  /* Command Item stop_position is omitted to prevent faults since
-     using it with velocity_limit or accel_limit causes fault. */
+  /* Command Item stop_position causes fault
+     if used with velocity_limit or accel_limit */
+  inline static const CmdItemMetadata stop_position_ = {
+      Utils::GetAddrOffset(c_, c_.stop_position),  //
+      Utils::GetAddrOffset(f_, f_.stop_position)   //
+  };
   inline static const CmdItemMetadata watchdog_timeout_ = {
       Utils::GetAddrOffset(c_, c_.watchdog_timeout),  //
       Utils::GetAddrOffset(f_, f_.watchdog_timeout)   //
@@ -145,8 +194,9 @@ class CmdItemsMgr {
       {CommandItem::kp_scale, kp_scale_},                      //
       {CommandItem::kd_scale, kd_scale_},                      //
       {CommandItem::maximum_torque, maximum_torque_},          //
-      /* Command Item stop_position is omitted to prevent faults since
-         using it with velocity_limit or accel_limit causes fault. */
+      /* Command Item stop_position causes fault
+         if used with velocity_limit or accel_limit */
+      {CommandItem::stop_position, stop_position_},
       {CommandItem::watchdog_timeout, watchdog_timeout_},              //
       {CommandItem::velocity_limit, velocity_limit_},                  //
       {CommandItem::accel_limit, accel_limit_},                        //
@@ -167,8 +217,10 @@ class CmdItemsMgr {
       {"kds", CommandItem::kd_scale},
       {"maximum_torque", CommandItem::maximum_torque},
       {"mxt", CommandItem::maximum_torque},
-      /* Command Item stop_position is omitted to prevent faults since
-         using it with velocity_limit or accel_limit causes fault. */
+      /* Command Item stop_position causes fault
+         if used with velocity_limit or accel_limit */
+      {"stop_position", CommandItem::stop_position},
+      {"spo", CommandItem::stop_position},
       {"watchdog_timeout", CommandItem::watchdog_timeout},
       {"wto", CommandItem::watchdog_timeout},
       {"velocity_limit", CommandItem::velocity_limit},
@@ -193,7 +245,7 @@ class CmdItemsMgr {
       const CommandItem item, const moteus::PositionMode::Format& fmt) {
     auto* non_const = const_cast<moteus::PositionMode::Format*>(&fmt);
     return reinterpret_cast<moteus::Resolution*>(
-        reinterpret_cast<char*>(&non_const) + metadata_.at(item).offset_fmt_);
+        reinterpret_cast<char*>(non_const) + metadata_.at(item).offset_fmt_);
   }
 
   static std::optional<CommandItem> StrToItem(const std::string& str) {
