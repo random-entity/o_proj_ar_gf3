@@ -11,8 +11,8 @@ int main() {
 
   // Initialize empty internal command maps. We will fill
   // them up with commands we want to send to the Servos.
-  std::map<int, std::map<CmdItem, double>> cmd;
-  std::map<CmdItem, double> cmd_all;
+  std::map<int, std::map<CommandItem, double>> cmd;
+  std::map<CommandItem, double> cmd_all;
 
   // Initialize empty reply buffer. We will let the
   // ServoSystem to fill it up with servo replies.
@@ -30,8 +30,8 @@ int main() {
   // Imitate a clock for 10 seconds.
   double time_init = Utils::GetTime();
   for (int i = 0; Utils::GetTime() - time_init < 10.0; i++, sleep(1)) {
-    cmd_all[CmdItems::position] = 0.25 * i;
-    cmd_all[CmdItems::velocity] = 0.0;
+    cmd_all[CommandItem::position] = 0.25 * i;
+    cmd_all[CommandItem::velocity] = 0.0;
     servo_system.CommandAll(cmd_all);
 
     servo_system.GetReplyAll(replies, sizeof(replies));
@@ -42,8 +42,8 @@ int main() {
   for (time_init = Utils::GetTime(); Utils::GetTime() - time_init < 10.0;
        usleep(0.01 * 1e6)) {
     for (const auto id : ids) {
-      cmd[id][CmdItems::position] = NaN;
-      cmd[id][CmdItems::velocity] = std::sin(2 * Utils::GetTime() + id);
+      cmd[id][CommandItem::position] = NaN;
+      cmd[id][CommandItem::velocity] = std::sin(2 * Utils::GetTime() + id);
     }
     servo_system.Command(cmd);
 

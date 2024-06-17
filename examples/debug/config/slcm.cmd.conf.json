@@ -21,7 +21,7 @@
   },
   "maximum_torque": {
     "resolution": "kFloat",
-    "initial_value": 1.0
+    "initial_value": 8.0
   },
   "stop_position": {
     "resolution": "kIgnore"
@@ -31,11 +31,11 @@
   },
   "velocity_limit": {
     "resolution": "kFloat",
-    "initial_value": 0.5
+    "initial_value": 4.0
   },
   "accel_limit": {
     "resolution": "kFloat",
-    "initial_value": 0.5
+    "initial_value": 4.0
   },
   "fixed_voltage_override": {
     "resolution": "kIgnore"

@@ -76,12 +76,12 @@ class UdpServoSystem : public ServoSystem {
   UdpServoSystem(const std::map<int, int>& id_bus_map,
                  const std::string& udp_host, const int udp_recv_port,
                  const int udp_send_port,
-                 const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::cBASE,
-                 const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::rBASE,
+                 const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::Base,
+                 const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::Base,
                  const std::string& cmd_conf_dir = "../config",
                  const std::string& rpl_conf_dir = "../config",
                  const bool use_aux2 = true,
-                 const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::rABSOLUTE)
+                 const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::Absolute)
       : ServoSystem{id_bus_map,         cmd_pos_rel_to, rpl_pos_rel_to,
                     cmd_conf_dir,       rpl_conf_dir,   use_aux2,
                     rpl_aux2_pos_rel_to},
@@ -135,7 +135,7 @@ class UdpServoSystem : public ServoSystem {
       for (auto id : ids_) {
         receive_states[id] = false;
       }
-      std::map<int, std::map<CmdItem, double>> cmd;
+      std::map<int, std::map<CommandItem, double>> cmd;
 
       /// Inner loop until data are received for all IDs
       while (!std::all_of(receive_states.begin(), receive_states.end(),
@@ -160,12 +160,12 @@ class UdpServoSystem : public ServoSystem {
           }
         }
 
-        cmd[id][CmdItems::position] = static_cast<double>(rbuf.cmd.position);
-        cmd[id][CmdItems::velocity_limit] =
+        cmd[id][CommandItem::position] = static_cast<double>(rbuf.cmd.position);
+        cmd[id][CommandItem::velocity_limit] =
             static_cast<double>(rbuf.cmd.velocity);
-        cmd[id][CmdItems::maximum_torque] =
+        cmd[id][CommandItem::maximum_torque] =
             static_cast<double>(rbuf.cmd.maximum_torque);
-        cmd[id][CmdItems::accel_limit] =
+        cmd[id][CommandItem::accel_limit] =
             static_cast<double>(rbuf.cmd.accel_limit);
 
         receive_states[id] = true;

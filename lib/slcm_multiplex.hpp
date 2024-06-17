@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <optional>
 #include <set>
 #include <string>
 #include <typeindex>
@@ -13,18 +14,49 @@
 namespace som {
 using namespace mjbots;
 
-enum CmdPosRelTo { cABSOLUTE, cBASE, cRECENT };
-enum RplPosRelTo { rABSOLUTE, rBASE };
-enum WhichPos { pINTERNAL, pAUX2 };
+enum class CmdPosRelTo { Absolute, Base, Recent };
+enum class RplPosRelTo { Absolute, Base };
+enum class WhichPos { Internal, Aux2 };
 
-class Item {
+enum class CommandItem {
+  position,
+  velocity,
+  feedforward_torque,
+  kp_scale,
+  kd_scale,
+  maximum_torque,
+  /* Command Item stop_position is omitted to prevent faults since
+     using it with velocity_limit or accel_limit causes fault. */
+  // stop_position,
+  watchdog_timeout,
+  velocity_limit,
+  accel_limit,
+  fixed_voltage_override,
+  ilimit_scale
+};
+
+enum class ReplyItem {
+  mode,
+  position,
+  velocity,
+  torque,
+  q_current,
+  d_current,
+  abs_position,
+  power,
+  motor_temperature,
+  trajectory_complete,
+  home_state,
+  voltage,
+  temperature,
+  fault
+};
+
+class ItemMetadata {
  protected:
-  Item(const std::ptrdiff_t& offset_cmdrpl, const std::ptrdiff_t& offset_fmt,
-       const std::type_index& type, const std::vector<std::string>& aliases)
-      : offset_cmdrpl_{offset_cmdrpl},
-        offset_fmt_{offset_fmt},
-        type_{type},
-        aliases_{aliases} {}
+  ItemMetadata(const std::ptrdiff_t& offset_cmdrpl,
+               const std::ptrdiff_t& offset_fmt)
+      : offset_cmdrpl_{offset_cmdrpl}, offset_fmt_{offset_fmt} {}
 
   const std::ptrdiff_t
       offset_cmdrpl_;  // Address offset of corresponding member in struct
@@ -32,364 +64,313 @@ class Item {
   const std::ptrdiff_t
       offset_fmt_;  // Address offset of corresponding member
                     // in struct PositionMode::Format or Query::Format.
+};
+
+class CmdItemMetadata : public ItemMetadata {
+  friend class CmdItemsMgr;
+
+ private:
+  CmdItemMetadata(const std::ptrdiff_t& offset_cmdrpl,
+                  const std::ptrdiff_t& offset_fmt)
+      : ItemMetadata{offset_cmdrpl, offset_fmt} {}
+};
+
+class RplItemMetadata : public ItemMetadata {
+  friend class RplItemsMgr;
+
+ private:
+  RplItemMetadata(const std::ptrdiff_t& offset_cmdrpl,
+                  const std::ptrdiff_t& offset_fmt, const std::type_index& type)
+      : ItemMetadata{offset_cmdrpl, offset_fmt}, type_{type} {}
+
   const std::type_index type_;  // Runtime type ID of corresponding member
-  const std::vector<std::string> aliases_;  // String aliases
-
- public:
-  std::string GetName() const {
-    if (aliases_.empty()) {
-      return "";
-    } else {
-      return aliases_.at(0);
-    }
-  }
-
-  bool operator<(const Item& other) const {
-    return this->offset_fmt_ < other.offset_fmt_;
-  }
 };
 
-class CmdItem : public Item {
-  friend class CmdItems;
-
+class CmdItemsMgr {
  private:
-  CmdItem(const std::ptrdiff_t& offset_cmdrpl, const std::ptrdiff_t& offset_fmt,
-          const std::type_index& type, const std::vector<std::string>& aliases)
-      : Item{offset_cmdrpl, offset_fmt, type, aliases} {}
-};
+  inline static const moteus::PositionMode::Command c_;
+  inline static const moteus::PositionMode::Format f_;
 
-class RplItem : public Item {
-  friend class RplItems;
-
- private:
-  RplItem(const std::ptrdiff_t& offset_cmdrpl, const std::ptrdiff_t& offset_fmt,
-          const std::type_index& type, const std::vector<std::string>& aliases)
-      : Item{offset_cmdrpl, offset_fmt, type, aliases} {}
-};
-
-class CmdItems {
- private:
-  inline static moteus::PositionMode::Command c_;
-  inline static moteus::PositionMode::Format f_;
-
- public:
-  inline static const CmdItem position = {
+  inline static const CmdItemMetadata position_ = {
       Utils::GetAddrOffset(c_, c_.position),  //
-      Utils::GetAddrOffset(f_, f_.position),  //
-      typeid(c_.position),                    //
-      {"position", "pos"}                     //
+      Utils::GetAddrOffset(f_, f_.position)   //
   };
-  inline static const CmdItem velocity = {
+  inline static const CmdItemMetadata velocity_ = {
       Utils::GetAddrOffset(c_, c_.velocity),  //
-      Utils::GetAddrOffset(f_, f_.velocity),  //
-      typeid(c_.velocity),                    //
-      {"velocity", "vel"}                     //
+      Utils::GetAddrOffset(f_, f_.velocity)   //
   };
-  inline static const CmdItem feedforward_torque = {
+  inline static const CmdItemMetadata feedforward_torque_ = {
       Utils::GetAddrOffset(c_, c_.feedforward_torque),  //
-      Utils::GetAddrOffset(f_, f_.feedforward_torque),  //
-      typeid(c_.feedforward_torque),                    //
-      {"feedforward_torque", "fft"}                     //
+      Utils::GetAddrOffset(f_, f_.feedforward_torque)   //
   };
-  inline static const CmdItem kp_scale = {
+  inline static const CmdItemMetadata kp_scale_ = {
       Utils::GetAddrOffset(c_, c_.kp_scale),  //
-      Utils::GetAddrOffset(f_, f_.kp_scale),  //
-      typeid(c_.kp_scale),                    //
-      {"kp_scale", "kps"}                     //
+      Utils::GetAddrOffset(f_, f_.kp_scale)   //
   };
-  inline static const CmdItem kd_scale = {
+  inline static const CmdItemMetadata kd_scale_ = {
       Utils::GetAddrOffset(c_, c_.kd_scale),  //
-      Utils::GetAddrOffset(f_, f_.kd_scale),  //
-      typeid(c_.kd_scale),                    //
-      {"kd_scale", "kds"}                     //
+      Utils::GetAddrOffset(f_, f_.kd_scale)   //
   };
-  inline static const CmdItem maximum_torque = {
+  inline static const CmdItemMetadata maximum_torque_ = {
       Utils::GetAddrOffset(c_, c_.maximum_torque),  //
-      Utils::GetAddrOffset(f_, f_.maximum_torque),  //
-      typeid(c_.maximum_torque),                    //
-      {"maximum_torque", "mxt"}                     //
+      Utils::GetAddrOffset(f_, f_.maximum_torque)   //
   };
   /* Command Item stop_position is omitted to prevent faults since
      using it with velocity_limit or accel_limit causes fault. */
-  inline static const CmdItem watchdog_timeout = {
+  inline static const CmdItemMetadata watchdog_timeout_ = {
       Utils::GetAddrOffset(c_, c_.watchdog_timeout),  //
-      Utils::GetAddrOffset(f_, f_.watchdog_timeout),  //
-      typeid(c_.watchdog_timeout),                    //
-      {"watchdog_timeout", "wto"}                     //
+      Utils::GetAddrOffset(f_, f_.watchdog_timeout)   //
   };
-  inline static const CmdItem velocity_limit = {
+  inline static const CmdItemMetadata velocity_limit_ = {
       Utils::GetAddrOffset(c_, c_.velocity_limit),  //
-      Utils::GetAddrOffset(f_, f_.velocity_limit),  //
-      typeid(c_.velocity_limit),                    //
-      {"velocity_limit", "vlm"}                     //
+      Utils::GetAddrOffset(f_, f_.velocity_limit)   //
   };
-  inline static const CmdItem accel_limit = {
+  inline static const CmdItemMetadata accel_limit_ = {
       Utils::GetAddrOffset(c_, c_.accel_limit),  //
-      Utils::GetAddrOffset(f_, f_.accel_limit),  //
-      typeid(c_.accel_limit),                    //
-      {"accel_limit", "alm"}                     //
+      Utils::GetAddrOffset(f_, f_.accel_limit)   //
   };
-  inline static const CmdItem fixed_voltage_override = {
+  inline static const CmdItemMetadata fixed_voltage_override_ = {
       Utils::GetAddrOffset(c_, c_.fixed_voltage_override),  //
-      Utils::GetAddrOffset(f_, f_.fixed_voltage_override),  //
-      typeid(c_.fixed_voltage_override),                    //
-      {"fixed_voltage_override", "fvo"}                     //
+      Utils::GetAddrOffset(f_, f_.fixed_voltage_override)   //
   };
-  inline static const CmdItem ilimit_scale = {
+  inline static const CmdItemMetadata ilimit_scale_ = {
       Utils::GetAddrOffset(c_, c_.ilimit_scale),  //
-      Utils::GetAddrOffset(f_, f_.ilimit_scale),  //
-      typeid(c_.ilimit_scale),                    //
-      {"ilimit_scale", "ils"}                     //
+      Utils::GetAddrOffset(f_, f_.ilimit_scale)   //
   };
 
-  inline static const std::set<const CmdItem*> set_ = {
-      &position,           &velocity,
-      &feedforward_torque, &kp_scale,
-      &kd_scale,           &maximum_torque,
-      &watchdog_timeout,   &velocity_limit,
-      &accel_limit,        &fixed_voltage_override,
-      &ilimit_scale};
+  inline static const std::map<CommandItem, CmdItemMetadata> metadata_ = {
+      {CommandItem::position, position_},                      //
+      {CommandItem::velocity, velocity_},                      //
+      {CommandItem::feedforward_torque, feedforward_torque_},  //
+      {CommandItem::kp_scale, kp_scale_},                      //
+      {CommandItem::kd_scale, kd_scale_},                      //
+      {CommandItem::maximum_torque, maximum_torque_},          //
+      /* Command Item stop_position is omitted to prevent faults since
+         using it with velocity_limit or accel_limit causes fault. */
+      {CommandItem::watchdog_timeout, watchdog_timeout_},              //
+      {CommandItem::velocity_limit, velocity_limit_},                  //
+      {CommandItem::accel_limit, accel_limit_},                        //
+      {CommandItem::fixed_voltage_override, fixed_voltage_override_},  //
+      {CommandItem::ilimit_scale, ilimit_scale_}                       //
+  };
 
-  static const CmdItem* const Find(const std::string& alias) {
-    auto it =
-        std::find_if(set_.begin(), set_.end(), [&alias](const CmdItem* item) {
-          const auto& aliases = item->aliases_;
-          return std::find(aliases.begin(), aliases.end(), alias) !=
-                 aliases.end();
-        });
-    if (it == set_.end()) {
-      return nullptr;
-    } else {
-      std::cout << "Command Item " << alias << " not found." << std::endl;
-      return *it;
-    }
+  inline static const std::map<std::string, CommandItem> aliases_ = {
+      {"position", CommandItem::position},
+      {"pos", CommandItem::position},
+      {"velocity", CommandItem::velocity},
+      {"vel", CommandItem::velocity},
+      {"feedforward_torque", CommandItem::feedforward_torque},
+      {"fft", CommandItem::feedforward_torque},
+      {"kp_scale", CommandItem::kp_scale},
+      {"kps", CommandItem::kp_scale},
+      {"kd_scale", CommandItem::kd_scale},
+      {"kds", CommandItem::kd_scale},
+      {"maximum_torque", CommandItem::maximum_torque},
+      {"mxt", CommandItem::maximum_torque},
+      /* Command Item stop_position is omitted to prevent faults since
+         using it with velocity_limit or accel_limit causes fault. */
+      {"watchdog_timeout", CommandItem::watchdog_timeout},
+      {"wto", CommandItem::watchdog_timeout},
+      {"velocity_limit", CommandItem::velocity_limit},
+      {"vlm", CommandItem::velocity_limit},
+      {"accel_limit", CommandItem::accel_limit},
+      {"alm", CommandItem::accel_limit},
+      {"fixed_voltage_override", CommandItem::fixed_voltage_override},
+      {"fvo", CommandItem::fixed_voltage_override},
+      {"ilimit_scale", CommandItem::ilimit_scale},
+      {"ils", CommandItem::ilimit_scale},
+  };
+
+ public:
+  static double* ItemToPtr(const CommandItem item,
+                           const moteus::PositionMode::Command& cmd) {
+    auto* non_const = const_cast<moteus::PositionMode::Command*>(&cmd);
+    return reinterpret_cast<double*>(reinterpret_cast<char*>(non_const) +
+                                     metadata_.at(item).offset_cmdrpl_);
   }
 
-  static double* Get(const CmdItem& item,
-                     const moteus::PositionMode::Command& cmd) {
-    if (set_.find(&item) == set_.end()) {
-      std::cout << "Command Item not found." << std::endl;
-      return nullptr;
-    } else if (item.type_ == typeid(double)) {
-      auto* non_const = const_cast<moteus::PositionMode::Command*>(&cmd);
-      return reinterpret_cast<double*>(reinterpret_cast<char*>(non_const) +
-                                       item.offset_cmdrpl_);
-    } else {
-      std::cout << "Command Item is not of type double" << std::endl;
-      return nullptr;
-    }
+  static moteus::Resolution* ItemToPtr(
+      const CommandItem item, const moteus::PositionMode::Format& fmt) {
+    auto* non_const = const_cast<moteus::PositionMode::Format*>(&fmt);
+    return reinterpret_cast<moteus::Resolution*>(
+        reinterpret_cast<char*>(&non_const) + metadata_.at(item).offset_fmt_);
   }
 
-  static double* Get(const std::string& alias,
-                     const moteus::PositionMode::Command& cmd) {
-    const auto* item = Find(alias);
-    if (item) {
-      return Get(*item, cmd);
+  static std::optional<CommandItem> StrToItem(const std::string& str) {
+    const auto& maybe_item = Utils::SafeAt(aliases_, str);
+    if (maybe_item) {
+      return maybe_item.value();
     } else {
-      std::cout << "Command Item " << alias << " not found." << std::endl;
-      return nullptr;
-    }
-  }
-
-  static moteus::Resolution* Get(const CmdItem& item,
-                                 const moteus::PositionMode::Format& fmt) {
-    if (set_.find(&item) == set_.end()) {
-      std::cout << "Command Item not found." << std::endl;
-      return nullptr;
-    } else {
-      auto* non_const = const_cast<moteus::PositionMode::Format*>(&fmt);
-      return reinterpret_cast<moteus::Resolution*>(
-          reinterpret_cast<char*>(non_const) + item.offset_fmt_);
-    }
-  }
-
-  static moteus::Resolution* Get(const std::string& alias,
-                                 const moteus::PositionMode::Format& fmt) {
-    const auto* item = Find(alias);
-    if (item) {
-      return Get(*item, fmt);
-    } else {
-      std::cout << "Command Item " << alias << " not found." << std::endl;
-      return nullptr;
+      return std::nullopt;
     }
   }
 };
 
-class RplItems {
+class RplItemsMgr {
  private:
-  inline static moteus::Query::Result r_;
-  inline static moteus::Query::Format f_;
+  inline static const moteus::Query::Result r_;
+  inline static const moteus::Query::Format f_;
 
- public:
-  inline static const RplItem mode = {
+  inline static const RplItemMetadata mode_ = {
       Utils::GetAddrOffset(r_, r_.mode),  //
       Utils::GetAddrOffset(f_, f_.mode),  //
-      typeid(r_.mode),                    //
-      {"mode", "mod"}                     //
+      typeid(r_.mode)                     //
   };
-  inline static const RplItem position = {
+  inline static const RplItemMetadata position_ = {
       Utils::GetAddrOffset(r_, r_.position),  //
       Utils::GetAddrOffset(f_, f_.position),  //
-      typeid(r_.position),                    //
-      {"position", "pos"}                     //
+      typeid(r_.position)                     //
   };
-  inline static const RplItem velocity = {
+  inline static const RplItemMetadata velocity_ = {
       Utils::GetAddrOffset(r_, r_.velocity),  //
       Utils::GetAddrOffset(f_, f_.velocity),  //
-      typeid(r_.velocity),                    //
-      {"velocity", "vel"}                     //
+      typeid(r_.velocity)                     //
   };
-  inline static const RplItem torque = {
+  inline static const RplItemMetadata torque_ = {
       Utils::GetAddrOffset(r_, r_.torque),  //
       Utils::GetAddrOffset(f_, f_.torque),  //
-      typeid(r_.torque),                    //
-      {"torque", "trq"}                     //
+      typeid(r_.torque)                     //
   };
-  inline static const RplItem q_current = {
+  inline static const RplItemMetadata q_current_ = {
       Utils::GetAddrOffset(r_, r_.q_current),  //
       Utils::GetAddrOffset(f_, f_.q_current),  //
-      typeid(r_.q_current),                    //
-      {"q_current", "qcr"}                     //
+      typeid(r_.q_current)                     //
   };
-  inline static const RplItem d_current = {
+  inline static const RplItemMetadata d_current_ = {
       Utils::GetAddrOffset(r_, r_.d_current),  //
       Utils::GetAddrOffset(f_, f_.d_current),  //
-      typeid(r_.d_current),                    //
-      {"d_current", "dcr"}                     //
+      typeid(r_.d_current)                     //
   };
-  inline static const RplItem abs_position = {
+  inline static const RplItemMetadata abs_position_ = {
       Utils::GetAddrOffset(r_, r_.abs_position),  //
       Utils::GetAddrOffset(f_, f_.abs_position),  //
-      typeid(r_.abs_position),                    //
-      {"abs_position", "apo"}                     //
+      typeid(r_.abs_position)                     //
   };
-  inline static const RplItem power = {
+  inline static const RplItemMetadata power_ = {
       Utils::GetAddrOffset(r_, r_.power),  //
       Utils::GetAddrOffset(f_, f_.power),  //
-      typeid(r_.power),                    //
-      {"power", "pwr"}                     //
+      typeid(r_.power)                     //
   };
-  inline static const RplItem motor_temperature = {
+  inline static const RplItemMetadata motor_temperature_ = {
       Utils::GetAddrOffset(r_, r_.motor_temperature),  //
       Utils::GetAddrOffset(f_, f_.motor_temperature),  //
-      typeid(r_.motor_temperature),                    //
-      {"motor_temperature", "mtp"}                     //
+      typeid(r_.motor_temperature)                     //
   };
-  inline static const RplItem trajectory_complete = {
+  inline static const RplItemMetadata trajectory_complete_ = {
       Utils::GetAddrOffset(r_, r_.trajectory_complete),  //
       Utils::GetAddrOffset(f_, f_.trajectory_complete),  //
-      typeid(r_.trajectory_complete),                    //
-      {"trajectory_complete", "tjc"}                     //
+      typeid(r_.trajectory_complete)                     //
   };
-  inline static const RplItem home_state = {
+  inline static const RplItemMetadata home_state_ = {
       Utils::GetAddrOffset(r_, r_.home_state),  //
       Utils::GetAddrOffset(f_, f_.home_state),  //
-      typeid(r_.home_state),                    //
-      {"home_state", "hom"}                     //
+      typeid(r_.home_state)                     //
   };
-  inline static const RplItem voltage = {
+  inline static const RplItemMetadata voltage_ = {
       Utils::GetAddrOffset(r_, r_.voltage),  //
       Utils::GetAddrOffset(f_, f_.voltage),  //
-      typeid(r_.voltage),                    //
-      {"voltage", "vlt"}                     //
+      typeid(r_.voltage)                     //
   };
-  inline static const RplItem temperature = {
+  inline static const RplItemMetadata temperature_ = {
       Utils::GetAddrOffset(r_, r_.temperature),  //
       Utils::GetAddrOffset(f_, f_.temperature),  //
-      typeid(r_.temperature),                    //
-      {"temperature", "tem"}                     //
+      typeid(r_.temperature)                     //
   };
-  inline static const RplItem fault = {
+  inline static const RplItemMetadata fault_ = {
       Utils::GetAddrOffset(r_, r_.fault),  //
       Utils::GetAddrOffset(f_, f_.fault),  //
-      typeid(r_.fault),                    //
-      {"fault", "flt"}                     //
+      typeid(r_.fault)                     //
   };
 
-  inline static const std::set<const RplItem*> set_ = {&mode,
-                                                       &position,
-                                                       &velocity,
-                                                       &torque,
-                                                       &q_current,
-                                                       &d_current,
-                                                       &abs_position,
-                                                       &power,
-                                                       &motor_temperature,
-                                                       &trajectory_complete,
-                                                       &home_state,
-                                                       &voltage,
-                                                       &temperature,
-                                                       &fault};
+  inline static const std::map<ReplyItem, RplItemMetadata> metadata_ = {
+      {ReplyItem::mode, mode_},                                //
+      {ReplyItem::position, position_},                        //
+      {ReplyItem::velocity, velocity_},                        //
+      {ReplyItem::torque, torque_},                            //
+      {ReplyItem::q_current, q_current_},                      //
+      {ReplyItem::d_current, d_current_},                      //
+      {ReplyItem::abs_position, abs_position_},                //
+      {ReplyItem::power, power_},                              //
+      {ReplyItem::motor_temperature, motor_temperature_},      //
+      {ReplyItem::trajectory_complete, trajectory_complete_},  //
+      {ReplyItem::home_state, home_state_},                    //
+      {ReplyItem::voltage, voltage_},                          //
+      {ReplyItem::temperature, temperature_},                  //
+      {ReplyItem::fault, fault_}                               //
+  };
 
-  static const RplItem* const Find(const std::string& alias) {
-    auto it =
-        std::find_if(set_.begin(), set_.end(), [&alias](const RplItem* item) {
-          const auto& aliases = item->aliases_;
-          return std::find(aliases.begin(), aliases.end(), alias) !=
-                 aliases.end();
-        });
-    if (it == set_.end()) {
-      return nullptr;
+  inline static const std::map<std::string, ReplyItem> aliases_ = {
+      {"mode", ReplyItem::mode},                                //
+      {"mod", ReplyItem::mode},                                 //
+      {"position", ReplyItem::position},                        //
+      {"pos", ReplyItem::position},                             //
+      {"velocity", ReplyItem::velocity},                        //
+      {"vel", ReplyItem::velocity},                             //
+      {"torque", ReplyItem::torque},                            //
+      {"trq", ReplyItem::torque},                               //
+      {"q_current", ReplyItem::q_current},                      //
+      {"qcr", ReplyItem::q_current},                            //
+      {"d_current", ReplyItem::d_current},                      //
+      {"dcr", ReplyItem::d_current},                            //
+      {"abs_position", ReplyItem::abs_position},                //
+      {"apo", ReplyItem::abs_position},                         //
+      {"power", ReplyItem::power},                              //
+      {"pwr", ReplyItem::power},                                //
+      {"motor_temperature", ReplyItem::motor_temperature},      //
+      {"mtp", ReplyItem::motor_temperature},                    //
+      {"trajectory_complete", ReplyItem::trajectory_complete},  //
+      {"tjc", ReplyItem::trajectory_complete},                  //
+      {"home_state", ReplyItem::home_state},                    //
+      {"hom", ReplyItem::home_state},                           //
+      {"voltage", ReplyItem::voltage},                          //
+      {"vlt", ReplyItem::voltage},                              //
+      {"temperature", ReplyItem::temperature},                  //
+      {"tem", ReplyItem::temperature},                          //
+      {"fault", ReplyItem::fault},                              //
+      {"flt", ReplyItem::fault}                                 //
+  };
+
+ public:
+  template <typename ItemType>
+  static ItemType* ItemToPtr(const ReplyItem item,
+                             const moteus::Query::Result& rpl) {
+    auto* non_const = const_cast<moteus::Query::Result*>(&rpl);
+    return reinterpret_cast<ItemType*>(reinterpret_cast<char*>(non_const) +
+                                       metadata_.at(item).offset_cmdrpl_);
+  }
+
+  static float ItemToFloat(const ReplyItem item,
+                           const moteus::Query::Result& rpl) {
+    auto* non_const = const_cast<moteus::Query::Result*>(&rpl);
+    auto metadata = metadata_.at(item);
+    if (metadata.type_ == typeid(double)) {
+      return static_cast<float>(*reinterpret_cast<double*>(
+          reinterpret_cast<char*>(non_const) + metadata.offset_cmdrpl_));
+    } else if (metadata.type_ == typeid(moteus::Mode)) {
+      return static_cast<float>(*reinterpret_cast<moteus::Mode*>(
+          reinterpret_cast<char*>(non_const) + metadata.offset_cmdrpl_));
+    } else if (metadata.type_ == typeid(moteus::HomeState)) {
+      return static_cast<float>(*reinterpret_cast<moteus::HomeState*>(
+          reinterpret_cast<char*>(non_const) + metadata.offset_cmdrpl_));
     } else {
-      std::cout << "Reply Item " << alias << " not found." << std::endl;
-      return *it;
+      std::cout << "Reply Item is of unsupported type." << std::endl;
+      return 1234.5678f;
     }
   }
 
-  static float GetAsFloat(const RplItem& item,
-                          const moteus::Query::Result& rpl) {
-    if (set_.find(&item) == set_.end()) {
-      std::cout << "Reply Item not found." << std::endl;
-      return 8765.4321f;
-    } else {
-      auto* non_const = const_cast<moteus::Query::Result*>(&rpl);
-      if (item.type_ == typeid(double)) {
-        return static_cast<float>(*reinterpret_cast<double*>(
-            reinterpret_cast<char*>(non_const) + item.offset_cmdrpl_));
-      } else if (item.type_ == typeid(moteus::Mode)) {
-        return static_cast<float>(*reinterpret_cast<moteus::Mode*>(
-            reinterpret_cast<char*>(non_const) + item.offset_cmdrpl_));
-      } else if (item.type_ == typeid(moteus::HomeState)) {
-        return static_cast<float>(*reinterpret_cast<moteus::HomeState*>(
-            reinterpret_cast<char*>(non_const) + item.offset_cmdrpl_));
-      } else {
-        std::cout << "Reply Item is of unsupported type." << std::endl;
-        return 8765.4321f;
-      }
-    }
+  static moteus::Resolution* ItemToPtr(const ReplyItem item,
+                                       const moteus::Query::Format& fmt) {
+    auto* non_const = const_cast<moteus::Query::Format*>(&fmt);
+    return reinterpret_cast<moteus::Resolution*>(
+        reinterpret_cast<char*>(non_const) + metadata_.at(item).offset_fmt_);
   }
 
-  static float GetAsFloat(const std::string& alias,
-                          const moteus::Query::Result& rpl) {
-    const auto* item = Find(alias);
-    if (item) {
-      return GetAsFloat(*item, rpl);
+  static std::optional<ReplyItem> StrToItem(const std::string& str) {
+    const auto& maybe_item = Utils::SafeAt(aliases_, str);
+    if (maybe_item) {
+      return maybe_item.value();
     } else {
-      std::cout << "Reply Item " << alias << " not found." << std::endl;
-      return 8765.4321f;
-    }
-  }
-
-  static moteus::Resolution* Get(const RplItem& item,
-                                 const moteus::Query::Format& fmt) {
-    if (set_.find(&item) == set_.end()) {
-      std::cout << "Reply Item not found." << std::endl;
-      return nullptr;
-    } else {
-      auto* non_const = const_cast<moteus::Query::Format*>(&fmt);
-      return reinterpret_cast<moteus::Resolution*>(
-          reinterpret_cast<char*>(non_const) + item.offset_fmt_);
-    }
-  }
-
-  static moteus::Resolution* Get(const std::string& alias,
-                                 const moteus::Query::Format& fmt) {
-    const auto* item = Find(alias);
-    if (item) {
-      return Get(*item, fmt);
-    } else {
-      std::cout << "Reply Item " << alias << " not found." << std::endl;
-      return nullptr;
+      return std::nullopt;
     }
   }
 };

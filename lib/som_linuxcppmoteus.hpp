@@ -94,16 +94,16 @@ class ServoSystem {
     }
 
     bool SetBasePos(const double time_limit) {
-      return SetBase(time_limit, WhichPos::pINTERNAL);
+      return SetBase(time_limit, WhichPos::Internal);
     }
 
     bool SetBaseAux2Pos(const double time_limit) {
-      return SetBase(time_limit, WhichPos::pAUX2);
+      return SetBase(time_limit, WhichPos::Aux2);
     }
 
-    bool SetBase(const double time_limit, WhichPos which_position) {
+    bool SetBase(const double time_limit, WhichPos which_pos) {
       const std::string which_str =
-          (which_position == WhichPos::pINTERNAL) ? "" : "aux2 ";
+          (which_pos == WhichPos::Internal) ? "" : "aux2 ";
       const int id = GetId();
       std::cout << "Attempting to get current " << which_str
                 << "position from Servo ID " << id << "..." << std::endl;
@@ -125,13 +125,12 @@ class ServoSystem {
             return false;
           }
         } else {
-          const double cur_val = (which_position == WhichPos::pINTERNAL)
+          const double cur_val = (which_pos == WhichPos::Internal)
                                      ? maybe_reply->values.position
                                      : maybe_reply->values.abs_position;
           if (std::isfinite(cur_val)) {
-            auto& base = (which_position == WhichPos::pINTERNAL)
-                             ? base_pos_
-                             : base_aux2_pos_;
+            auto& base =
+                (which_pos == WhichPos::Internal) ? base_pos_ : base_aux2_pos_;
             base = cur_val;
             std::cout << "Successfully set base " << which_str
                       << "position to current " << which_str
@@ -166,7 +165,7 @@ class ServoSystem {
     moteus::PositionMode::Command sys_cmd() {
       auto cmd = usr_cmd_;
       switch (usr_cmd_pos_rel_to_) {
-        case CmdPosRelTo::cBASE:
+        case CmdPosRelTo::Base:
           if (std::isnan(base_pos_)) {
             std::cout
                 << "User requested a base position-relative command, "
@@ -182,7 +181,7 @@ class ServoSystem {
             cmd.position += base_pos_;
           }
           break;
-        case CmdPosRelTo::cRECENT:
+        case CmdPosRelTo::Recent:
           if (std::isnan(cmd.position)) {
             std::cout << "User requested a recent position-relative command, "
                          "but command position is NaN.  NaN will be used for "
@@ -209,10 +208,10 @@ class ServoSystem {
     moteus::Query::Result usr_rpl() {
       auto rpl = sys_rpl_;
       rpl.abs_position += aux2_revs_;  // Uncoil aux2 position.
-      if (usr_rpl_pos_rel_to_ == RplPosRelTo::rBASE) {
+      if (usr_rpl_pos_rel_to_ == RplPosRelTo::Base) {
         rpl.position -= base_pos_;
       }
-      if (usr_rpl_aux2_pos_rel_to_ == RplPosRelTo::rBASE) {
+      if (usr_rpl_aux2_pos_rel_to_ == RplPosRelTo::Base) {
         rpl.abs_position -= base_aux2_pos_;
       }
       return rpl;
@@ -307,12 +306,12 @@ class ServoSystem {
 
  public:
   ServoSystem(const std::map<int, int>& id_bus_map,
-              const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::cBASE,
-              const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::rBASE,
+              const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::Base,
+              const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::Base,
               const std::string& cmd_conf_dir = "../config",
               const std::string& rpl_conf_dir = "../config",
               const bool use_aux2 = false,
-              const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::rABSOLUTE)
+              const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::Absolute)
       : exec_mgr_{this,
                   &ServoSystem::ExecuteCommand,
                   {"Executor", "exec", "x"}},
@@ -414,14 +413,14 @@ class ServoSystem {
 
   void ListenExternalCommand(bool listen) { listen_.external = listen; }
 
-  void Command(const std::map<int, std::map<CmdItem, double>> cmds) {
+  void Command(const std::map<int, std::map<CommandItem, double>> cmds) {
     if (!listen_.internal) return;
     EmplaceCommand(cmds);
   }
 
-  void CommandAll(const std::map<CmdItem, double> cmd) {
+  void CommandAll(const std::map<CommandItem, double> cmd) {
     if (!listen_.internal) return;
-    std::map<int, std::map<CmdItem, double>> cmds;
+    std::map<int, std::map<CommandItem, double>> cmds;
     for (const auto id : ids_) {
       cmds[id] = cmd;
     }
@@ -433,13 +432,13 @@ class ServoSystem {
   }
 
   void Fix(const std::set<int> ids) {
-    std::map<int, std::map<CmdItem, double>> cmds;
+    std::map<int, std::map<CommandItem, double>> cmds;
     for (const auto id : ids) {
       const auto& servo = Utils::SafeAt(servos_, id);
       if (servo) {
-        cmds[id][CmdItems::position] = NaN;
-        cmds[id][CmdItems::velocity] = 0.0;
-        cmds[id][CmdItems::feedforward_torque] = 0.0;
+        cmds[id][CommandItem::position] = NaN;
+        cmds[id][CommandItem::velocity] = 0.0;
+        cmds[id][CommandItem::feedforward_torque] = 0.0;
       }
     }
     EmplaceCommand(cmds);
@@ -680,15 +679,16 @@ class ServoSystem {
     }
   }
 
-  void EmplaceCommand(const std::map<int, std::map<CmdItem, double>>& cmds) {
-    std::cout << "Parsing command..." << std::endl;
+  void EmplaceCommand(
+      const std::map<int, std::map<CommandItem, double>>& cmds) {
+    std::cout << "Parsing Commands..." << std::endl;
     for (const auto& id_cmd : cmds) {
       const auto id = id_cmd.first;
       const auto& cmd = id_cmd.second;
       const auto& maybe_servo = Utils::SafeAt(servos_, id);
       if (!maybe_servo) {
         std::cout << "No Servo of ID " << id
-                  << " found on the Servo list.  Ignoring command for this ID."
+                  << " found on the Servo list.  Ignoring Command for this ID."
                   << std::endl;
         continue;
       }
@@ -696,24 +696,25 @@ class ServoSystem {
 
       std::cout << "Parsing command for Servo ID " << id << "..." << std::endl;
       for (const auto& item_val : cmd) {
-        const auto item = item_val.first;
+        const auto& item = item_val.first;
         auto val = item_val.second;
-        std::cout << "Parsing command item " << item.GetName() << "..."
-                  << std::endl;
+        std::cout << "Parsing command item " << item << "..." << std::endl;
+
         {
           std::lock_guard<std::mutex> lock(servo_access_mutex_);
-          if (*CmdItems::Get(item,
-                             servo->controller_->options().position_format) ==
+
+          if (*CmdItemsMgr::ItemToPtr(
+                  item, servo->controller_->options().position_format) ==
               moteus::Resolution::kIgnore) {
-            std::cout << "ServoSystem command resolution is set to "
-                      << item.GetName() << " = "
-                      << "kIgnore.  Ignoring command." << std::endl;
+            std::cout << "ServoSystem command resolution is set to " << item
+                      << " = " << "kIgnore.  Ignoring command." << std::endl;
             continue;
           }
-          *CmdItems::Get(item, servo->usr_cmd_) = val;
+
+          *CmdItemsMgr::ItemToPtr(item, servo->usr_cmd_) = val;
         }
-        std::cout << "Successfully set command " << item.GetName() << " = "
-                  << val << " for Servo ID " << id << "." << std::endl;
+        std::cout << "Successfully set command " << item << " = " << val
+                  << " for Servo ID " << id << "." << std::endl;
       }
     }
   }
@@ -731,7 +732,6 @@ class ServoSystem {
     while (!((*terminated).load())) {
       ::usleep(cycle_period_us_);
 
-      std::cout << "Command execution begins." << std::endl;
       std::vector<moteus::CanFdFrame> cmd_frames;
       {
         std::lock_guard<std::mutex> lock(servo_access_mutex_);
@@ -739,9 +739,6 @@ class ServoSystem {
           auto id = id_servo.first;
           auto& servo = id_servo.second;
           const auto sys_cmd = servo->sys_cmd();
-          std::cout << "Making CAN FD frame for Servo ID " << id << ".  "
-                    << "System command position: " << servo->sys_cmd().position
-                    << std::endl;
           cmd_frames.push_back(servo->controller_->MakePosition(sys_cmd));
           servo->updated_last_cycle_ = false;
         }
@@ -760,7 +757,6 @@ class ServoSystem {
           }
         }
       }
-      std::cout << "Command execution complete." << std::endl;
     }
   }
 

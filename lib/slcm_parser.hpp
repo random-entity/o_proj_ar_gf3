@@ -6,6 +6,7 @@
 #include "moteus_protocol.h"
 #include "nlohmann/json.hpp"
 #include "slcm_multiplex.hpp"
+#include "slcm_printer.hpp"
 
 #ifdef NaN
 #undef NaN
@@ -41,9 +42,9 @@ struct Parser {
   ///              <id>=<3-letter-item-abbr><value>[,...][;...]
   ///              For example,
   ///              1=pos1.0,vel0.1,mtq1.0;2=pos-1.0,vel-0.1,vlm0.5
-  static std::map<int, std::map<CmdItem, double>> ParseStrInput(
+  static std::map<int, std::map<CommandItem, double>> ParseStrInput(
       std::string input) {
-    std::map<int, std::map<CmdItem, double>> cmds;
+    std::map<int, std::map<CommandItem, double>> cmds;
     auto sentence = Split(input, ';');
     for (auto& id_cmd : sentence) {
       auto id_and_cmd = Split(id_cmd, '=');
@@ -53,16 +54,17 @@ struct Parser {
         auto cmd = id_and_cmd[1];
         auto fields = Split(cmd, ',');
         for (const auto& field : fields) {
-          auto cmd_item_str = field.substr(0, 3);
-          const auto* cmd_item = CmdItems::Find(cmd_item_str);
-          if (!cmd_item) {
+          auto item_str = field.substr(0, 3);
+          const auto maybe_item = CmdItemsMgr::StrToItem(item_str);
+          if (!maybe_item) {
             throw std::exception();
           }
+          const auto item = maybe_item.value();
           if (field.substr(3) == "nan") {
-            cmds[id][*cmd_item] = NaN;
+            cmds[id][item] = NaN;
           } else {
             auto cmd_val = stod(field.substr(3));
-            cmds[id][*cmd_item] = cmd_val;
+            cmds[id][item] = cmd_val;
           }
         }
       } catch (...) {
@@ -115,15 +117,20 @@ struct Parser {
 
       for (const auto& element : conf_json.items()) {
         const auto& item_str = element.key();
-        const auto* item = CmdItems::Find(item_str);
-        if (!item) {
-          std::cout << "Unsupported Command Item: " << item_str << std::endl;
+        const auto maybe_item = CmdItemsMgr::StrToItem(item_str);
+        if (!maybe_item) {
+          std::cout << "Command Item of given alias not found: " << item_str
+                    << std::endl;
           continue;
         }
+        const auto item = maybe_item.value();
+
         std::cout << "Configuring Command resolution and initial value for "
                   << item_str << "..." << std::endl;
+
         const auto& inner_json = element.value();
-        auto* res = CmdItems::Get(item_str, fmt);
+        auto* res = CmdItemsMgr::ItemToPtr(item, fmt);
+
         if (!inner_json.contains("resolution") ||
             !inner_json["resolution"].is_string()) {
           std::cout << "Config JSON does not contain key " << item_str
@@ -153,7 +160,7 @@ struct Parser {
                     << " since its resolution is set to kIgnore." << std::endl;
           continue;
         }
-        auto* init_val = CmdItems::Get(item_str, cmd);
+        auto* init_val = CmdItemsMgr::ItemToPtr(item, cmd);
         if (!inner_json.contains("initial_value")) {
           std::cout << "JSON does not contain key " << item_str
                     << "/initial_value.  Using default value: " << *init_val
@@ -210,15 +217,20 @@ struct Parser {
 
       for (const auto& element : conf_json.items()) {
         const auto& item_str = element.key();
-        const auto* item = RplItems::Find(item_str);
-        if (!item) {
-          std::cout << "Unsupported Reply Item: " << item_str << std::endl;
+        const auto maybe_item = RplItemsMgr::StrToItem(item_str);
+        if (!maybe_item) {
+          std::cout << "Reply Item of given alias not found: " << item_str
+                    << std::endl;
           continue;
         }
+        const auto item = maybe_item.value();
+
         std::cout << "Configuring Reply resolution for " << item_str << "..."
                   << std::endl;
+
         const auto& val = element.value();
-        auto* res = RplItems::Get(item_str, fmt);
+        auto* res = RplItemsMgr::ItemToPtr(item, fmt);
+
         if (val.is_string()) {
           if (val == "kInt8") {
             *res = moteus::Resolution::kInt8;
@@ -241,11 +253,11 @@ struct Parser {
         }
         std::cout << "Reply resolution for " << item_str
                   << " is set to: " << *res << std::endl;
-
-        std::cout << "Default values can be found at moteus_protocol.h "
-                     "of the mjbots/moteus library."
-                  << std::endl;
       }
+
+      std::cout << "Default values can be found at moteus_protocol.h "
+                   "of the mjbots/moteus library."
+                << std::endl;
     }
 
     return fmt;

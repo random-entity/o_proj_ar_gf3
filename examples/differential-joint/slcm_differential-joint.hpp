@@ -14,12 +14,12 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
                        udp_host,
                        udp_recv_port,
                        udp_send_port,
-                       CmdPosRelTo::cRECENT,
-                       RplPosRelTo::rABSOLUTE,
+                       CmdPosRelTo::Recent,
+                       RplPosRelTo::Absolute,
                        "../config",
                        "../config",
                        true,
-                       RplPosRelTo::rABSOLUTE} {}
+                       RplPosRelTo::Absolute} {}
 
  protected:
   virtual void ExternalCommandGetter(std::atomic_bool* terminated) override {
@@ -60,7 +60,7 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
       for (auto id : ids_) {
         receive_states[id] = false;
       }
-      std::map<int, std::map<CmdItem, double>> cmd;
+      std::map<int, std::map<CommandItem, double>> cmd;
 
       /// Inner loop until data are received for all IDs
       while (!std::all_of(receive_states.begin(), receive_states.end(),
@@ -85,28 +85,28 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
           }
         }
 
-        cmd[id][CmdItems::position] = static_cast<double>(rbuf.cmd.position);
-        cmd[id][CmdItems::velocity_limit] =
+        cmd[id][CommandItem::position] = static_cast<double>(rbuf.cmd.position);
+        cmd[id][CommandItem::velocity_limit] =
             static_cast<double>(rbuf.cmd.velocity);
-        cmd[id][CmdItems::maximum_torque] =
+        cmd[id][CommandItem::maximum_torque] =
             static_cast<double>(rbuf.cmd.maximum_torque);
-        cmd[id][CmdItems::accel_limit] =
+        cmd[id][CommandItem::accel_limit] =
             static_cast<double>(rbuf.cmd.accel_limit);
 
         receive_states[id] = true;
       }
 
-      const double target_diff = cmd[4][CmdItems::position];
-      const double target_avg = cmd[5][CmdItems::position];
+      const double target_diff = cmd[4][CommandItem::position];
+      const double target_avg = cmd[5][CommandItem::position];
       const double cur_diff = servo_l->GetReply().abs_position;
       const double cur_avg = servo_r->GetReply().abs_position;
       const double target_delta_diff = target_diff - cur_diff;
       const double target_delta_avg = target_avg - cur_avg;
 
-      cmd[4][CmdItems::position] =
+      cmd[4][CommandItem::position] =
           41.0 * 127.0 / 92.0 *
           (target_delta_avg + 145.0 / 127.0 * target_delta_diff);
-      cmd[5][CmdItems::position] =
+      cmd[5][CommandItem::position] =
           41.0 * 127.0 / 92.0 *
           (target_delta_avg - 145.0 / 127.0 * target_delta_diff);
 
