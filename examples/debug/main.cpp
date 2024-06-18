@@ -3,13 +3,13 @@
 using namespace som;
 
 int main() {
-  ServoSystem servo_system{{{12, 1}},
-                           CmdPosRelTo::Base,
-                           RplPosRelTo::Base,
+  ServoSystem servo_system{{{1, 0}, {12, 0}, {14, 0}},
+                           CommandPositionRelativeTo::Base,
+                           ReplyPositionRelativeTo::Base,
                            "../config",
                            "../config",
-                           false,
-                           RplPosRelTo::Absolute};
+                           true,
+                           ReplyPositionRelativeTo::Absolute};
   servo_system.StartThread("x");
   servo_system.StartThread("ec");
   sleep(1);

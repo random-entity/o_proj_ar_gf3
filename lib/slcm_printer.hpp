@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "moteus_multiplex.h"
+#include "slcm_multiplex.hpp"
 
 namespace som {
 using namespace mjbots;
@@ -28,6 +29,51 @@ inline std::ostream& operator<<(std::ostream& os,
     default:
       os << "<Unknown>";
       break;
+  }
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const CommandItem& item) {
+  os << CommandItemsManager::ItemToName(item);
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const ReplyItem& item) {
+  os << ReplyItemsManager::ItemToName(item);
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os,
+                                const moteus::PositionMode::Command& cmd) {
+  for (const auto& item : CommandItemsManager::items_) {
+    os << item << ": " << *CommandItemsManager::ItemToPtr(item, cmd)
+       << std::endl;
+  }
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os,
+                                const moteus::PositionMode::Format& fmt) {
+  for (const auto& item : CommandItemsManager::items_) {
+    os << item << ": " << *CommandItemsManager::ItemToPtr(item, fmt)
+       << std::endl;
+  }
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os,
+                                const moteus::Query::Result& rpl) {
+  for (const auto& item : ReplyItemsManager::items_) {
+    os << item << ": " << ReplyItemsManager::ItemToFloat(item, rpl)
+       << std::endl;
+  }
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os,
+                                const moteus::Query::Format& fmt) {
+  for (const auto& item : ReplyItemsManager::items_) {
+    os << item << ": " << *ReplyItemsManager::ItemToPtr(item, fmt) << std::endl;
   }
   return os;
 }

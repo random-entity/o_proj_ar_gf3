@@ -76,12 +76,12 @@ class UdpServoSystem : public ServoSystem {
   UdpServoSystem(const std::map<int, int>& id_bus_map,
                  const std::string& udp_host, const int udp_recv_port,
                  const int udp_send_port,
-                 const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::Base,
-                 const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::Base,
+                 const CommandPositionRelativeTo cmd_pos_rel_to = CommandPositionRelativeTo::Base,
+                 const ReplyPositionRelativeTo rpl_pos_rel_to = ReplyPositionRelativeTo::Base,
                  const std::string& cmd_conf_dir = "../config",
                  const std::string& rpl_conf_dir = "../config",
                  const bool use_aux2 = true,
-                 const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::Absolute)
+                 const ReplyPositionRelativeTo rpl_aux2_pos_rel_to = ReplyPositionRelativeTo::Absolute)
       : ServoSystem{id_bus_map,         cmd_pos_rel_to, rpl_pos_rel_to,
                     cmd_conf_dir,       rpl_conf_dir,   use_aux2,
                     rpl_aux2_pos_rel_to},
@@ -171,7 +171,7 @@ class UdpServoSystem : public ServoSystem {
         receive_states[id] = true;
       }
 
-      EmplaceCommand(cmd);
+      EmplaceCommands(cmd);
     }
 
     close(udp_.sock_r);

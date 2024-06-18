@@ -14,12 +14,12 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
                        udp_host,
                        udp_recv_port,
                        udp_send_port,
-                       CmdPosRelTo::Recent,
-                       RplPosRelTo::Absolute,
+                       CommandPositionRelativeTo::Recent,
+                       ReplyPositionRelativeTo::Absolute,
                        "../config",
                        "../config",
                        true,
-                       RplPosRelTo::Absolute} {}
+                       ReplyPositionRelativeTo::Absolute} {}
 
  protected:
   virtual void ExternalCommandGetter(std::atomic_bool* terminated) override {
@@ -110,7 +110,7 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
           41.0 * 127.0 / 92.0 *
           (target_delta_avg - 145.0 / 127.0 * target_delta_diff);
 
-      EmplaceCommand(cmd);
+      EmplaceCommands(cmd);
     }
 
     close(udp_.sock_r);

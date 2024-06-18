@@ -31,12 +31,13 @@ class ServoSystem {
    public:
     Servo(const int id, const int bus,
           const std::shared_ptr<moteus::Transport>& transport,
-          const CmdPosRelTo usr_cmd_pos_rel_to,
-          const RplPosRelTo usr_rpl_pos_rel_to,
+          const CommandPositionRelativeTo usr_cmd_pos_rel_to,
+          const ReplyPositionRelativeTo usr_rpl_pos_rel_to,
           const moteus::PositionMode::Format& cmd_fmt,
           const moteus::PositionMode::Command& init_cmd,
-          const moteus::Query::Format& rpl_fmt, const bool use_aux2,
-          const RplPosRelTo usr_rpl_aux2_pos_rel_to)
+          const moteus::Query::Format& rpl_fmt,  //
+          const bool use_aux2,                   //
+          const ReplyPositionRelativeTo usr_rpl_aux2_pos_rel_to)
         : controller_{std::make_unique<moteus::Controller>([&]() {
             moteus::Controller::Options options;
             options.id = id;
@@ -51,32 +52,35 @@ class ServoSystem {
           usr_cmd_{init_cmd},
           use_aux2_{use_aux2},
           usr_rpl_aux2_pos_rel_to_{usr_rpl_aux2_pos_rel_to} {
+      std::cout << "Servo constructor called for ID " << id << ", bus " << bus
+                << ".  Trying VerifySchemaVersion Command..." << std::endl;
       controller_->VerifySchemaVersion();
-      std::cout << "CheckRegisterMapVersion passed." << std::endl;
+      std::cout << "VerifySchemaVersion Command passed." << std::endl;
 
       const auto& maybe_reply = controller_->SetStop();
-      std::cout << (maybe_reply ? "Got" : "WARNING: Failed to get")
-                << " reply from initial SetStop command for Servo ID " << id
-                << "." << std::endl;
+      std::cout << (maybe_reply ? "Got" : "Failed to get")
+                << " reply from initial Stop Command for Servo ID " << id << "."
+                << std::endl;
 
-      SetBasePos(1.0);
+      SetBasePosition(1.0);
       if (use_aux2) {
-        SetBaseAux2Pos(1.0);
+        SetBaseAux2Position(1.0);
       }
     }
 
     moteus::Query::Result GetReply() { return usr_rpl(); }
 
+   private:
     void SetReply(const moteus::Query::Result& new_sys_repl) {
-      if (new_sys_repl.abs_position - sys_rpl_.abs_position > 0.5) {
+      const auto delta = new_sys_repl.abs_position - sys_rpl_.abs_position;
+      if (delta > 0.5) {
         aux2_revs_--;
-      } else if (new_sys_repl.abs_position - sys_rpl_.abs_position < -0.5) {
+      } else if (delta < -0.5) {
         aux2_revs_++;
       }
       sys_rpl_ = new_sys_repl;
     }
 
-   protected:
     const bool InitSucceeded() {
       return use_aux2_
                  ? std::isfinite(base_pos_) && std::isfinite(base_aux2_pos_)
@@ -85,25 +89,29 @@ class ServoSystem {
 
     const int GetId() { return controller_->options().id; }
 
-    void SetCmdPosRelTo(CmdPosRelTo new_val) { usr_cmd_pos_rel_to_ = new_val; }
+    void SetCommandPositionRelativeTo(CommandPositionRelativeTo new_val) {
+      usr_cmd_pos_rel_to_ = new_val;
+    }
 
-    void SetRplPosRelTo(RplPosRelTo new_val) { usr_rpl_pos_rel_to_ = new_val; }
+    void SetReplyPositionRelativeTo(ReplyPositionRelativeTo new_val) {
+      usr_rpl_pos_rel_to_ = new_val;
+    }
 
-    void SetRplAux2PosRelTo(RplPosRelTo new_val) {
+    void SetReplyAux2PositionRelativeTo(ReplyPositionRelativeTo new_val) {
       usr_rpl_aux2_pos_rel_to_ = new_val;
     }
 
-    bool SetBasePos(const double time_limit) {
-      return SetBase(time_limit, WhichPos::Internal);
+    bool SetBasePosition(const double time_limit) {
+      return SetBase(time_limit, WhichPosition::Internal);
     }
 
-    bool SetBaseAux2Pos(const double time_limit) {
-      return SetBase(time_limit, WhichPos::Aux2);
+    bool SetBaseAux2Position(const double time_limit) {
+      return SetBase(time_limit, WhichPosition::Aux2);
     }
 
-    bool SetBase(const double time_limit, WhichPos which_pos) {
+    bool SetBase(const double time_limit, WhichPosition which_pos) {
       const std::string which_str =
-          (which_pos == WhichPos::Internal) ? "" : "aux2 ";
+          (which_pos == WhichPosition::Internal) ? "" : "aux2 ";
       const int id = GetId();
       std::cout << "Attempting to get current " << which_str
                 << "position from Servo ID " << id << "..." << std::endl;
@@ -125,12 +133,13 @@ class ServoSystem {
             return false;
           }
         } else {
-          const double cur_val = (which_pos == WhichPos::Internal)
+          const double cur_val = (which_pos == WhichPosition::Internal)
                                      ? maybe_reply->values.position
                                      : maybe_reply->values.abs_position;
           if (std::isfinite(cur_val)) {
-            auto& base =
-                (which_pos == WhichPos::Internal) ? base_pos_ : base_aux2_pos_;
+            auto& base = (which_pos == WhichPosition::Internal)
+                             ? base_pos_
+                             : base_aux2_pos_;
             base = cur_val;
             std::cout << "Successfully set base " << which_str
                       << "position to current " << which_str
@@ -160,39 +169,21 @@ class ServoSystem {
     }
 
     const std::unique_ptr<moteus::Controller> controller_;
-    CmdPosRelTo usr_cmd_pos_rel_to_;
+    CommandPositionRelativeTo usr_cmd_pos_rel_to_;
     moteus::PositionMode::Command usr_cmd_;
     moteus::PositionMode::Command sys_cmd() {
       auto cmd = usr_cmd_;
       switch (usr_cmd_pos_rel_to_) {
-        case CmdPosRelTo::Base:
-          if (std::isnan(base_pos_)) {
-            std::cout
-                << "User requested a base position-relative command, "
-                   "but base position is not set.  "
-                   "User command position will be treated as absolute position."
-                << std::endl;
-          } else if (std::isnan(cmd.position)) {
-            std::cout << "User requested a base position-relative command, "
-                         "but command position is NaN.  NaN will be used for "
-                         "system command position."
-                      << std::endl;
-          } else {
-            cmd.position += base_pos_;
-          }
+        case CommandPositionRelativeTo::Base:
+          if (std::isnan(base_pos_) || std::isnan(cmd.position)) break;
+          cmd.position += base_pos_;
           break;
-        case CmdPosRelTo::Recent:
-          if (std::isnan(cmd.position)) {
-            std::cout << "User requested a recent position-relative command, "
-                         "but command position is NaN.  NaN will be used for "
-                         "system command position."
-                      << std::endl;
+        case CommandPositionRelativeTo::Recent:
+          if (std::isnan(cmd.position)) break;
+          if (updated_last_cycle_) {
+            cmd.position += sys_rpl_.position;
           } else {
-            if (updated_last_cycle_) {
-              cmd.position += sys_rpl_.position;
-            } else {
-              cmd.position = NaN;
-            }
+            cmd.position = NaN;
           }
           break;
         default:
@@ -200,18 +191,18 @@ class ServoSystem {
       }
       return cmd;
     }
-    RplPosRelTo usr_rpl_pos_rel_to_;
-    RplPosRelTo usr_rpl_aux2_pos_rel_to_;
+    ReplyPositionRelativeTo usr_rpl_pos_rel_to_;
+    ReplyPositionRelativeTo usr_rpl_aux2_pos_rel_to_;
     moteus::Query::Result sys_rpl_;  // aux2 position coiled.
                                      // Must update via dedicated setter
                                      // to track aux2 revolutions.
     moteus::Query::Result usr_rpl() {
       auto rpl = sys_rpl_;
       rpl.abs_position += aux2_revs_;  // Uncoil aux2 position.
-      if (usr_rpl_pos_rel_to_ == RplPosRelTo::Base) {
+      if (usr_rpl_pos_rel_to_ == ReplyPositionRelativeTo::Base) {
         rpl.position -= base_pos_;
       }
-      if (usr_rpl_aux2_pos_rel_to_ == RplPosRelTo::Base) {
+      if (usr_rpl_aux2_pos_rel_to_ == ReplyPositionRelativeTo::Base) {
         rpl.abs_position -= base_aux2_pos_;
       }
       return rpl;
@@ -223,13 +214,14 @@ class ServoSystem {
     bool use_aux2_;
   };
 
-  virtual std::shared_ptr<Servo> InitServo(
-      const int id, const int bus, const CmdPosRelTo cmd_pos_rel_to,
-      const RplPosRelTo rpl_pos_rel_to,
+  std::shared_ptr<Servo> InitServo(
+      const int id, const int bus,
+      const CommandPositionRelativeTo cmd_pos_rel_to,
+      const ReplyPositionRelativeTo rpl_pos_rel_to,
       const moteus::PositionMode::Format& cmd_fmt,
       const moteus::PositionMode::Command& init_cmd,
       const moteus::Query::Format& rpl_fmt, const bool use_aux2,
-      const RplPosRelTo rpl_aux2_pos_rel_to) {
+      const ReplyPositionRelativeTo rpl_aux2_pos_rel_to) {
     std::cout << "Initializing Servo ID " << id << " on bus " << bus << "..."
               << std::endl;
     const auto maybe_servo = std::make_shared<Servo>(
@@ -306,14 +298,17 @@ class ServoSystem {
 
  public:
   ServoSystem(const std::map<int, int>& id_bus_map,
-              const CmdPosRelTo cmd_pos_rel_to = CmdPosRelTo::Base,
-              const RplPosRelTo rpl_pos_rel_to = RplPosRelTo::Base,
+              const CommandPositionRelativeTo cmd_pos_rel_to =
+                  CommandPositionRelativeTo::Base,
+              const ReplyPositionRelativeTo rpl_pos_rel_to =
+                  ReplyPositionRelativeTo::Base,
               const std::string& cmd_conf_dir = "../config",
               const std::string& rpl_conf_dir = "../config",
               const bool use_aux2 = false,
-              const RplPosRelTo rpl_aux2_pos_rel_to = RplPosRelTo::Absolute)
+              const ReplyPositionRelativeTo rpl_aux2_pos_rel_to =
+                  ReplyPositionRelativeTo::Absolute)
       : exec_mgr_{this,
-                  &ServoSystem::ExecuteCommand,
+                  &ServoSystem::ExecuteCommands,
                   {"Executor", "exec", "x"}},
         ext_cmd_mgr_{this,
                      &ServoSystem::ExternalCommandGetter,
@@ -342,22 +337,22 @@ class ServoSystem {
       }
     }
 
-    /// Parse the PositionMode config file.
-    const auto cmd_conf = Parser::ParseCmdConf(cmd_conf_dir);
+    /// Parse the Command config file.
+    const auto cmd_conf = Parser::ParseCommandConfig(cmd_conf_dir);
     const auto& cmd_fmt = cmd_conf.first;
     const auto& init_cmd = cmd_conf.second;
 
-    /// Parse the Query config file.
-    const auto rpl_fmt = Parser::ParseRplConf(rpl_conf_dir);
+    /// Parse the Reply config file.
+    const auto rpl_fmt = Parser::ParseReplyConfig(rpl_conf_dir);
     if (use_aux2 && rpl_fmt.abs_position == moteus::Resolution::kIgnore) {
       std::cout << "WARNING: ServoSystem was told the user will use aux2, "
-                   "but the reply resolution configuration for aux2 position "
+                   "but the Reply resolution for aux2 position "
                    "is set to kIgnore."
                 << std::endl;
     } else if (!use_aux2 &&
                rpl_fmt.abs_position != moteus::Resolution::kIgnore) {
       std::cout << "WARNING: ServoSystem was told the user will not use aux2, "
-                   "but the reply resolution configuration for aux2 position "
+                   "but the Reply resolution for aux2 position "
                    "is not set to kIgnore."
                 << std::endl;
     }
@@ -414,17 +409,27 @@ class ServoSystem {
   void ListenExternalCommand(bool listen) { listen_.external = listen; }
 
   void Command(const std::map<int, std::map<CommandItem, double>> cmds) {
-    if (!listen_.internal) return;
-    EmplaceCommand(cmds);
+    if (!listen_.internal) {
+      std::cout << "Internal listening mode set to false.  Use "
+                   "ListenInternalCommand(true) to re-enable internal Command."
+                << std::endl;
+      return;
+    }
+    EmplaceCommands(cmds);
   }
 
   void CommandAll(const std::map<CommandItem, double> cmd) {
-    if (!listen_.internal) return;
+    if (!listen_.internal) {
+      std::cout << "Internal listening mode set to false.  Use "
+                   "ListenInternalCommand(true) to re-enable internal Command."
+                << std::endl;
+      return;
+    }
     std::map<int, std::map<CommandItem, double>> cmds;
     for (const auto id : ids_) {
       cmds[id] = cmd;
     }
-    EmplaceCommand(cmds);
+    EmplaceCommands(cmds);
   }
 
   void GetReplyAll(char* const output, size_t size) {
@@ -432,6 +437,7 @@ class ServoSystem {
   }
 
   void Fix(const std::set<int> ids) {
+    /* Ignores whether internal listening mode is true or false */
     std::map<int, std::map<CommandItem, double>> cmds;
     for (const auto id : ids) {
       const auto& servo = Utils::SafeAt(servos_, id);
@@ -441,12 +447,16 @@ class ServoSystem {
         cmds[id][CommandItem::feedforward_torque] = 0.0;
       }
     }
-    EmplaceCommand(cmds);
+    EmplaceCommands(cmds);
   }
 
-  void FixAll() { Fix(ids_); }
+  void FixAll() {
+    /* Ignores whether internal listening mode is true or false */
+    Fix(ids_);
+  }
 
   void Stop(const std::set<int> ids) {
+    /* Ignores whether internal listening mode is true or false */
     for (const auto id : ids) {
       const auto& servo = Utils::SafeAt(servos_, id);
       if (servo) {
@@ -455,13 +465,16 @@ class ServoSystem {
     }
   }
 
-  void StopAll() { Stop(ids_); }
+  void StopAll() {
+    /* Ignores whether internal listening mode is true or false */
+    Stop(ids_);
+  }
 
   void SetBasePosition(const std::set<int> ids) {
     for (const auto id : ids) {
       const auto& servo = Utils::SafeAt(servos_, id);
       if (servo) {
-        if (!servo.value()->SetBasePos(0.0)) {
+        if (!servo.value()->SetBasePosition(0.0)) {
           std::cout << "Base position setting failed for ID " << id << "."
                     << std::endl;
         } else {
@@ -481,7 +494,7 @@ class ServoSystem {
     for (const auto id : ids) {
       const auto& servo = Utils::SafeAt(servos_, id);
       if (servo) {
-        if (!servo.value()->SetBaseAux2Pos(0.0)) {
+        if (!servo.value()->SetBaseAux2Position(0.0)) {
           std::cout << "Base aux2 position setting failed for ID " << id << "."
                     << std::endl;
         } else {
@@ -497,39 +510,46 @@ class ServoSystem {
 
   void SetBaseAux2PositionAll() { SetBaseAux2Position(ids_); }
 
-  void SetCmdPosRelTo(const std::set<int> ids, CmdPosRelTo new_val) {
+  void SetCommandPositionRelativeTo(const std::set<int> ids,
+                                    CommandPositionRelativeTo new_val) {
     for (const auto id : ids) {
       const auto& servo = Utils::SafeAt(servos_, id);
       if (servo) {
-        servo.value()->SetCmdPosRelTo(new_val);
+        servo.value()->SetCommandPositionRelativeTo(new_val);
       }
     }
   }
 
-  void SetCmdPosRelToAll(CmdPosRelTo new_val) { SetCmdPosRelTo(ids_, new_val); }
+  void SetCmdPosRelToAll(CommandPositionRelativeTo new_val) {
+    SetCommandPositionRelativeTo(ids_, new_val);
+  }
 
-  void SetRplPosRelTo(const std::set<int> ids, RplPosRelTo new_val) {
+  void SetReplyPositionRelativeTo(const std::set<int> ids,
+                                  ReplyPositionRelativeTo new_val) {
     for (const auto id : ids) {
       const auto& servo = Utils::SafeAt(servos_, id);
       if (servo) {
-        servo.value()->SetRplPosRelTo(new_val);
+        servo.value()->SetReplyPositionRelativeTo(new_val);
       }
     }
   }
 
-  void SetRplPosRelToAll(RplPosRelTo new_val) { SetRplPosRelTo(ids_, new_val); }
+  void SetReplyPositionRelativeToAll(ReplyPositionRelativeTo new_val) {
+    SetReplyPositionRelativeTo(ids_, new_val);
+  }
 
-  void SetRplAux2PosRelTo(const std::set<int> ids, RplPosRelTo new_val) {
+  void SetReplyAux2PositionRelativeTo(const std::set<int> ids,
+                                      ReplyPositionRelativeTo new_val) {
     for (const auto id : ids) {
       const auto& servo = Utils::SafeAt(servos_, id);
       if (servo) {
-        servo.value()->SetRplAux2PosRelTo(new_val);
+        servo.value()->SetReplyAux2PositionRelativeTo(new_val);
       }
     }
   }
 
-  void SetRplAux2PosRelToAll(RplPosRelTo new_val) {
-    SetRplAux2PosRelTo(ids_, new_val);
+  void SetReplyAux2PositionRelativeToAll(ReplyPositionRelativeTo new_val) {
+    SetReplyAux2PositionRelativeTo(ids_, new_val);
   }
 
   void StartThread(const std::string& alias) {
@@ -616,15 +636,15 @@ class ServoSystem {
       const auto id = id_servo.first;
       const auto& servo = id_servo.second;
       moteus::Query::Result usr_rpl;
-      bool updated_this_cycle;
+      bool updated;
 
       {
         std::lock_guard<std::mutex> lock(servo_access_mutex_);
         usr_rpl = servo->usr_rpl();
-        updated_this_cycle = servo->updated_last_cycle_;
+        updated = servo->updated_last_cycle_;
       }
 
-      if (updated_this_cycle) {
+      if (updated) {
         written =
             ::snprintf(current, size,
                        "id=%2d | mode=%2d | "
@@ -644,7 +664,7 @@ class ServoSystem {
                        usr_rpl.fault);
       } else {
         written =
-            ::snprintf(current, size, "id=%2d | NOT UPDATED THIS CYCLE\n", id);
+            ::snprintf(current, size, "id=%2d | NOT UPDATED LAST CYCLE\n", id);
       }
 
       if (written < 0) {
@@ -652,7 +672,7 @@ class ServoSystem {
                   << std::endl;
         return;
       } else if (written >= size) {
-        std::cout << "Insufficient size to accommodate replies." << std::endl;
+        std::cout << "Insufficient size to accommodate Replies." << std::endl;
         return;
       }
 
@@ -675,11 +695,11 @@ class ServoSystem {
       std::string input;
       std::getline(std::cin, input);
       if (!listen_.external || input.empty()) continue;
-      EmplaceCommand(Parser::ParseStrInput(input));
+      EmplaceCommands(Parser::ParseCommandString(input));
     }
   }
 
-  void EmplaceCommand(
+  void EmplaceCommands(
       const std::map<int, std::map<CommandItem, double>>& cmds) {
     std::cout << "Parsing Commands..." << std::endl;
     for (const auto& id_cmd : cmds) {
@@ -703,7 +723,7 @@ class ServoSystem {
         {
           std::lock_guard<std::mutex> lock(servo_access_mutex_);
 
-          if (*CmdItemsMgr::ItemToPtr(
+          if (*CommandItemsManager::ItemToPtr(
                   item, servo->controller_->options().position_format) ==
               moteus::Resolution::kIgnore) {
             std::cout << "ServoSystem command resolution is set to " << item
@@ -711,7 +731,7 @@ class ServoSystem {
             continue;
           }
 
-          *CmdItemsMgr::ItemToPtr(item, servo->usr_cmd_) = val;
+          *CommandItemsManager::ItemToPtr(item, servo->usr_cmd_) = val;
         }
         std::cout << "Successfully set command " << item << " = " << val
                   << " for Servo ID " << id << "." << std::endl;
@@ -720,7 +740,7 @@ class ServoSystem {
   }
 
  private:
-  void ExecuteCommand(std::atomic_bool* terminated) {
+  void ExecuteCommands(std::atomic_bool* terminated) {
     std::cout << "Executor thread is running..." << std::endl;
 
     if (servos_.empty()) {

@@ -26,15 +26,15 @@ struct Utils {
   ///         to check if the get operation succeeded.
   template <typename K, typename V>
   static std::optional<V> SafeAt(const std::map<K, V>& map, const K& key) {
-    std::optional<V> maybe_value;
-    try {
-      maybe_value.emplace(map.at(key));
-    } catch (std::out_of_range e) {
-      // Key not found, but do nothing.
+    auto it = map.find(key);
+    if (it == map.end()) {
+      return std::nullopt;
+    } else {
+      return it->second;
     }
-    return maybe_value;
   }
 
+  /// @brief Get address offset of two objects.
   template <typename T, typename U>
   static std::ptrdiff_t GetAddrOffset(const T& from, const U& to) {
     auto* from_non_const = const_cast<T*>(&from);
