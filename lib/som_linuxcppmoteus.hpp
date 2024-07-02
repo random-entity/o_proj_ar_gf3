@@ -7,6 +7,7 @@
 #include "moteus.h"
 #ifdef __RASPBERRY_PI__
 #include "pi3hat.h"
+#include "pi3hat_moteus_transport.h"
 #endif
 
 #include "slcm_multiplex.hpp"
@@ -52,10 +53,10 @@ class ServoSystem {
           usr_cmd_{init_cmd},
           use_aux2_{use_aux2},
           usr_rpl_aux2_pos_rel_to_{usr_rpl_aux2_pos_rel_to} {
-      std::cout << "Servo constructor called for ID " << id << ", bus " << bus
-                << ".  Trying VerifySchemaVersion Command..." << std::endl;
-      controller_->VerifySchemaVersion();
-      std::cout << "VerifySchemaVersion Command passed." << std::endl;
+      // std::cout << "Servo constructor called for ID " << id << ", bus " << bus
+      //           << ".  Trying VerifySchemaVersion Command..." << std::endl;
+      // controller_->VerifySchemaVersion();
+      // std::cout << "VerifySchemaVersion Command passed." << std::endl;
 
       const auto& maybe_reply = controller_->SetStop();
       std::cout << (maybe_reply ? "Got" : "Failed to get")

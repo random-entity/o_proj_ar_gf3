@@ -23,7 +23,7 @@ target_compile_features(som_linuxcppmoteus INTERFACE cxx_std_17)
 target_include_directories(som_linuxcppmoteus INTERFACE lib)
 target_link_libraries(som_linuxcppmoteus INTERFACE nlohmann_json moteus::cpp)
 
-if(EXISTS "/opt/vc/include/bcm_host.h")
+if(EXISTS "/usr/include/bcm_host.h")
   message("This system is a Raspberry Pi")
   FetchContent_Declare(
     pi3hat

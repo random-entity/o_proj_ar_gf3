@@ -3,7 +3,7 @@
 using namespace som;
 
 int main() {
-  ServoSystem servo_system{{{1, 0}, {12, 0}, {14, 0}},
+  ServoSystem servo_system{{{1, 1}, {12, 1}, {14, 1}},
                            CommandPositionRelativeTo::Base,
                            ReplyPositionRelativeTo::Base,
                            "../config",

@@ -6,7 +6,7 @@ int main() {
   ///////////////////////////////////////////////////////////////
   /// Initialize the ServoSystem,
   /// and get Servo IDs that succeeded at initialization.
-  ServoSystem servo_system{{{1, 1}}};
+  ServoSystem servo_system{{{1, 1}, {12, 1}, {14, 1}}};
   const auto& ids = servo_system.GetIds();
 
   // Initialize empty internal command maps. We will fill
