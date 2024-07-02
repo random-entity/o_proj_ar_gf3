@@ -3,15 +3,16 @@
 using namespace som;
 
 int main() {
-  std::string host = "127.0.0.1";
+  std::string host_dest = "192.168.0.6";
+  // std::string host_src = "0.0.0.0";
   const int udp_receive_port = 5555;
   const int udp_send_port = 8888;
 
   ///////////////////////////////////////////////////////////////
   /// Initialize the ServoSystem, and check if the Servos of
   /// right IDs are initialized.
-  DifferentialJointUdpServoSystem servo_system{host, udp_receive_port,
-                                               udp_send_port};
+  DifferentialJointUdpServoSystem servo_system{host_dest,
+                                               udp_receive_port, udp_send_port};
   const auto& ids = servo_system.GetIds();
   if (ids != std::set{4, 5}) {
     std::cout << "Initialization failed." << std::endl;

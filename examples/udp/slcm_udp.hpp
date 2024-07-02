@@ -19,7 +19,7 @@ namespace som {
 ///         |          |     |--------|     |                |
 ///         |----------|<----| Port S |<----|----------------|
 ///                          |--------|
-///                            states
+///                           replies
 ///
 /// This ServoSystem variant can be used for the following scenario:
 /// An external program (probably a Pure Data patch for GUI capability)
@@ -34,7 +34,8 @@ namespace som {
 class UdpServoSystem : public ServoSystem {
  protected:
   struct Udp {
-    const std::string host;
+    const std::string host_dest;
+    const std::string host_src;
     const int recv_port;
     const int send_port;
     int sock_r;
@@ -74,19 +75,24 @@ class UdpServoSystem : public ServoSystem {
 
  public:
   UdpServoSystem(const std::map<int, int>& id_bus_map,
-                 const std::string& udp_host, const int udp_recv_port,
-                 const int udp_send_port,
-                 const CommandPositionRelativeTo cmd_pos_rel_to = CommandPositionRelativeTo::Base,
-                 const ReplyPositionRelativeTo rpl_pos_rel_to = ReplyPositionRelativeTo::Base,
+                 const std::string& udp_host_dest,
+                 const std::string& udp_host_src,
+                 const int udp_recv_port, const int udp_send_port,
+                 const CommandPositionRelativeTo cmd_pos_rel_to =
+                     CommandPositionRelativeTo::Base,
+                 const ReplyPositionRelativeTo rpl_pos_rel_to =
+                     ReplyPositionRelativeTo::Base,
                  const std::string& cmd_conf_dir = "../config",
                  const std::string& rpl_conf_dir = "../config",
                  const bool use_aux2 = true,
-                 const ReplyPositionRelativeTo rpl_aux2_pos_rel_to = ReplyPositionRelativeTo::Absolute)
+                 const ReplyPositionRelativeTo rpl_aux2_pos_rel_to =
+                     ReplyPositionRelativeTo::Absolute)
       : ServoSystem{id_bus_map,         cmd_pos_rel_to, rpl_pos_rel_to,
                     cmd_conf_dir,       rpl_conf_dir,   use_aux2,
                     rpl_aux2_pos_rel_to},
         udp_{
-            .host = udp_host,
+            .host_dest = udp_host_dest,
+            .host_src = udp_host_src,
             .recv_port = udp_recv_port,
             .send_port = udp_send_port,
         } {}
@@ -99,7 +105,7 @@ class UdpServoSystem : public ServoSystem {
       return false;
     }
     udp_.addr_r.sin_family = AF_INET;
-    udp_.addr_r.sin_addr.s_addr = inet_addr(udp_.host.c_str());
+    udp_.addr_r.sin_addr.s_addr = inet_addr(udp_.host_src.c_str());
     udp_.addr_r.sin_port = htons(udp_.recv_port);
     if (bind(udp_.sock_r, (struct sockaddr*)&udp_.addr_r, sizeof(udp_.addr_r)) <
         0) {
@@ -125,7 +131,7 @@ class UdpServoSystem : public ServoSystem {
     std::cout
         << "UDP variant ExternalCommandGetter thread started listening for "
            "UDP packets on "
-        << udp_.host << ":" << udp_.recv_port << "..." << std::endl;
+        << udp_.host_src << ":" << udp_.recv_port << "..." << std::endl;
 
     /// Listen for UDP packets in an infinite loop
     while (!((*terminated).load())) {
@@ -185,7 +191,7 @@ class UdpServoSystem : public ServoSystem {
     }
     struct sockaddr_in addr;
     udp_.addr_s.sin_family = AF_INET;
-    udp_.addr_s.sin_addr.s_addr = inet_addr(udp_.host.c_str());
+    udp_.addr_s.sin_addr.s_addr = inet_addr(udp_.host_dest.c_str());
     udp_.addr_s.sin_port = htons(udp_.send_port);
     return true;
   }
@@ -203,7 +209,7 @@ class UdpServoSystem : public ServoSystem {
 
     std::cout << "UDP variant ExternalReplySender thread started sending "
                  "UDP packets to "
-              << udp_.host << ":" << udp_.send_port << "..." << std::endl;
+              << udp_.host_dest << ":" << udp_.send_port << "..." << std::endl;
 
     while (!((*terminated).load())) {
       ::usleep(cycle_period_us_);

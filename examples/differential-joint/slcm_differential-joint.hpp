@@ -7,11 +7,12 @@ namespace som {
 
 class DifferentialJointUdpServoSystem : public UdpServoSystem {
  public:
-  DifferentialJointUdpServoSystem(const std::string& udp_host,
+  DifferentialJointUdpServoSystem(const std::string& udp_host_dest,
                                   const int udp_recv_port,
                                   const int udp_send_port)
       : UdpServoSystem{{{4, 1}, {5, 1}},
-                       udp_host,
+                       udp_host_dest,
+                       "0.0.0.0",
                        udp_recv_port,
                        udp_send_port,
                        CommandPositionRelativeTo::Recent,
@@ -50,7 +51,7 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
 
     std::cout << "Differential-joint variant ExternalCommandGetter thread "
                  "started listening for UDP packets on "
-              << udp_.host << ":" << udp_.recv_port << "..." << std::endl;
+              << udp_.host_src << ":" << udp_.recv_port << "..." << std::endl;
 
     /// Listen for UDP packets in an infinite loop
     while (!((*terminated).load())) {
