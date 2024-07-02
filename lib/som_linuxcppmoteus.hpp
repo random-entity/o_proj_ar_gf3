@@ -53,7 +53,8 @@ class ServoSystem {
           usr_cmd_{init_cmd},
           use_aux2_{use_aux2},
           usr_rpl_aux2_pos_rel_to_{usr_rpl_aux2_pos_rel_to} {
-      // std::cout << "Servo constructor called for ID " << id << ", bus " << bus
+      // std::cout << "Servo constructor called for ID " << id << ", bus " <<
+      // bus
       //           << ".  Trying VerifySchemaVersion Command..." << std::endl;
       // controller_->VerifySchemaVersion();
       // std::cout << "VerifySchemaVersion Command passed." << std::endl;
@@ -318,6 +319,9 @@ class ServoSystem {
                      &ServoSystem::ExternalReplySender,
                      {"ExternalReplySender", "extrpl", "er"}} {
     /// Get default transport. Priority order: pi3hat > fdcanusb > socketcan
+#ifdef __RASPBERRY_PI__
+    pi3hat::Pi3HatMoteusFactory::Register();
+#endif
     transport_ = moteus::Controller::MakeSingletonTransport({});
     /* Print transport status and handle failure. */ {
       if (transport_) {
