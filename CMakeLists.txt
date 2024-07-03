@@ -14,7 +14,7 @@ FetchContent_MakeAvailable(nlohmann_json)
 FetchContent_Declare(
   moteus
   GIT_REPOSITORY https://github.com/mjbots/moteus.git
-  GIT_TAG 0.1-20240520
+  GIT_TAG 0.1-20240617
 )
 FetchContent_MakeAvailable(moteus)
 
@@ -30,6 +30,7 @@ if(EXISTS "/usr/include/bcm_host.h")
     GIT_REPOSITORY https://github.com/mjbots/pi3hat.git
     GIT_TAG 0.1-20231216
   )
+  set(FETCHCONTENT_SOURCE_DIR_MOTEUS ${MOTEUS_SOURCE_DIR})
   FetchContent_MakeAvailable(pi3hat)
   add_definitions(-D__RASPBERRY_PI__)
   target_link_libraries(som_linuxcppmoteus INTERFACE pi3hat::pi3hat)
