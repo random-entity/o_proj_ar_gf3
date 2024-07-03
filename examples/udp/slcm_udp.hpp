@@ -24,20 +24,20 @@ namespace som {
 /// This ServoSystem variant can be used for the following scenario:
 /// An external program (probably a Pure Data patch for GUI capability)
 /// sends UDP packets that represent commands to send to the Servos to a port,
-/// named `recv_port` in this script. The ServoSystem receives the UDP
+/// named `port_r` in this script. The ServoSystem receives the UDP
 /// packets through the same port, translates them into Servo commands, and
 /// sends them to the Servos. The Servos reply their current state, and the
 /// ServoSystem translates those replies back to UDP packets then sends them to
-/// a port named `send_port` here. An external program (probably the same Pure
+/// a port named `port_s` here. An external program (probably the same Pure
 /// Data patch) receives them from the same port and translates them to a format
 /// suitable to monitor the Servos.
 class UdpServoSystem : public ServoSystem {
  protected:
   struct Udp {
-    const std::string host_dest;
-    const std::string host_src;
-    const int recv_port;
-    const int send_port;
+    const std::string host_src;   // Where to receive commands from.
+    const std::string host_dest;  // Where to send replies to.
+    const int port_r;
+    const int port_s;
     int sock_r;
     sockaddr_in addr_r;
     socklen_t addrlen_r = sizeof(addr_r);
@@ -46,7 +46,8 @@ class UdpServoSystem : public ServoSystem {
   } udp_;
 
   union RecvBuf {
-    struct Decoded {
+    struct Decoded {  // Following the namings from the Pd patch used in MMCA
+                      // KOAP2023 exhibition.
       uint8_t id;
       float position;
       float velocity;
@@ -57,7 +58,8 @@ class UdpServoSystem : public ServoSystem {
   };
 
   union SendBuf {
-    struct Encoded {
+    struct Encoded {  // Following the namings from the Pd patch used in MMCA
+                      // KOAP2023 exhibition.
       uint8_t id;
       uint16_t false_code;
       uint8_t rezero;
@@ -75,9 +77,9 @@ class UdpServoSystem : public ServoSystem {
 
  public:
   UdpServoSystem(const std::map<int, int>& id_bus_map,
-                 const std::string& udp_host_dest,
                  const std::string& udp_host_src,
-                 const int udp_recv_port, const int udp_send_port,
+                 const std::string& udp_host_dest,  //
+                 const int udp_port_r, const int udp_port_s,
                  const CommandPositionRelativeTo cmd_pos_rel_to =
                      CommandPositionRelativeTo::Base,
                  const ReplyPositionRelativeTo rpl_pos_rel_to =
@@ -91,10 +93,10 @@ class UdpServoSystem : public ServoSystem {
                     cmd_conf_dir,       rpl_conf_dir,   use_aux2,
                     rpl_aux2_pos_rel_to},
         udp_{
-            .host_dest = udp_host_dest,
             .host_src = udp_host_src,
-            .recv_port = udp_recv_port,
-            .send_port = udp_send_port,
+            .host_dest = udp_host_dest,
+            .port_r = udp_port_r,
+            .port_s = udp_port_s,
         } {}
 
  protected:
@@ -106,10 +108,10 @@ class UdpServoSystem : public ServoSystem {
     }
     udp_.addr_r.sin_family = AF_INET;
     udp_.addr_r.sin_addr.s_addr = inet_addr(udp_.host_src.c_str());
-    udp_.addr_r.sin_port = htons(udp_.recv_port);
+    udp_.addr_r.sin_port = htons(udp_.port_r);
     if (bind(udp_.sock_r, (struct sockaddr*)&udp_.addr_r, sizeof(udp_.addr_r)) <
         0) {
-      std::cout << "Failed to bind UDP socket." << std::endl;
+      std::cout << "Failed to bind UDP receive socket." << std::endl;
       close(udp_.sock_r);
       return false;
     }
@@ -122,7 +124,7 @@ class UdpServoSystem : public ServoSystem {
 
     if (SetupUdpReceive() < 0) {
       std::cout
-          << "Failed to create UDP socket.  "
+          << "Failed to create UDP receive socket.  "
              "UDP variant ExternalCommandGetter thread will now terminate."
           << std::endl;
       return;
@@ -131,20 +133,22 @@ class UdpServoSystem : public ServoSystem {
     std::cout
         << "UDP variant ExternalCommandGetter thread started listening for "
            "UDP packets on "
-        << udp_.host_src << ":" << udp_.recv_port << "..." << std::endl;
+        << udp_.host_src << ":" << udp_.port_r << "..." << std::endl;
 
     /// Listen for UDP packets in an infinite loop
-    while (!((*terminated).load())) {
+    while (!terminated->load()) {
       ::usleep(cycle_period_us_);
 
-      std::map<int, bool> receive_states;  // ID -> (Data received for this ID?)
+      if (!listen_.external) continue;
+
+      std::map<int, bool> received;  // ID -> (Data received for this ID?)
       for (auto id : ids_) {
-        receive_states[id] = false;
+        received[id] = false;
       }
       std::map<int, std::map<CommandItem, double>> cmd;
 
       /// Inner loop until data are received for all IDs
-      while (!std::all_of(receive_states.begin(), receive_states.end(),
+      while (!std::all_of(received.begin(), received.end(),
                           [](const auto& pair) { return pair.second; })) {
         RecvBuf rbuf;
 
@@ -158,7 +162,7 @@ class UdpServoSystem : public ServoSystem {
 
         int id = static_cast<int>(rbuf.cmd.id);
         if (ids_.find(id) == ids_.end()) continue;
-        if (receive_states[id]) continue;
+        if (received[id]) continue;
 
         if (Utils::IsLittleEndian()) {
           for (int i = 1; i + 4 <= sizeof(rbuf.raw_bytes); i += 4) {
@@ -174,7 +178,7 @@ class UdpServoSystem : public ServoSystem {
         cmd[id][CommandItem::accel_limit] =
             static_cast<double>(rbuf.cmd.accel_limit);
 
-        receive_states[id] = true;
+        received[id] = true;
       }
 
       EmplaceCommands(cmd);
@@ -186,13 +190,13 @@ class UdpServoSystem : public ServoSystem {
   bool SetupUdpSend() {
     udp_.sock_s = socket(AF_INET, SOCK_DGRAM, 0);
     if (udp_.sock_s < 0) {
-      std::cout << "Failed to create UDP socket." << std::endl;
+      std::cout << "Failed to create UDP send socket." << std::endl;
       return false;
     }
     struct sockaddr_in addr;
     udp_.addr_s.sin_family = AF_INET;
     udp_.addr_s.sin_addr.s_addr = inet_addr(udp_.host_dest.c_str());
-    udp_.addr_s.sin_port = htons(udp_.send_port);
+    udp_.addr_s.sin_port = htons(udp_.port_s);
     return true;
   }
 
@@ -201,7 +205,7 @@ class UdpServoSystem : public ServoSystem {
               << std::endl;
 
     if (SetupUdpSend() < 0) {
-      std::cout << "Failed to create UDP socket. "
+      std::cout << "Failed to create UDP send socket. "
                    "UDP variant ExternalReplySender thread will now terminate."
                 << std::endl;
       return;
@@ -209,11 +213,10 @@ class UdpServoSystem : public ServoSystem {
 
     std::cout << "UDP variant ExternalReplySender thread started sending "
                  "UDP packets to "
-              << udp_.host_dest << ":" << udp_.send_port << "..." << std::endl;
+              << udp_.host_dest << ":" << udp_.port_s << "..." << std::endl;
 
-    while (!((*terminated).load())) {
+    while (!terminated->load()) {
       ::usleep(cycle_period_us_);
-      if (!listen_.external) continue;
 
       for (const auto& id_servo : servos_) {
         const int id = id_servo.first;

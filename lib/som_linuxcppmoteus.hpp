@@ -696,7 +696,7 @@ class ServoSystem {
   virtual void ExternalCommandGetter(std::atomic_bool* terminated) {
     std::cout << "ExternalCommandGetter thread is running..." << std::endl;
 
-    while (!((*terminated).load())) {
+    while (!terminated->load()) {
       std::string input;
       std::getline(std::cin, input);
       if (!listen_.external || input.empty()) continue;
@@ -754,7 +754,7 @@ class ServoSystem {
       return;
     }
 
-    while (!((*terminated).load())) {
+    while (!terminated->load()) {
       ::usleep(cycle_period_us_);
 
       std::vector<moteus::CanFdFrame> cmd_frames;

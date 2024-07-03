@@ -7,14 +7,14 @@ namespace som {
 
 class DifferentialJointUdpServoSystem : public UdpServoSystem {
  public:
-  DifferentialJointUdpServoSystem(const std::string& udp_host_dest,
-                                  const int udp_recv_port,
-                                  const int udp_send_port)
+  DifferentialJointUdpServoSystem(const std::string& host_dest,
+                                  const int port_r,
+                                  const int port_s)
       : UdpServoSystem{{{4, 1}, {5, 1}},
-                       udp_host_dest,
                        "0.0.0.0",
-                       udp_recv_port,
-                       udp_send_port,
+                       host_dest,
+                       port_r,
+                       port_s,
                        CommandPositionRelativeTo::Recent,
                        ReplyPositionRelativeTo::Absolute,
                        "../config",
@@ -51,20 +51,20 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
 
     std::cout << "Differential-joint variant ExternalCommandGetter thread "
                  "started listening for UDP packets on "
-              << udp_.host_src << ":" << udp_.recv_port << "..." << std::endl;
+              << udp_.host_src << ":" << udp_.port_r << "..." << std::endl;
 
     /// Listen for UDP packets in an infinite loop
-    while (!((*terminated).load())) {
+    while (!terminated->load()) {
       ::usleep(cycle_period_us_);
 
-      std::map<int, bool> receive_states;  // ID -> (Data received for this ID?)
+      std::map<int, bool> received;  // ID -> (Data received for this ID?)
       for (auto id : ids_) {
-        receive_states[id] = false;
+        received[id] = false;
       }
       std::map<int, std::map<CommandItem, double>> cmd;
 
       /// Inner loop until data are received for all IDs
-      while (!std::all_of(receive_states.begin(), receive_states.end(),
+      while (!std::all_of(received.begin(), received.end(),
                           [](const auto& pair) { return pair.second; })) {
         RecvBuf rbuf;
 
@@ -78,7 +78,7 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
 
         int id = static_cast<int>(rbuf.cmd.id);
         if (ids_.find(id) == ids_.end()) continue;
-        if (receive_states[id]) continue;
+        if (received[id]) continue;
 
         if (Utils::IsLittleEndian()) {
           for (int i = 1; i + 4 <= sizeof(rbuf.raw_bytes); i += 4) {
@@ -94,7 +94,7 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
         cmd[id][CommandItem::accel_limit] =
             static_cast<double>(rbuf.cmd.accel_limit);
 
-        receive_states[id] = true;
+        received[id] = true;
       }
 
       const double target_diff = cmd[4][CommandItem::position];
