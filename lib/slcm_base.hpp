@@ -23,21 +23,70 @@
 using namespace mjbots;
 
 namespace som {
+/// Vocabulary commonly used in this API:
+/// * Command     : A PositionMode command represented by a single
+///                 moteus::PositionMode::Command object, i.e. data composed of
+///                 desired position and other values for elements of enum
+///                 CommandItem.
+/// * CommandItem : Represents a physical quality, desired value of which can be
+///                 commanded to moteus as a PositionMode command.
+/// * Reply       : A moteus state data represented by a single
+///                 moteus::Query::Result object, i.e. data composed of
+///                 reported position and other values for elements of enum
+///                 ReplyItem.
+/// * ReplyItem   : Represents a physical quality, value of which is
+///                 reported by moteus as a Query Result.
+///
+/// Commands {
+///   ID 1 => Command {
+///             CommandItem position = 00.00
+///             CommandItem velocity = 00.00
+///             ...
+///           },
+///   ID 2 => Command {
+///             CommandItem position = 00.00
+///             CommandItem velocity = 00.00
+///             ...
+///           },
+///   ...
+/// }
+///
+/// Replies {
+///   ID 1 => Reply {
+///             ReplyItem mode     = 00
+///             ReplyItem position = 00.00
+///             ...
+///           },
+///   ID 2 => Reply {
+///             ReplyItem mode     = 00
+///             ReplyItem position = 00.00
+///             ...
+///           },
+///   ...
+/// }
+///
+///                       Commands
+///     +--------------+------------>+--------------------+
+///     |              |             |                    |
+///     | Your program |  Transport  | System of moteuses |
+///     |              |             |                    |
+///     +--------------+<------------+--------------------+
+///                        Replies
 
 class ServoSystem {
- protected:
+ private:
   class Servo {
     friend class ServoSystem;
 
-   public:
+   private:
     Servo(const int id, const int bus,
           const std::shared_ptr<moteus::Transport>& transport,
-          const CommandPositionRelativeTo usr_cmd_pos_rel_to,
-          const ReplyPositionRelativeTo usr_rpl_pos_rel_to,
           const moteus::PositionMode::Format& cmd_fmt,
           const moteus::PositionMode::Command& init_cmd,
-          const moteus::Query::Format& rpl_fmt,  //
-          const bool use_aux2,                   //
+          const CommandPositionRelativeTo usr_cmd_pos_rel_to,
+          const moteus::Query::Format& rpl_fmt,
+          const ReplyPositionRelativeTo usr_rpl_pos_rel_to,  //
+          const bool use_aux2,
           const ReplyPositionRelativeTo usr_rpl_aux2_pos_rel_to)
         : controller_{std::make_unique<moteus::Controller>([&]() {
             moteus::Controller::Options options;
@@ -48,39 +97,38 @@ class ServoSystem {
             options.query_format = rpl_fmt;
             return options;
           }())},
+          usr_cmd_{init_cmd},
           usr_cmd_pos_rel_to_{usr_cmd_pos_rel_to},
           usr_rpl_pos_rel_to_{usr_rpl_pos_rel_to},
-          usr_cmd_{init_cmd},
           use_aux2_{use_aux2},
           usr_rpl_aux2_pos_rel_to_{usr_rpl_aux2_pos_rel_to} {
-      // std::cout << "Servo constructor called for ID " << id << ", bus " <<
-      // bus
-      //           << ".  Trying VerifySchemaVersion Command..." << std::endl;
-      // controller_->VerifySchemaVersion();
-      // std::cout << "VerifySchemaVersion Command passed." << std::endl;
+      /* TODO: moteus firmware-API compatibility check */
 
-      const auto& maybe_reply = controller_->SetStop();
+      // Execute Stop Command to clears all faults.
+      const auto maybe_reply = controller_->SetStop();
       std::cout << (maybe_reply ? "Got" : "Failed to get")
                 << " reply from initial Stop Command for Servo ID " << id << "."
                 << std::endl;
 
+      // Try setting base position for 1 second.
       SetBasePosition(1.0);
       if (use_aux2) {
         SetBaseAux2Position(1.0);
       }
     }
 
+    const int GetId() { return controller_->options().id; }
+
     moteus::Query::Result GetReply() { return usr_rpl(); }
 
-   private:
-    void SetReply(const moteus::Query::Result& new_sys_repl) {
-      const auto delta = new_sys_repl.abs_position - sys_rpl_.abs_position;
+    void SetReply(const moteus::Query::Result& new_sys_rpl) {
+      const auto delta = new_sys_rpl.abs_position - sys_rpl_.abs_position;
       if (delta > 0.5) {
         aux2_revs_--;
       } else if (delta < -0.5) {
         aux2_revs_++;
       }
-      sys_rpl_ = new_sys_repl;
+      sys_rpl_ = new_sys_rpl;
     }
 
     const bool InitSucceeded() {
@@ -88,8 +136,6 @@ class ServoSystem {
                  ? std::isfinite(base_pos_) && std::isfinite(base_aux2_pos_)
                  : std::isfinite(base_pos_);
     }
-
-    const int GetId() { return controller_->options().id; }
 
     void SetCommandPositionRelativeTo(CommandPositionRelativeTo new_val) {
       usr_cmd_pos_rel_to_ = new_val;
@@ -102,6 +148,8 @@ class ServoSystem {
     void SetReplyAux2PositionRelativeTo(ReplyPositionRelativeTo new_val) {
       usr_rpl_aux2_pos_rel_to_ = new_val;
     }
+
+    enum class WhichPosition { Internal, Aux2 };
 
     bool SetBasePosition(const double time_limit) {
       return SetBase(time_limit, WhichPosition::Internal);
@@ -126,7 +174,7 @@ class ServoSystem {
           if (time_left > 0.0) {
             std::cout << "Not getting reply from Servo ID " << id
                       << ", but will try " << time_left << " more seconds...\r";
-            ::usleep(1.0 / 100.0 * 1e6);
+            ::usleep(1e6 / 100.0);
             continue;
           } else {
             std::cout << "Failed to get reply from Servo ID " << id << " for "
@@ -156,7 +204,7 @@ class ServoSystem {
               std::cout << "Current " << which_str << "position for Servo ID "
                         << id << " is NaN, but will try " << time_left
                         << " more seconds...\r";
-              ::usleep(1.0 / 100.0 * 1e6);
+              ::usleep(1e6 / 100.0);
               continue;
             } else {
               std::cout << "Failed to get finite value as the current "
@@ -216,36 +264,17 @@ class ServoSystem {
     bool use_aux2_;
   };
 
-  std::shared_ptr<Servo> InitServo(
-      const int id, const int bus,
-      const CommandPositionRelativeTo cmd_pos_rel_to,
-      const ReplyPositionRelativeTo rpl_pos_rel_to,
-      const moteus::PositionMode::Format& cmd_fmt,
-      const moteus::PositionMode::Command& init_cmd,
-      const moteus::Query::Format& rpl_fmt, const bool use_aux2,
-      const ReplyPositionRelativeTo rpl_aux2_pos_rel_to) {
-    std::cout << "Initializing Servo ID " << id << " on bus " << bus << "..."
-              << std::endl;
-    const auto maybe_servo = std::make_shared<Servo>(
-        id, bus, transport_, cmd_pos_rel_to, rpl_pos_rel_to, cmd_fmt, init_cmd,
-        rpl_fmt, use_aux2, rpl_aux2_pos_rel_to);
-    if (maybe_servo->InitSucceeded()) {
-      return maybe_servo;
-    } else {
-      return nullptr;
-    }
-  }
-
+ protected:
   friend class LoopingThreadManager;
   class LoopingThreadManager {
     friend class ServoSystem;
 
-   protected:
+   public:
     LoopingThreadManager(
-        ServoSystem* servo_system,
+        ServoSystem* servosystem,
         std::function<void(ServoSystem*, std::atomic_bool*)> task,
         const std::vector<std::string>& aliases)
-        : servo_system_{servo_system},
+        : servosystem_{servosystem},
           task_{task},
           aliases_{aliases},
           thread_{nullptr} {
@@ -256,14 +285,14 @@ class ServoSystem {
         return;
       }
       for (const auto& alias : aliases_) {
-        servo_system_->threads_mgr_[alias] = this;
+        servosystem_->threads_mgr_[alias] = this;
       }
     }
 
     void Start() {
       if (!thread_) {
         terminated_ = false;
-        thread_ = new std::thread(task_, servo_system_, &terminated_);
+        thread_ = new std::thread(task_, servosystem_, &terminated_);
         std::cout << aliases_[0]
                   << " thread successfully initialized and detached."
                   << std::endl;
@@ -292,7 +321,7 @@ class ServoSystem {
 
    private:
     const std::vector<std::string> aliases_;
-    ServoSystem* const servo_system_;
+    ServoSystem* const servosystem_;
     std::thread* thread_;
     const std::function<void(ServoSystem*, std::atomic_bool*)> task_;
     std::atomic_bool terminated_;
@@ -300,24 +329,17 @@ class ServoSystem {
 
  public:
   ServoSystem(const std::map<int, int>& id_bus_map,
+              const std::string& cmd_conf_dir = "../config",
               const CommandPositionRelativeTo cmd_pos_rel_to =
                   CommandPositionRelativeTo::Base,
+              const std::string& rpl_conf_dir = "../config",
               const ReplyPositionRelativeTo rpl_pos_rel_to =
                   ReplyPositionRelativeTo::Base,
-              const std::string& cmd_conf_dir = "../config",
-              const std::string& rpl_conf_dir = "../config",
               const bool use_aux2 = false,
               const ReplyPositionRelativeTo rpl_aux2_pos_rel_to =
                   ReplyPositionRelativeTo::Absolute)
-      : exec_mgr_{this,
-                  &ServoSystem::ExecuteCommands,
-                  {"Executor", "exec", "x"}},
-        ext_cmd_mgr_{this,
-                     &ServoSystem::ExternalCommandGetter,
-                     {"ExternalCommandGetter", "extcmd", "ec"}},
-        ext_rpl_mgr_{this,
-                     &ServoSystem::ExternalReplySender,
-                     {"ExternalReplySender", "extrpl", "er"}} {
+      : executor_{
+            this, &ServoSystem::ExecuteCommands, {"Executor", "exec", "x"}} {
     /// Get default transport. Priority order: pi3hat > fdcanusb > socketcan
 #ifdef __RASPBERRY_PI__
     pi3hat::Pi3HatMoteusFactory::Register();
@@ -367,9 +389,9 @@ class ServoSystem {
     for (const auto& id_bus : id_bus_map) {
       const auto& id = id_bus.first;
       const auto& bus = id_bus.second;
-      const auto& maybe_servo =
-          InitServo(id, bus, cmd_pos_rel_to, rpl_pos_rel_to, cmd_fmt, init_cmd,
-                    rpl_fmt, use_aux2, rpl_aux2_pos_rel_to);
+      const auto& maybe_servo = std::make_shared<Servo>(
+          id, bus, transport_, cmd_fmt, init_cmd, cmd_pos_rel_to, rpl_fmt,
+          rpl_pos_rel_to, use_aux2, rpl_aux2_pos_rel_to);
       if (maybe_servo) {
         servos_.insert({id, maybe_servo});
         ids_.insert(id);
@@ -557,6 +579,11 @@ class ServoSystem {
     SetReplyAux2PositionRelativeTo(ids_, new_val);
   }
 
+  void RegisterThread(std::function<void(ServoSystem*, std::atomic_bool)> task,
+                      const std::vector<std::string>& aliases) {
+    LoopingThreadManager{this, task, aliases};
+  }
+
   void StartThread(const std::string& alias) {
     const auto& maybe_thread_manager = Utils::SafeAt(threads_mgr_, alias);
     if (maybe_thread_manager) {
@@ -630,9 +657,9 @@ class ServoSystem {
       static_cast<unsigned int>(1.0 / 100.0 * 1e6);
   std::mutex servo_access_mutex_;
   std::map<std::string, LoopingThreadManager*> threads_mgr_;
-  LoopingThreadManager exec_mgr_;
-  LoopingThreadManager ext_cmd_mgr_;
-  LoopingThreadManager ext_rpl_mgr_;
+  LoopingThreadManager executor_;
+  // LoopingThreadManager ext_cmd_mgr_;
+  // LoopingThreadManager ext_rpl_mgr_;
 
   virtual void InternalReplySender(char* const output, size_t size) {
     char* current = output;
@@ -683,24 +710,6 @@ class ServoSystem {
 
       current += written;
       size -= written;
-    }
-  }
-
-  virtual void ExternalReplySender(std::atomic_bool* terminated) {
-    std::cout << "ExternalReplySender thread is running..." << std::endl;
-
-    /// Probably let a ROS2 publisher publish Servo replies
-    /// or send encoded Servo replies as UDP packets.
-  }
-
-  virtual void ExternalCommandGetter(std::atomic_bool* terminated) {
-    std::cout << "ExternalCommandGetter thread is running..." << std::endl;
-
-    while (!terminated->load()) {
-      std::string input;
-      std::getline(std::cin, input);
-      if (!listen_.external || input.empty()) continue;
-      EmplaceCommands(Parser::ParseCommandString(input));
     }
   }
 

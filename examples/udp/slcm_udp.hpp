@@ -11,15 +11,15 @@
 
 namespace som {
 
-///                           commands
-///                          |--------|
-///         |----------|---->| Port R |---->|----------------|
-///         |          |     |--------|     |                |
-///         | Pd Patch |         UDP        | UdpServoSystem |
-///         |          |     |--------|     |                |
-///         |----------|<----| Port S |<----|----------------|
-///                          |--------|
-///                           replies
+///                         Commands
+///                        |--------|
+///       |----------|---->| Port R |---->|----------------|
+///       |          |     |--------|     |                |
+///       | Pd Patch |         UDP        | UdpServoSystem |
+///       |          |     |--------|     |                |
+///       |----------|<----| Port S |<----|----------------|
+///                        |--------|
+///                         Replies
 ///
 /// This ServoSystem variant can be used for the following scenario:
 /// An external program (probably a Pure Data patch for GUI capability)

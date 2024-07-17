@@ -7,7 +7,7 @@
 #include <optional>
 #include <string>
 
-namespace som {
+namespace randomentity::ezpmmoteus {
 
 /// @brief A collection of utilty functions.
 ///        All methods are declared as static.
@@ -68,4 +68,4 @@ struct Utils {
   }
 };
 
-}  // namespace som
+}  // namespace randomentity::ezpmmoteus

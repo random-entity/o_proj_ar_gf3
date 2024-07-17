@@ -8,15 +8,14 @@
 #include <typeindex>
 #include <vector>
 
+#include "ezpmmoteus_utils.hpp"
 #include "moteus_protocol.h"
-#include "slcm_utils.hpp"
 
-namespace som {
+namespace randomentity::ezpmmoteus {
 using namespace mjbots;
 
 enum class CommandPositionRelativeTo { Absolute, Base, Recent };
 enum class ReplyPositionRelativeTo { Absolute, Base };
-enum class WhichPosition { Internal, Aux2 };
 
 enum class CommandItem {
   position,
@@ -25,9 +24,9 @@ enum class CommandItem {
   kp_scale,
   kd_scale,
   maximum_torque,
-  // Command Item stop_position is deprecated, and causes fault
-  // if used along with velocity or acceleration limit. See fault code 44 at:
-  // https://github.com/mjbots/moteus/blob/main/docs/reference.md#0x00f---fault-code
+  /// CommandItem stop_position is deprecated, and causes fault
+  /// if used along with velocity or acceleration limit. See fault code 44 at:
+  /// https://github.com/mjbots/moteus/blob/main/docs/reference.md#0x00f---fault-code
   stop_position,
   watchdog_timeout,
   velocity_limit,
@@ -62,16 +61,16 @@ class ItemMetadata {
         offset_fmt_{offset_fmt},
         aliases_{aliases} {}
 
-  // Address offset of corresponding member in
-  // struct PositionMode::Command or Query::Result.
+  /// Address offset of corresponding member in
+  /// struct PositionMode::Command or Query::Result.
   const std::ptrdiff_t offset_cmdrpl_;
 
-  // Address offset of corresponding member in
-  // struct PositionMode::Format or Query::Format.
+  /// Address offset of corresponding member in
+  /// struct PositionMode::Format or Query::Format.
   const std::ptrdiff_t offset_fmt_;
 
-  // Vector of aliases. The first element should be its full name.
-  // The second element should be its 3-letter abbreviation.
+  /// Vector of aliases. The first element should be its full name.
+  /// The second element should be its 3-letter abbreviation.
   const std::vector<std::string> aliases_;
 };
 
@@ -95,7 +94,7 @@ class ReplyItemMetadata : public ItemMetadata {
                     const std::type_index& type)
       : ItemMetadata{offset_cmdrpl, offset_fmt, aliases}, type_{type} {}
 
-  // Runtime type ID of corresponding member in struct Query::Result.
+  /// Runtime type ID of corresponding member in struct Query::Result.
   const std::type_index type_;
 };
 
@@ -349,4 +348,4 @@ class ReplyItemsManager {
   }
 };
 
-}  // namespace som
+}  // namespace randomentity::ezpmmoteus
