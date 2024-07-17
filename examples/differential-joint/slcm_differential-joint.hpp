@@ -112,10 +112,10 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
       }
 
       {
-        const double target_diff = cmd[2][CommandItem::position];
-        const double target_avg = cmd[3][CommandItem::position];
-        const double cur_diff = servo_2->GetReply().abs_position;
-        const double cur_avg = servo_3->GetReply().abs_position;
+        const double target_diff = cmd[3][CommandItem::position];
+        const double target_avg = cmd[2][CommandItem::position];
+        const double cur_diff = servo_3->GetReply().abs_position;
+        const double cur_avg = servo_2->GetReply().abs_position;
         const double target_delta_diff = target_diff - cur_diff;
         const double target_delta_avg = target_avg - cur_avg;
 
@@ -128,10 +128,10 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
       }
 
       {
-        const double target_diff = cmd[4][CommandItem::position];
-        const double target_avg = cmd[5][CommandItem::position];
-        const double cur_diff = servo_4->GetReply().abs_position;
-        const double cur_avg = servo_5->GetReply().abs_position;
+        const double target_diff = cmd[5][CommandItem::position];
+        const double target_avg = cmd[4][CommandItem::position];
+        const double cur_diff = servo_5->GetReply().abs_position;
+        const double cur_avg = servo_4->GetReply().abs_position;
         const double target_delta_diff = target_diff - cur_diff;
         const double target_delta_avg = target_avg - cur_avg;
 
