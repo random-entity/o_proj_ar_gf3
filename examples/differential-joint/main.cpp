@@ -15,6 +15,12 @@ int main() {
                                                udp_send_port};
   const auto& ids = servo_system.GetIds();
 
+  servo_system.SetBasePosition({1, 6});
+  servo_system.SetCommandPositionRelativeTo({1, 6},
+                                            CommandPositionRelativeTo::Base);
+  servo_system.SetReplyPositionRelativeTo({1, 6},
+                                          ReplyPositionRelativeTo::Base);
+
   ///////////////////////////////////////////////////////////////
   /// Suspend main thread termination while listening to
   /// external commands and sending replies through UDP.
