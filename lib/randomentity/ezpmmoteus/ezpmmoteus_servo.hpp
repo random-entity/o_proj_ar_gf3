@@ -6,11 +6,7 @@
 namespace randomentity::ezpmmoteus {
 using namespace mjbots;
 
-class ServoSystem;
-
 class Servo {
-  friend class ServoSystem;
-
  public:
   Servo(const int id, const int bus,
         const std::shared_ptr<moteus::Transport>& transport,
@@ -42,12 +38,11 @@ class Servo {
     std::cout << (maybe_reply ? "Got" : "Failed to get")
               << " reply from initial Stop Command for Servo ID " << id << "."
               << std::endl;
+  }
 
-    /// Try setting base position for 1 second.
-    SetBasePosition(1.0);
-    if (use_aux2) {
-      SetBaseAux2Position(1.0);
-    }
+  const bool InitSucceeded() {
+    return use_aux2_ ? std::isfinite(base_pos_) && std::isfinite(base_aux2_pos_)
+                     : std::isfinite(base_pos_);
   }
 
   const int GetId() {
@@ -71,11 +66,6 @@ class Servo {
     /// sys_rpl_ contains coiled position in order to check
     /// impossible velocity by comparing with the next Reply.
     sys_rpl_ = new_sys_rpl;
-  }
-
-  const bool InitSucceeded() {
-    return use_aux2_ ? std::isfinite(base_pos_) && std::isfinite(base_aux2_pos_)
-                     : std::isfinite(base_pos_);
   }
 
   void SetCommandPositionRelativeTo(CommandPositionRelativeTo new_val) {
