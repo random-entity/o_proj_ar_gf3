@@ -4,28 +4,28 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-#include <string>
-
-#include "gf3.h"
+#include "../servo_units/gf3.h"
 
 namespace gf3 {
 
 class UdpCommandReceiver {
  public:
-  UdpCommandReceiver(const GF3& gf3, const std::string& host, const int& port)
-      : gf3_{gf3}, udp_config_{.host = host, .port = port} {}
+  UdpCommandReceiver(GF3& gf3, const std::string& host, const int& port)
+      : gf3_{gf3}, cfg_{.host = host, .port = port} {}
 
-  struct Udp {
+  ~UdpCommandReceiver() { close(cfg_.sock); }
+
+  struct UdpConfig {
     const std::string host;  // Where to receive Commands from.
     const int port;
     int sock;
     sockaddr_in addr;
-    socklen_t addrlen_ = sizeof(addr);
-  } udp_config_;
+    socklen_t addrlen = sizeof(addr);
+  } cfg_;
 
   union RecvBuf {
-    struct Decoded {  // Following the namings from the Pd patch used in MMCA
-                      // KOAP2023 exhibition.
+    struct Decoded {  // Following the protocol used at the
+                      // MMCA KOAP2023 exhibition.
       uint8_t id;
       float position;
       float velocity;
@@ -36,80 +36,82 @@ class UdpCommandReceiver {
   };
 
   bool Setup() {
-    udp_config_.sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (udp_config_.sock < 0) {
+    cfg_.sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (cfg_.sock < 0) {
       std::cout << "Failed to create UDP receive socket." << std::endl;
       return false;
     }
-    udp_config_.addr.sin_family = AF_INET;
-    udp_config_.addr.sin_addr.s_addr = inet_addr(udp_config_.host.c_str());
-    udp_config_.addr.sin_port = htons(udp_config_.port);
-    if (bind(udp_config_.sock, (struct sockaddr*)&udp_config_.addr,
-             sizeof(udp_config_.addr)) < 0) {
+    cfg_.addr.sin_family = AF_INET;
+    cfg_.addr.sin_addr.s_addr = inet_addr(cfg_.host.c_str());
+    cfg_.addr.sin_port = htons(cfg_.port);
+    if (bind(cfg_.sock, (struct sockaddr*)&cfg_.addr, sizeof(cfg_.addr)) < 0) {
       std::cout << "Failed to bind UDP receive socket." << std::endl;
-      close(udp_config_.sock);
+      close(cfg_.sock);
       return false;
     }
     return true;
   }
 
   void Run() {
-    if (Setup() < 0) {
-      while (1) {
-        std::cout << "Failed to create UDP receive socket!" << std::endl;
+    std::map<int, bool> recv_map;  // ID -> (Data received for this ID?)
+    for (auto id : gf3_.ids_) recv_map.emplace(id, false);
+
+    // Loop until data are received for all IDs
+    while (!std::all_of(recv_map.begin(), recv_map.end(),
+                        [](const auto& pair) { return pair.second; })) {
+      RecvBuf rbuf;
+
+      if (recvfrom(cfg_.sock, rbuf.raw_bytes, sizeof(rbuf.raw_bytes), 0,
+                   (sockaddr*)&(cfg_.addr), &(cfg_.addrlen)) < 0) {
+        std::cout << "UDP receive error!" << std::endl;
+        continue;
+      }
+
+      int id = static_cast<int>(rbuf.cmd.id);
+
+      const auto maybe_received = utils::SafeAt(recv_map, id);
+      if (!maybe_received || maybe_received.value()) continue;
+      if (gf3_.ids_.find(id) == gf3_.ids_.end()) continue;
+
+      if (utils::IsLittleEndian()) {
+        for (int i = 1; i + 4 <= sizeof(rbuf.raw_bytes); i += 4) {
+          std::reverse(rbuf.raw_bytes + i, rbuf.raw_bytes + i + 4);
+        }
+      }
+
+      const auto maybe_saj = utils::SafeAt(gf3_.saj_map_, id);
+      if (maybe_saj) {
+        auto& cmd = maybe_saj.value()->cmd_;
+        cmd.mode = SingleAxisJoint::Command::Mode::MoveTo;
+        cmd.move_to.target_out = static_cast<double>(rbuf.cmd.position);
+        cmd.move_to.max_trq = static_cast<double>(rbuf.cmd.maximum_torque);
+        cmd.move_to.max_vel = static_cast<double>(rbuf.cmd.velocity);
+        cmd.move_to.max_acc = static_cast<double>(rbuf.cmd.accel_limit);
+
+        recv_map[id] = true;
+        continue;
+      }
+
+      const auto maybe_dj = utils::SafeAt(gf3_.dj_map_, id);
+      if (maybe_dj) {
+        auto& cmd = maybe_dj.value()->cmd_;
+        cmd.mode = DifferentialJoint::Command::Mode::MoveTo;
+        if (gf3_.dj_lids_.find(id) != gf3_.dj_lids_.end()) {
+          cmd.move_to.target_dif = static_cast<double>(rbuf.cmd.position);
+        } else if (gf3_.dj_rids_.find(id) != gf3_.dj_rids_.end()) {
+          cmd.move_to.target_avg = static_cast<double>(rbuf.cmd.position);
+        }
+        cmd.move_to.max_trq = static_cast<double>(rbuf.cmd.maximum_torque);
+        cmd.move_to.max_vel = static_cast<double>(rbuf.cmd.velocity);
+        cmd.move_to.max_acc = static_cast<double>(rbuf.cmd.accel_limit);
+
+        recv_map[id] = true;
+        continue;
       }
     }
-
-    while (1) {
-      ::usleep(1000);
-
-      std::map<int, bool> received;  // ID -> (Data received for this ID?)
-      for (auto id : ids_) {
-        received[id] = false;
-      }
-      std::map<int, std::map<CommandItem, double>> cmd;
-
-      /// Inner loop until data are received for all IDs
-      while (!std::all_of(received.begin(), received.end(),
-                          [](const auto& pair) { return pair.second; })) {
-        RecvBuf rbuf;
-
-        ssize_t bytes_received =
-            recvfrom(udp_.sock_r, rbuf.raw_bytes, sizeof(rbuf.raw_bytes), 0,
-                     (sockaddr*)&(udp_.addr_r), &(udp_.addrlen_r));
-        if (bytes_received < 0) {
-          std::cout << "UDP receive error!" << std::endl;
-          continue;
-        }
-
-        int id = static_cast<int>(rbuf.cmd.id);
-        if (ids_.find(id) == ids_.end()) continue;
-        if (received[id]) continue;
-
-        if (Utils::IsLittleEndian()) {
-          for (int i = 1; i + 4 <= sizeof(rbuf.raw_bytes); i += 4) {
-            std::reverse(rbuf.raw_bytes + i, rbuf.raw_bytes + i + 4);
-          }
-        }
-
-        cmd[id][CommandItem::position] = static_cast<double>(rbuf.cmd.position);
-        cmd[id][CommandItem::velocity_limit] =
-            static_cast<double>(rbuf.cmd.velocity);
-        cmd[id][CommandItem::maximum_torque] =
-            static_cast<double>(rbuf.cmd.maximum_torque);
-        cmd[id][CommandItem::accel_limit] =
-            static_cast<double>(rbuf.cmd.accel_limit);
-
-        received[id] = true;
-      }
-
-      EmplaceCommands(cmd);
-    }
-
-    close(udp_config_.sock);
   }
 
-  const GF3& gf3_;
+  GF3& gf3_;
 };
 
 }  // namespace gf3

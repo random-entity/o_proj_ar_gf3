@@ -1,5 +1,18 @@
 #pragma once
 
+#include <time.h>
+#include <unistd.h>
+
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <iterator>
+#include <map>
+#include <optional>
+#include <set>
+#include <string>
+#include <vector>
+
 #include "moteus.h"
 
 #ifdef __RASPBERRY_PI__

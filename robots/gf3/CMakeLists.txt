@@ -20,7 +20,6 @@ FetchContent_MakeAvailable(moteus)
 
 add_library(gf3 INTERFACE)
 target_compile_features(gf3 INTERFACE cxx_std_17)
-target_include_directories(gf3 INTERFACE .)
 target_link_libraries(gf3 INTERFACE nlohmann_json moteus::cpp)
 
 if(EXISTS "/usr/include/bcm_host.h")
@@ -38,11 +37,16 @@ else()
   message("This system is NOT a Raspberry Pi")
 endif()
 
+target_include_directories(gf3 INTERFACE .)
+
 add_executable(gf3_exe main.cpp)
 target_link_libraries(gf3_exe gf3)
-target_include_directories(
-  gf3_exe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
 set_target_properties(gf3_exe PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "../bin"
+)
+
+add_executable(zero conf/zero.cpp)
+target_link_libraries(zero gf3)
+set_target_properties(zero PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "../bin"
 )

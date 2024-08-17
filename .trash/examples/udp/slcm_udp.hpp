@@ -33,7 +33,7 @@ namespace som {
 /// suitable to monitor the Servos.
 class UdpServoSystem : public ServoSystem {
  protected:
-  struct Udp {
+  struct UdpConfig {
     const std::string host_src;   // Where to receive commands from.
     const std::string host_dest;  // Where to send replies to.
     const int port_r;

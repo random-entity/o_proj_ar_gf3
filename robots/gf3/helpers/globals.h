@@ -4,6 +4,9 @@
 
 namespace gf3 {
 
+std::shared_ptr<Transport> global_transport{
+    Controller::MakeSingletonTransport({})};
+
 const PmFmt global_pm_fmt{.position = kFloat,
                           .velocity = kFloat,
                           .feedforward_torque = kIgnore,
@@ -46,6 +49,7 @@ const QFmt global_q_fmt{[] {
   fmt.voltage = kFloat;
   fmt.temperature = kFloat;
   fmt.fault = kInt8;
+  fmt.extra[0] = {.register_number = kEncoderValidity, .resolution = kInt8};
   return fmt;
 }()};
 

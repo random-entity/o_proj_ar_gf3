@@ -1,7 +1,5 @@
-.private/
-.vscode/
+/.private/
+/.vscode/
 build/
-robots/*/build/
-robots/*/bin/
-examples/*/bin/
-*/fifo
+bin/
+fifo
