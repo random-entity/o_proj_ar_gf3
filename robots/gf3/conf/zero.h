@@ -15,6 +15,8 @@ void Zero(GF3& gf3) {
     s->DiagnosticCommand("conf write");
     usleep(0.1e6);
   }
+
+  for (const auto& s : gf3.servos_set_) s->SetPosition(global_pm_cmd_template);
 }
 
 }  // namespace gf3::utils
