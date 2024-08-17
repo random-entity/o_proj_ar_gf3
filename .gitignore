@@ -1,5 +1,5 @@
 /.private/
 /.vscode/
-/build/
-/examples/*/bin/
-*/fifo
+build/
+bin/
+fifo

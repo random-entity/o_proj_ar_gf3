@@ -11,15 +11,15 @@
 
 namespace som {
 
-///                           commands
-///                          |--------|
-///         |----------|---->| Port R |---->|----------------|
-///         |          |     |--------|     |                |
-///         | Pd Patch |         UDP        | UdpServoSystem |
-///         |          |     |--------|     |                |
-///         |----------|<----| Port S |<----|----------------|
-///                          |--------|
-///                           replies
+///                         Commands
+///                        |--------|
+///       |----------|---->| Port R |---->|----------------|
+///       |          |     |--------|     |                |
+///       | Pd Patch |         UDP        | UdpServoSystem |
+///       |          |     |--------|     |                |
+///       |----------|<----| Port S |<----|----------------|
+///                        |--------|
+///                         Replies
 ///
 /// This ServoSystem variant can be used for the following scenario:
 /// An external program (probably a Pure Data patch for GUI capability)
@@ -33,7 +33,7 @@ namespace som {
 /// suitable to monitor the Servos.
 class UdpServoSystem : public ServoSystem {
  protected:
-  struct Udp {
+  struct UdpConfig {
     const std::string host_src;   // Where to receive commands from.
     const std::string host_dest;  // Where to send replies to.
     const int port_r;
