@@ -8,9 +8,8 @@ namespace som {
 class DifferentialJointUdpServoSystem : public UdpServoSystem {
  public:
   DifferentialJointUdpServoSystem(const std::string& host_dest,
-                                  const int port_r,
-                                  const int port_s)
-      : UdpServoSystem{{{4, 1}, {5, 1}},
+                                  const int port_r, const int port_s)
+      : UdpServoSystem{{{1, 1}, {2, 1}, {3, 1}, {4, 1}, {5, 1}, {6, 1}},
                        "0.0.0.0",
                        host_dest,
                        port_r,
@@ -28,18 +27,33 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
                  "running..."
               << std::endl;
 
-    const auto& maybe_servo_l = Utils::SafeAt(servos_, 4);
-    if (!maybe_servo_l) {
+    const auto& maybe_servo_2 = Utils::SafeAt(servos_, 2);
+    if (!maybe_servo_2) {
+      std::cout << "Servo ID 2 not ready.  Now terminating." << std::endl;
+      return;
+    }
+    const auto& servo_2 = maybe_servo_2.value();
+
+    const auto& maybe_servo_3 = Utils::SafeAt(servos_, 3);
+    if (!maybe_servo_3) {
+      std::cout << "Servo ID 3 not ready.  Now terminating." << std::endl;
+      return;
+    }
+    const auto& servo_3 = maybe_servo_3.value();
+
+    const auto& maybe_servo_4 = Utils::SafeAt(servos_, 4);
+    if (!maybe_servo_4) {
       std::cout << "Servo ID 4 not ready.  Now terminating." << std::endl;
       return;
     }
-    const auto& servo_l = maybe_servo_l.value();
-    const auto& maybe_servo_r = Utils::SafeAt(servos_, 5);
-    if (!maybe_servo_r) {
+    const auto& servo_4 = maybe_servo_4.value();
+
+    const auto& maybe_servo_5 = Utils::SafeAt(servos_, 5);
+    if (!maybe_servo_5) {
       std::cout << "Servo ID 5 not ready.  Now terminating." << std::endl;
       return;
     }
-    const auto& servo_r = maybe_servo_r.value();
+    const auto& servo_5 = maybe_servo_5.value();
 
     if (SetupUdpReceive() < 0) {
       std::cout << "Failed to create UDP socket.  "
@@ -97,19 +111,37 @@ class DifferentialJointUdpServoSystem : public UdpServoSystem {
         received[id] = true;
       }
 
-      const double target_diff = cmd[4][CommandItem::position];
-      const double target_avg = cmd[5][CommandItem::position];
-      const double cur_diff = servo_l->GetReply().abs_position;
-      const double cur_avg = servo_r->GetReply().abs_position;
-      const double target_delta_diff = target_diff - cur_diff;
-      const double target_delta_avg = target_avg - cur_avg;
+      {
+        const double target_diff = cmd[3][CommandItem::position];
+        const double target_avg = cmd[2][CommandItem::position];
+        const double cur_diff = servo_3->GetReply().abs_position;
+        const double cur_avg = servo_2->GetReply().abs_position;
+        const double target_delta_diff = target_diff - cur_diff;
+        const double target_delta_avg = target_avg - cur_avg;
 
-      cmd[4][CommandItem::position] =
-          41.0 * 127.0 / 92.0 *
-          (target_delta_avg + 145.0 / 127.0 * target_delta_diff);
-      cmd[5][CommandItem::position] =
-          41.0 * 127.0 / 92.0 *
-          (target_delta_avg - 145.0 / 127.0 * target_delta_diff);
+        cmd[2][CommandItem::position] =
+            41.0 * 100.0 / 85.0 *
+            (target_delta_avg + 94.0 / 100.0 * target_delta_diff);
+        cmd[3][CommandItem::position] =
+            41.0 * 100.0 / 85.0 *
+            (target_delta_avg - 94.0 / 100.0 * target_delta_diff);
+      }
+
+      {
+        const double target_diff = cmd[5][CommandItem::position];
+        const double target_avg = cmd[4][CommandItem::position];
+        const double cur_diff = servo_5->GetReply().abs_position;
+        const double cur_avg = servo_4->GetReply().abs_position;
+        const double target_delta_diff = target_diff - cur_diff;
+        const double target_delta_avg = target_avg - cur_avg;
+
+        cmd[4][CommandItem::position] =
+            41.0 * 127.0 / 92.0 *
+            (target_delta_avg + 145.0 / 127.0 * target_delta_diff);
+        cmd[5][CommandItem::position] =
+            41.0 * 127.0 / 92.0 *
+            (target_delta_avg - 145.0 / 127.0 * target_delta_diff);
+      }
 
       EmplaceCommands(cmd);
     }
