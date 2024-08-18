@@ -55,7 +55,11 @@ class DifferentialJoint {
   // DifferentialJoint Command struct: //
 
   struct Command {
-    enum class Mode : uint8_t { MoveTo, Stop, Fix } mode;
+    enum class Mode : uint8_t { Stop, MoveTo, Fix } mode;
+
+    struct Stop {
+      bool pending = false;
+    } stop;
 
     struct MoveTo {
       double target_avg, target_dif;
@@ -67,10 +71,6 @@ class DifferentialJoint {
 
       bool fixing;
     } move_to;
-
-    struct Stop {
-      bool pending = false;
-    } stop;
 
     struct Fix {
       bool pending = false;

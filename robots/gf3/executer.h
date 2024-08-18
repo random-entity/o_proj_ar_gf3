@@ -45,7 +45,6 @@ class Executer {
         const auto dj_frames =
             DifferentialJointFrameMakers::methods.at(j->cmd_.mode)(j);
         utils::Merge(command_frames, dj_frames);
-
       } catch (const std::out_of_range& e) {
         std::cout << "Check if DifferentialJointFrameMakers::methods "
                      "has all DifferentialJoint::Command::Mode registered."
