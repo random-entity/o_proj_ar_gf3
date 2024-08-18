@@ -47,7 +47,7 @@ void* float2bytearray_new() {
   return (void*)x;
 }
 
-void float2bytearray_free(t_float2bytearray* x) {}
+void float2bytearray_free(t_float2bytearray*) {}
 
 void float2bytearray_setup(void) {
   float2bytearray_class =

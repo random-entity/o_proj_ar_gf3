@@ -59,7 +59,7 @@ void* bytearray2float_new(void) {
   return (void*)x;
 }
 
-void bytearray2float_free(t_bytearray2float* x) {}
+void bytearray2float_free(t_bytearray2float*) {}
 
 void bytearray2float_setup(void) {
   bytearray2float_class =
