@@ -1,3 +1,3 @@
 #!/usr/bin/bash
 
-sudo make install pdincludepath=~/repos/_clones/pure-data/pure-data/src/ objestsdir=./build
+make install pdincludepath=~/repos/_clones/pure-data/pure-data/src/ objectsdir=~/Documents/Pd/externals

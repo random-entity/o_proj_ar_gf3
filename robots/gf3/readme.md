@@ -13,3 +13,7 @@
 # Todo
 - "0x052 - Encoder 1 Position"
   - Is it uncoiled? If so, we don't need uncoiling logic.
+- Velocity mode
+  - 0x053 Encoder 1 Velocity
+  - Command velocity continuously
+  - Ramp target velocity
