@@ -41,48 +41,42 @@ class SingleAxisJoint {
   // SingleAxisJoint Command struct: //
 
   struct Command {
-    enum class Mode { MoveTo, Stop, Fix } mode;
-
-    struct MoveTo {
-      double target_out;
-      double max_trq, max_vel, max_acc;
-      double fix_threshold = 0.01;
-
-     private:
-      friend struct SingleAxisJointFrameMakers;
-
-      bool fixing;
-    } move_to;
+    enum class Mode { Stop, MoveTo, MoveToInVel, Fix } mode;
 
     struct Stop {
       bool pending = false;
     } stop;
+
+    struct MoveTo {
+      double target_out;
+      double fix_threshold = 0.01;
+      double max_trq, max_vel, max_acc;
+
+     private:
+      friend struct SingleAxisJointFrameMakers;
+      bool fixing;
+    } move_to;
+
+    struct MoveToInVel {
+      double target_out;
+      double vel = 0.0;
+      double damp_threshold = 0.1;
+      double fix_threshold = 0.01;
+      double max_trq, max_vel, max_acc;
+
+     private:
+      friend struct SingleAxisJointFrameMakers;
+      bool fixing;
+    } move_to_in_vel;
 
     struct Fix {
       bool pending = false;
     } fix;
   } cmd_;
 
- private:
-  /////////////////////
-  // Configurations: //
-
   const double r_;
   const double min_, max_;
   const PmCmd* const pm_cmd_template_;
-
- public:
-  /////////////////////
-  // Helper methods: //
-
-  PmCmd GetPmCmd(const double& pos) {
-    auto pm_cmd = *pm_cmd_template_;
-    pm_cmd.position = pos;
-    pm_cmd.maximum_torque = cmd_.move_to.max_trq;
-    pm_cmd.velocity_limit = cmd_.move_to.max_vel;
-    pm_cmd.accel_limit = cmd_.move_to.max_acc;
-    return pm_cmd;
-  }
 };
 
 }  // namespace gf3

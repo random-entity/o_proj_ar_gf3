@@ -105,18 +105,15 @@ class GF3 {
   // Configurations: //
 
   const struct {
-    // Shoulder
+    // Shoulders
     const double sz = 21.0 * 100.0 / 85.0;
     const double sxya = 41.0 * 100.0 / 85.0;
     const double sxyd = sxya * 94.0 / 100.0;
-
-    // Elbow
+    // Elbows
     const double ea = 41.0 * 127.0 / 92.0;
     const double ed = ea * 145.0 / 127.0;
-
-    // Wrist
+    // Wrists
     const double wr = 48.0 / 38.0 * 68.0 / 20.0;
-
     // Neck
     const double na = 127.0 / 38.0;
     const double nd = na * 145.0 / 127.0;

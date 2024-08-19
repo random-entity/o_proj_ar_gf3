@@ -55,7 +55,7 @@ class DifferentialJoint {
   // DifferentialJoint Command struct: //
 
   struct Command {
-    enum class Mode : uint8_t { Stop, MoveTo, Fix } mode;
+    enum class Mode : uint8_t { Stop, MoveTo, MoveToInVel, Fix } mode;
 
     struct Stop {
       bool pending = false;
@@ -63,40 +63,34 @@ class DifferentialJoint {
 
     struct MoveTo {
       double target_avg, target_dif;
-      double max_trq, max_vel, max_acc;
       double fix_threshold = 0.01;
+      double max_trq, max_vel, max_acc;
 
      private:
       friend struct DifferentialJointFrameMakers;
-
       bool fixing;
     } move_to;
+
+    struct MoveToInVel {
+      double target_avg, target_dif;
+      double vel = 0.0;
+      double damp_threshold = 0.1;
+      double fix_threshold = 0.01;
+      double max_trq, max_vel, max_acc;
+
+     private:
+      friend struct DifferentialJointFrameMakers;
+      bool fixing;
+    } move_to_in_vel;
 
     struct Fix {
       bool pending = false;
     } fix;
   } cmd_;
 
- private:
-  /////////////////////
-  // Configurations: //
-
   const double r_avg_, r_dif_;
   const double min_avg_, max_avg_, min_dif_, max_dif_;
   const PmCmd* const pm_cmd_template_;
-
- public:
-  /////////////////////
-  // Helper methods: //
-
-  PmCmd GetPmCmd(const double& pos) {
-    auto cmd = *pm_cmd_template_;
-    cmd.position = pos;
-    cmd.maximum_torque = cmd_.move_to.max_trq;
-    cmd.velocity_limit = cmd_.move_to.max_vel;
-    cmd.accel_limit = cmd_.move_to.max_acc;
-    return cmd;
-  }
 };
 
 }  // namespace gf3

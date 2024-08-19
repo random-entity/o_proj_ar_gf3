@@ -9,8 +9,13 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::Fix(
   if (j->cmd_.fix.pending) {
     j->cmd_.fix.pending = false;
 
-    return {j->l_.MakePosition(j->GetPmCmd(NaN)),
-            j->r_.MakePosition(j->GetPmCmd(NaN))};
+    const auto cmd = [&] {
+      auto c = *(j->pm_cmd_template_);
+      c.position = NaN;
+      return c;
+    }();
+
+    return {j->l_.MakePosition(cmd), j->r_.MakePosition(cmd)};
   } else {
     return {};
   }

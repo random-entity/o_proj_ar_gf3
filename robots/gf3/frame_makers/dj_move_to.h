@@ -7,6 +7,7 @@ namespace gf3 {
 std::vector<CanFdFrame> DifferentialJointFrameMakers::MoveTo(
     DifferentialJoint* j) {
   auto& cmd = j->cmd_.move_to;
+  cmd.fix_threshold = std::abs(cmd.fix_threshold);
 
   const auto target_avg = std::clamp(cmd.target_avg, j->min_avg_, j->max_avg_);
   const auto target_dif = std::clamp(cmd.target_dif, j->min_dif_, j->max_dif_);
@@ -20,25 +21,35 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::MoveTo(
   double target_delta_l;
   double target_delta_r;
 
-  if (target_delta_avg > cmd.fix_threshold ||
-      target_delta_dif > cmd.fix_threshold) {
+  if (std::abs(target_delta_avg) >= cmd.fix_threshold ||
+      std::abs(target_delta_dif) >= cmd.fix_threshold) {
     target_delta_l =
         j->r_avg_ * target_delta_avg + j->r_dif_ * target_delta_dif;
     target_delta_r =
         j->r_avg_ * target_delta_avg - j->r_dif_ * target_delta_dif;
-
     cmd.fixing = false;
   } else if (!cmd.fixing) {
     target_delta_l = NaN;
     target_delta_r = NaN;
-
     cmd.fixing = true;
   } else {
     return {};
   }
 
-  return {j->l_.MakePositionRelativeToRecent(j->GetPmCmd(target_delta_l)),
-          j->r_.MakePositionRelativeToRecent(j->GetPmCmd(target_delta_r))};
+  auto pm_cmd = *(j->pm_cmd_template_);
+  pm_cmd.velocity = 0.0;
+  pm_cmd.maximum_torque = cmd.max_trq;
+  pm_cmd.velocity_limit = cmd.max_vel;
+  pm_cmd.accel_limit = cmd.max_acc;
+
+  return {j->l_.MakePositionRelativeToRecent([&] {
+            pm_cmd.position = target_delta_l;
+            return pm_cmd;
+          }()),
+          j->r_.MakePositionRelativeToRecent([&] {
+            pm_cmd.position = target_delta_r;
+            return pm_cmd;
+          }())};
 }
 
 }  // namespace gf3

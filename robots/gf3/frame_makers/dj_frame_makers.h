@@ -7,6 +7,7 @@ namespace gf3 {
 struct DifferentialJointFrameMakers {
   static std::vector<CanFdFrame> Stop(DifferentialJoint*);
   static std::vector<CanFdFrame> MoveTo(DifferentialJoint*);
+  static std::vector<CanFdFrame> MoveToInVel(DifferentialJoint*);
   static std::vector<CanFdFrame> Fix(DifferentialJoint*);
 
   inline static const std::map<DifferentialJoint::Command::Mode,
@@ -15,6 +16,8 @@ struct DifferentialJointFrameMakers {
                &DifferentialJointFrameMakers::Stop},
               {DifferentialJoint::Command::Mode::MoveTo,
                &DifferentialJointFrameMakers::MoveTo},
+              {DifferentialJoint::Command::Mode::MoveToInVel,
+               &DifferentialJointFrameMakers::MoveToInVel},
               {DifferentialJoint::Command::Mode::Fix,
                &DifferentialJointFrameMakers::Fix}};
 };
