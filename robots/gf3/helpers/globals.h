@@ -45,7 +45,7 @@ const QFmt global_q_fmt{[] {
   fmt.power = kFloat;
   fmt.motor_temperature = kFloat;
   fmt.trajectory_complete = kInt8;
-  fmt.home_state = kInt8;
+  fmt.home_state = kIgnore;
   fmt.voltage = kFloat;
   fmt.temperature = kFloat;
   fmt.fault = kInt8;

@@ -42,21 +42,20 @@ class SingleAxisJoint {
 
   struct Command {
     friend struct SingleAxisJointFrameMakers;
-    enum class Mode { Stop, OutPos, OutVel, Fix } mode;
+    enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode;
 
     // -------------------------------------------------------------------
     // | Command items                    | Stop | OutPos | OutVel | Fix |
     // |----------------------------------|------------------------------|
     double target_out;                 // | X    | O      | O      | X   |
     double vel;                        // | X    | X      | O      | X   |
+    double max_trq, max_vel, max_acc;  // | X    | O      | O      | X   |
     double damp_threshold = 0.15;      // | X    | X      | O      | X   |
     double fix_threshold = 0.01;       // | X    | O      | O      | X   |
-    double max_trq, max_vel, max_acc;  // | X    | O      | O      | X   |
-   private:                            //
-    bool fixing;                       // | X    | O      | O      | X   |
-   public:                             //
     bool stop_pending;                 // | O    | X      | X      | X   |
     bool fix_pending;                  // | X    | X      | X      | O   |
+   private:                            //
+    bool fixing;                       // | X    | O      | O      | X   |
     // -------------------------------------------------------------------
   } cmd_;
 

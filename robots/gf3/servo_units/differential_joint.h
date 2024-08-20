@@ -63,14 +63,13 @@ class DifferentialJoint {
     // |----------------------------------|------------------------------|
     double target_avg, target_dif;     // | X    | O      | O      | X   |
     double vel = 0.0;                  // | X    | X      | O      | X   |
+    double max_trq, max_vel, max_acc;  // | X    | O      | O      | X   |
     double damp_threshold = 0.15;      // | X    | X      | O      | X   |
     double fix_threshold = 0.01;       // | X    | O      | O      | X   |
-    double max_trq, max_vel, max_acc;  // | X    | O      | O      | X   |
-   private:                            //
-    bool fixing;                       // | X    | O      | O      | X   |
-   public:                             //
     bool stop_pending;                 // | O    | X      | X      | X   |
     bool fix_pending;                  // | X    | X      | X      | O   |
+   private:                            //
+    bool fixing;                       // | X    | O      | O      | X   |
     // -------------------------------------------------------------------
   } cmd_;
 
