@@ -1,0 +1,101 @@
+#!/usr/bin/expect
+
+if { $argc != 1 } {
+  puts "Usage: $argv0 <target>"
+  exit 1
+}
+set target [lindex $argv 0]
+
+spawn moteus_tool -t ${target} --console
+
+send "tel fmt motor_position 1\r"
+expect {
+  "OK" { send_user "SUCCESS\n" }
+  timeout {
+    send_user "TIMEOUT.\n"
+    exit 1
+  }
+}
+
+send "tel get motor_position\r"
+expect {
+  -re {motor_position\.sources\.1\.raw (\d+)} {
+    set raw_value $expect_out(1,string)
+    send_user "CAPTURED! $raw_value\n"
+  }
+  timeout {
+    send_user "TIMEOUT while waiting for motor_position.sources.1.raw value\n"
+    exit 1
+  }
+}
+expect {
+  "OK" { send_user "SUCCESS\n" }
+  timeout {
+    send_user "TIMEOUT.\n"
+    exit 1
+  }
+}
+
+set offset_value [expr {-1 * $raw_value}]
+send "conf set motor_position.sources.1.offset $offset_value\r"
+expect {
+  "OK" { send_user "SUCCESS\n" }
+  timeout {
+    send_user "TIMEOUT\n";
+    exit 1
+  }
+}
+
+send "conf write\r"
+expect {
+  "OK" { send_user "SUCCESS\n" }
+  timeout {
+    send_user "TIMEOUT\n";
+    exit 1
+  }
+}
+
+send "tel fmt motor_position 0\r"
+expect {
+  "OK" { send_user "SUCCESS\n" }
+  timeout {
+    send_user "TIMEOUT\n";
+    exit 1
+  }
+}
+
+send "tel stop\r"
+expect {
+  "OK" { send_user "SUCCESS\n" }
+  timeout {
+    send_user "TIMEOUT\n";
+    exit 1
+  }
+}
+
+send "\004"
+expect eof
+
+
+
+
+
+
+
+# set log_dir "temp"
+# if {![file exists $log_dir]} {
+#     file mkdir $log_dir
+# }
+# set log_file_path "$log_dir/tel.${target}.motor_position.txt"
+# 
+# if {[file exists "temp/tel.${target}.motor_position.txt"]} {
+#   file delete "temp/tel.${target}.motor_position.txt"
+# }
+# log_file temp/tel.${target}.motor_position.txt
+# 
+# expect {
+#   "OK" { send_user "success\n" }
+#   timeout { send_user "timeout\n"; exit 1}
+# }
+# 
+# log_file
