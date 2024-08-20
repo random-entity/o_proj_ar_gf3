@@ -32,15 +32,11 @@ class UdpCommandReceiver {
           float target_out;
           float vel;
           float max_trq, max_vel, max_acc;
-          float damp_threshold;
-          float fix_threshold;
         } __attribute__((packed)) saj;
         struct {
           float target_avg, target_dif;
           float vel;
           float max_trq, max_vel, max_acc;
-          float damp_threshold;
-          float fix_threshold;
         } __attribute__((packed)) dj;
       } u;
     } __attribute__((packed)) cmd;
@@ -73,10 +69,19 @@ class UdpCommandReceiver {
       return;
     }
 
-    int id = static_cast<int>(rbuf.cmd.id);
+    const auto id = static_cast<int>(rbuf.cmd.id);
 
-    if (id == 0) {
-      /* GF3-unit command */
+    if (id == 0) {  // GF3-unit Command
+      switch (rbuf.cmd.mode) {
+        case 0: {
+          gf3_.cmd_.read.pending = true;
+        } break;
+        case 1: {
+          gf3_.cmd_.write.pending = true;
+        } break;
+        default:
+          break;
+      }
       return;
     }
 
@@ -100,9 +105,6 @@ class UdpCommandReceiver {
           cmd.max_trq = static_cast<double>(rbuf.cmd.u.saj.max_trq);
           cmd.max_vel = static_cast<double>(rbuf.cmd.u.saj.max_vel);
           cmd.max_acc = static_cast<double>(rbuf.cmd.u.saj.max_acc);
-          cmd.damp_threshold =
-              static_cast<double>(rbuf.cmd.u.saj.damp_threshold);
-          cmd.fix_threshold = static_cast<double>(rbuf.cmd.u.saj.fix_threshold);
         } break;
         default:
           break;
@@ -130,9 +132,6 @@ class UdpCommandReceiver {
           cmd.max_trq = static_cast<double>(rbuf.cmd.u.dj.max_trq);
           cmd.max_vel = static_cast<double>(rbuf.cmd.u.dj.max_vel);
           cmd.max_acc = static_cast<double>(rbuf.cmd.u.dj.max_acc);
-          cmd.damp_threshold =
-              static_cast<double>(rbuf.cmd.u.dj.damp_threshold);
-          cmd.fix_threshold = static_cast<double>(rbuf.cmd.u.dj.fix_threshold);
         } break;
         default:
           break;

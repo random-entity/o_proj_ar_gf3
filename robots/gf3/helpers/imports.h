@@ -5,9 +5,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <set>
 #include <string>
@@ -26,4 +28,5 @@ using PmCmd = PositionMode::Command;
 using PmFmt = PositionMode::Format;
 using QRpl = Query::Result;
 using QFmt = Query::Format;
+using json = nlohmann::json;
 }  // namespace gf3

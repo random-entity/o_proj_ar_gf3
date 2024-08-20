@@ -7,10 +7,37 @@ namespace gf3 {
 
 class Executer {
  public:
-  Executer(const GF3& gf3, const double& interval = 0.01)
-      : gf3_{gf3}, beat_{interval} {}
+  Executer(GF3& gf3) : gf3_{gf3} {}
 
   void Run() {
+    // First process GF3-unit non-Mode-based Commands.
+    if (gf3_.cmd_.read.pending) {
+      std::ifstream infile{"../pose/" + gf3_.cmd_.read.filename};
+      if (infile.is_open()) {
+        json j;
+        infile >> j;
+        from_json(j, gf3_);
+        infile.close();
+      } else {
+        std::cerr << "Error opening file for reading." << std::endl;
+      }
+
+      gf3_.cmd_.read.pending = false;
+    }
+    if (gf3_.cmd_.write.pending) {
+      json j;
+      to_json(j, gf3_);
+      std::ofstream outfile{"../pose/" + gf3_.cmd_.write.filename};
+      if (outfile.is_open()) {
+        outfile << j.dump(4);
+        outfile.close();
+      } else {
+        std::cerr << "Error opening file for writing." << std::endl;
+      }
+
+      gf3_.cmd_.write.pending = false;
+    }
+
     // Query and distribute Replies.
     std::vector<CanFdFrame> query_frames;
     std::vector<CanFdFrame> reply_frames;
@@ -57,8 +84,7 @@ class Executer {
   }
 
  private:
-  const GF3& gf3_;
-  utils::Beat beat_;
+  GF3& gf3_;
 };
 
 }  // namespace gf3

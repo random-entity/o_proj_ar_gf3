@@ -44,24 +44,46 @@ class SingleAxisJoint {
     friend struct SingleAxisJointFrameMakers;
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode;
 
-    // -------------------------------------------------------------------
-    // | Command items                    | Stop | OutPos | OutVel | Fix |
-    // |----------------------------------|------------------------------|
-    double target_out;                 // | X    | O      | O      | X   |
-    double vel;                        // | X    | X      | O      | X   |
-    double max_trq, max_vel, max_acc;  // | X    | O      | O      | X   |
-    double damp_threshold = 0.15;      // | X    | X      | O      | X   |
-    double fix_threshold = 0.01;       // | X    | O      | O      | X   |
-    bool stop_pending;                 // | O    | X      | X      | X   |
-    bool fix_pending;                  // | X    | X      | X      | O   |
-   private:                            //
-    bool fixing;                       // | X    | O      | O      | X   |
-    // -------------------------------------------------------------------
+    double target_out;
+    double vel;
+    double max_trq, max_vel, max_acc;
+    bool stop_pending;
+    bool fix_pending;
+
+   private:
+    inline static const double damp_thr = 0.15;
+    inline static const double fix_thr = 0.01;
+    bool fixing;
+
+   public:
   } cmd_;
+
+  /////////////////////
+  // Configurations: //
 
   const double r_;
   const double min_, max_;
   const PmCmd* const pm_cmd_template_;
+
+  ////////////////////////////////////////
+  // Command serializer & deserializer: //
+
+  friend void to_json(json& j, const SingleAxisJoint& saj) {
+    j = json{{"suid", saj.s_.GetId()},  //
+             {"target_out", saj.cmd_.target_out},
+             {"vel", saj.cmd_.vel},
+             {"max_trq", saj.cmd_.max_trq},
+             {"max_vel", saj.cmd_.max_vel},
+             {"max_acc", saj.cmd_.max_acc}};
+  }
+
+  friend void from_json(const json& j, SingleAxisJoint& saj) {
+    j.at("target_out").get_to(saj.cmd_.target_out);
+    j.at("vel").get_to(saj.cmd_.vel);
+    j.at("max_trq").get_to(saj.cmd_.max_trq);
+    j.at("max_vel").get_to(saj.cmd_.max_vel);
+    j.at("max_acc").get_to(saj.cmd_.max_acc);
+  }
 };
 
 }  // namespace gf3

@@ -37,26 +37,26 @@ class GF3 {
         saj_set_{&l_shoulder_z_, &l_wrist_, &r_shoulder_z_, &r_wrist_},
         saj_map_{[&] {
           std::map<int, SingleAxisJoint*> js;
-          for (const auto& s : saj_set_) js.emplace(s->s_.GetId(), s);
+          for (const auto& j : saj_set_) js.emplace(j->s_.GetId(), j);
           return js;
         }()},
         dj_set_{&l_shoulder_xy_, &l_elbow_, &r_shoulder_xy_, &r_elbow_, &neck_},
         dj_map_{[&] {
           std::map<int, DifferentialJoint*> js;
-          for (const auto& s : dj_set_) {
-            js.emplace(s->l_.GetId(), s);
-            js.emplace(s->r_.GetId(), s);
+          for (const auto& j : dj_set_) {
+            js.emplace(j->l_.GetId(), j);
+            js.emplace(j->r_.GetId(), j);
           }
           return js;
         }()},
         dj_lids_{[&] {
           std::set<int> lids;
-          for (const auto& s : dj_set_) lids.emplace(s->l_.GetId());
+          for (const auto& j : dj_set_) lids.emplace(j->l_.GetId());
           return lids;
         }()},
         dj_rids_{[&] {
           std::set<int> rids;
-          for (const auto& s : dj_set_) rids.emplace(s->r_.GetId());
+          for (const auto& j : dj_set_) rids.emplace(j->r_.GetId());
           return rids;
         }()},
         servos_set_{[&] {
@@ -70,12 +70,12 @@ class GF3 {
         }()},
         servos_map_{[&] {
           std::map<int, Servo*> map;
-          for (const auto& s : servos_set_) map.emplace(s->GetId(), s);
+          for (const auto& j : servos_set_) map.emplace(j->GetId(), j);
           return map;
         }()},
         ids_{[&] {
           std::set<int> ids;
-          for (const auto& s : servos_set_) ids.insert(s->GetId());
+          for (const auto& j : servos_set_) ids.insert(j->GetId());
           return ids;
         }()} {}
 
@@ -91,6 +91,10 @@ class GF3 {
   DifferentialJoint r_elbow_;
   SingleAxisJoint r_wrist_;
   DifferentialJoint neck_;
+
+  ///////////////////////////
+  // Component containers: //
+
   const std::set<SingleAxisJoint*> saj_set_;
   const std::map<int, SingleAxisJoint*> saj_map_;
   const std::set<DifferentialJoint*> dj_set_;
@@ -100,6 +104,21 @@ class GF3 {
   const std::set<Servo*> servos_set_;
   const std::map<int, Servo*> servos_map_;
   const std::set<int> ids_;
+
+  /////////////////////////
+  // GF3 Command struct: //
+
+  struct Command {
+    struct Write {
+      bool pending;
+      std::string filename;
+    } write;
+
+    struct Read {
+      bool pending;
+      std::string filename;
+    } read;
+  } cmd_;
 
   /////////////////////
   // Configurations: //
@@ -118,6 +137,41 @@ class GF3 {
     const double na = 127.0 / 38.0;
     const double nd = na * 145.0 / 127.0;
   } r_;
+
+  ///////////////////////////////////////////////////
+  // ServoUnit Commands serializer & deserializer: //
+
+  friend void to_json(json& j, const GF3& gf3) {
+    j["sajs"] = json::array();
+    for (const auto* saj : gf3.saj_set_) {
+      j["sajs"].push_back(*saj);
+    }
+    j["djs"] = json::array();
+    for (const auto* dj : gf3.dj_set_) {
+      j["djs"].push_back(*dj);
+    }
+  }
+
+  friend void from_json(const json& j, GF3& gf3) {
+    for (const auto& saj_json : j.at("sajs")) {
+      int suid = saj_json.at("suid").get<int>();
+      auto it = std::find_if(
+          gf3.saj_set_.begin(), gf3.saj_set_.end(),
+          [suid](SingleAxisJoint* saj) { return saj->s_.GetId() == suid; });
+      if (it != gf3.saj_set_.end()) {
+        from_json(saj_json, **it);
+      }
+    }
+    for (const auto& dj_json : j.at("djs")) {
+      int suid = dj_json.at("suid").get<int>();
+      auto it = std::find_if(
+          gf3.dj_set_.begin(), gf3.dj_set_.end(),
+          [suid](DifferentialJoint* dj) { return dj->l_.GetId() == suid; });
+      if (it != gf3.dj_set_.end()) {
+        from_json(dj_json, **it);
+      }
+    }
+  }
 };
 
 }  // namespace gf3

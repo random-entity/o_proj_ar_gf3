@@ -31,7 +31,7 @@ class Servo : public Controller {
     }
   }
 
-  int GetId() { return id_; }
+  int GetId() const { return id_; }
 
   CanFdFrame MakeQuery() {
     static const auto frame = static_cast<Controller*>(this)->MakeQuery(q_fmt_);

@@ -6,14 +6,13 @@ namespace gf3 {
 
 std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutPos(SingleAxisJoint* j) {
   auto& cmd = j->cmd_;
-  cmd.fix_threshold = std::abs(cmd.fix_threshold);
 
   const auto target_out = std::clamp(cmd.target_out, j->min_, j->max_);
   const auto cur_out = j->s_.GetReplyAux2PositionUncoiled().abs_position;
   const auto target_delta_out = target_out - cur_out;
 
   double target_delta_rotor;
-  if (std::abs(target_delta_out) >= cmd.fix_threshold) {
+  if (std::abs(target_delta_out) >= cmd.fix_thr) {
     target_delta_rotor = j->r_ * target_delta_out;
     cmd.fixing = false;
   } else if (!cmd.fixing) {
