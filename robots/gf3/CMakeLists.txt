@@ -44,9 +44,3 @@ target_link_libraries(gf3_exe gf3)
 set_target_properties(gf3_exe PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "../bin"
 )
-
-add_executable(zero conf/zero.cpp)
-target_link_libraries(zero gf3)
-set_target_properties(zero PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "../bin"
-)

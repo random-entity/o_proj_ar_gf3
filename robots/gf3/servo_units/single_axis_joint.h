@@ -41,37 +41,23 @@ class SingleAxisJoint {
   // SingleAxisJoint Command struct: //
 
   struct Command {
-    enum class Mode { Stop, MoveTo, MoveToInVel, Fix } mode;
+    friend struct SingleAxisJointFrameMakers;
+    enum class Mode { Stop, OutPos, OutVel, Fix } mode;
 
-    struct Stop {
-      bool pending = false;
-    } stop;
-
-    struct MoveTo {
-      double target_out;
-      double fix_threshold = 0.01;
-      double max_trq, max_vel, max_acc;
-
-     private:
-      friend struct SingleAxisJointFrameMakers;
-      bool fixing;
-    } move_to;
-
-    struct MoveToInVel {
-      double target_out;
-      double vel = 0.0;
-      double damp_threshold = 0.1;
-      double fix_threshold = 0.01;
-      double max_trq, max_vel, max_acc;
-
-     private:
-      friend struct SingleAxisJointFrameMakers;
-      bool fixing;
-    } move_to_in_vel;
-
-    struct Fix {
-      bool pending = false;
-    } fix;
+    // -------------------------------------------------------------------
+    // | Command items                    | Stop | OutPos | OutVel | Fix |
+    // |----------------------------------|------------------------------|
+    double target_out;                 // | X    | O      | O      | X   |
+    double vel;                        // | X    | X      | O      | X   |
+    double damp_threshold = 0.15;      // | X    | X      | O      | X   |
+    double fix_threshold = 0.01;       // | X    | O      | O      | X   |
+    double max_trq, max_vel, max_acc;  // | X    | O      | O      | X   |
+   private:                            //
+    bool fixing;                       // | X    | O      | O      | X   |
+   public:                             //
+    bool stop_pending;                 // | O    | X      | X      | X   |
+    bool fix_pending;                  // | X    | X      | X      | O   |
+    // -------------------------------------------------------------------
   } cmd_;
 
   const double r_;

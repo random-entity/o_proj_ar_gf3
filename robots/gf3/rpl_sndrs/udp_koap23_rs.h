@@ -60,7 +60,9 @@ class UdpReplySender {
       const auto rpl = servo->GetReplyAux2PositionUncoiled();
       SendBuf sbuf;
       sbuf.rpl.id = static_cast<uint8_t>(id);
-      sbuf.rpl.false_code = 0x5;
+      sbuf.rpl.false_code = 0x1234;
+      // Added: Encoder validity, temporarily using "rezero" slot.
+      sbuf.rpl.rezero = static_cast<uint8_t>(rpl.extra[0].value);
       sbuf.rpl.position = static_cast<float>(rpl.position);
       sbuf.rpl.aux2_position = static_cast<float>(rpl.abs_position);
       sbuf.rpl.velocity = static_cast<float>(rpl.velocity);
@@ -69,9 +71,6 @@ class UdpReplySender {
       sbuf.rpl.d_curr = static_cast<float>(rpl.d_current);
       sbuf.rpl.voltage = static_cast<float>(rpl.voltage);
       sbuf.rpl.temperature = static_cast<float>(rpl.motor_temperature);
-
-      // Added: Encoder validity, temporarily using "rezero" slot.
-      sbuf.rpl.rezero = static_cast<uint8_t>(rpl.extra[0].value);
 
       if (utils::IsLittleEndian()) {
         for (int i = 4; i + 4 <= sizeof(sbuf.raw_bytes); i += 4) {

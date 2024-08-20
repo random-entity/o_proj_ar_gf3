@@ -4,9 +4,9 @@
 
 namespace gf3 {
 
-std::vector<CanFdFrame> DifferentialJointFrameMakers::MoveTo(
+std::vector<CanFdFrame> DifferentialJointFrameMakers::OutPos(
     DifferentialJoint* j) {
-  auto& cmd = j->cmd_.move_to;
+  auto& cmd = j->cmd_;
   cmd.fix_threshold = std::abs(cmd.fix_threshold);
 
   const auto target_avg = std::clamp(cmd.target_avg, j->min_avg_, j->max_avg_);

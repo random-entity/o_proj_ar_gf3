@@ -82,11 +82,11 @@ class UdpCommandReceiver {
       const auto maybe_saj = utils::SafeAt(gf3_.saj_map_, id);
       if (maybe_saj) {
         auto& cmd = maybe_saj.value()->cmd_;
-        cmd.mode = SingleAxisJoint::Command::Mode::MoveTo;
-        cmd.move_to.target_out = static_cast<double>(rbuf.cmd.position);
-        cmd.move_to.max_trq = static_cast<double>(rbuf.cmd.maximum_torque);
-        cmd.move_to.max_vel = static_cast<double>(rbuf.cmd.velocity);
-        cmd.move_to.max_acc = static_cast<double>(rbuf.cmd.accel_limit);
+        cmd.mode = SingleAxisJoint::Command::Mode::OutPos;
+        cmd.target_out = static_cast<double>(rbuf.cmd.position);
+        cmd.max_trq = static_cast<double>(rbuf.cmd.maximum_torque);
+        cmd.max_vel = static_cast<double>(rbuf.cmd.velocity);
+        cmd.max_acc = static_cast<double>(rbuf.cmd.accel_limit);
 
         recv_map[id] = true;
         continue;
@@ -95,15 +95,15 @@ class UdpCommandReceiver {
       const auto maybe_dj = utils::SafeAt(gf3_.dj_map_, id);
       if (maybe_dj) {
         auto& cmd = maybe_dj.value()->cmd_;
-        cmd.mode = DifferentialJoint::Command::Mode::MoveTo;
+        cmd.mode = DifferentialJoint::Command::Mode::OutPos;
         if (gf3_.dj_lids_.find(id) != gf3_.dj_lids_.end()) {
-          cmd.move_to.target_dif = static_cast<double>(rbuf.cmd.position);
+          cmd.target_dif = static_cast<double>(rbuf.cmd.position);
         } else if (gf3_.dj_rids_.find(id) != gf3_.dj_rids_.end()) {
-          cmd.move_to.target_avg = static_cast<double>(rbuf.cmd.position);
+          cmd.target_avg = static_cast<double>(rbuf.cmd.position);
         }
-        cmd.move_to.max_trq = static_cast<double>(rbuf.cmd.maximum_torque);
-        cmd.move_to.max_vel = static_cast<double>(rbuf.cmd.velocity);
-        cmd.move_to.max_acc = static_cast<double>(rbuf.cmd.accel_limit);
+        cmd.max_trq = static_cast<double>(rbuf.cmd.maximum_torque);
+        cmd.max_vel = static_cast<double>(rbuf.cmd.velocity);
+        cmd.max_acc = static_cast<double>(rbuf.cmd.accel_limit);
 
         recv_map[id] = true;
         continue;

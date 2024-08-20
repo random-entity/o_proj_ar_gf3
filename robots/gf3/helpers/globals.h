@@ -49,8 +49,7 @@ const QFmt global_q_fmt{[] {
   fmt.voltage = kFloat;
   fmt.temperature = kFloat;
   fmt.fault = kInt8;
-  fmt.extra[0] = {.register_number = kEncoder1Position, .resolution = kFloat};
-  fmt.extra[1] = {.register_number = kEncoderValidity, .resolution = kInt8};
+  fmt.extra[0] = {.register_number = kEncoderValidity, .resolution = kInt8};
   return fmt;
 }()};
 

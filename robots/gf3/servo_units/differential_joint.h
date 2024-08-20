@@ -55,37 +55,23 @@ class DifferentialJoint {
   // DifferentialJoint Command struct: //
 
   struct Command {
-    enum class Mode : uint8_t { Stop, MoveTo, MoveToInVel, Fix } mode;
+    friend struct DifferentialJointFrameMakers;
+    enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode;
 
-    struct Stop {
-      bool pending = false;
-    } stop;
-
-    struct MoveTo {
-      double target_avg, target_dif;
-      double fix_threshold = 0.01;
-      double max_trq, max_vel, max_acc;
-
-     private:
-      friend struct DifferentialJointFrameMakers;
-      bool fixing;
-    } move_to;
-
-    struct MoveToInVel {
-      double target_avg, target_dif;
-      double vel = 0.0;
-      double damp_threshold = 0.1;
-      double fix_threshold = 0.01;
-      double max_trq, max_vel, max_acc;
-
-     private:
-      friend struct DifferentialJointFrameMakers;
-      bool fixing;
-    } move_to_in_vel;
-
-    struct Fix {
-      bool pending = false;
-    } fix;
+    // -------------------------------------------------------------------
+    // | Command items                    | Stop | OutPos | OutVel | Fix |
+    // |----------------------------------|------------------------------|
+    double target_avg, target_dif;     // | X    | O      | O      | X   |
+    double vel = 0.0;                  // | X    | X      | O      | X   |
+    double damp_threshold = 0.15;      // | X    | X      | O      | X   |
+    double fix_threshold = 0.01;       // | X    | O      | O      | X   |
+    double max_trq, max_vel, max_acc;  // | X    | O      | O      | X   |
+   private:                            //
+    bool fixing;                       // | X    | O      | O      | X   |
+   public:                             //
+    bool stop_pending;                 // | O    | X      | X      | X   |
+    bool fix_pending;                  // | X    | X      | X      | O   |
+    // -------------------------------------------------------------------
   } cmd_;
 
   const double r_avg_, r_dif_;

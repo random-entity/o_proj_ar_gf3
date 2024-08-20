@@ -37,7 +37,7 @@ class Executer {
         std::cout << "Check if SingleAxisJointFrameMakers::methods "
                      "has all SingleAxisJoint::Command::Mode registered."
                   << std::endl;
-        std::cerr << e.what() << '\n';
+        std::cerr << e.what() << std::endl;
       }
     }
     for (const auto& j : gf3_.dj_set_) {
@@ -49,7 +49,7 @@ class Executer {
         std::cout << "Check if DifferentialJointFrameMakers::methods "
                      "has all DifferentialJoint::Command::Mode registered."
                   << std::endl;
-        std::cerr << e.what() << '\n';
+        std::cerr << e.what() << std::endl;
       }
     }
     global_transport->BlockingCycle(&command_frames[0], command_frames.size(),

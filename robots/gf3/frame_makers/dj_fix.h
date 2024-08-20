@@ -6,8 +6,8 @@ namespace gf3 {
 
 std::vector<CanFdFrame> DifferentialJointFrameMakers::Fix(
     DifferentialJoint* j) {
-  if (j->cmd_.fix.pending) {
-    j->cmd_.fix.pending = false;
+  if (j->cmd_.fix_pending) {
+    j->cmd_.fix_pending = false;
 
     const auto cmd = [&] {
       auto c = *(j->pm_cmd_template_);

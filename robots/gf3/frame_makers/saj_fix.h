@@ -5,8 +5,8 @@
 namespace gf3 {
 
 std::vector<CanFdFrame> SingleAxisJointFrameMakers::Fix(SingleAxisJoint* j) {
-  if (j->cmd_.fix.pending) {
-    j->cmd_.fix.pending = false;
+  if (j->cmd_.fix_pending) {
+    j->cmd_.fix_pending = false;
 
     return {j->s_.MakePosition([&] {
       auto c = *(j->pm_cmd_template_);
