@@ -36,6 +36,24 @@ expect {
   }
 }
 
+send "tel fmt motor_position 0\r"
+expect {
+  "OK" { send_user "SUCCESS\n" }
+  timeout {
+    send_user "TIMEOUT\n";
+    exit 1
+  }
+}
+
+send "tel stop\r"
+expect {
+  "OK" { send_user "SUCCESS\n" }
+  timeout {
+    send_user "TIMEOUT\n";
+    exit 1
+  }
+}
+
 set offset_value [expr {-1 * $raw_value}]
 send "conf set motor_position.sources.1.offset $offset_value\r"
 expect {
@@ -47,24 +65,6 @@ expect {
 }
 
 send "conf write\r"
-expect {
-  "OK" { send_user "SUCCESS\n" }
-  timeout {
-    send_user "TIMEOUT\n";
-    exit 1
-  }
-}
-
-send "tel fmt motor_position 0\r"
-expect {
-  "OK" { send_user "SUCCESS\n" }
-  timeout {
-    send_user "TIMEOUT\n";
-    exit 1
-  }
-}
-
-send "tel stop\r"
 expect {
   "OK" { send_user "SUCCESS\n" }
   timeout {
