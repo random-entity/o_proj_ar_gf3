@@ -63,11 +63,6 @@ class GF3 {
           std::map<int, Servo*> map;
           for (const auto& j : servo_set_) map.emplace(j->GetId(), j);
           return map;
-        }()},
-        ids_{[&] {
-          std::set<int> ids;
-          for (const auto& j : servo_set_) ids.insert(j->GetId());
-          return ids;
         }()} {}
 
   /////////////////
@@ -86,13 +81,12 @@ class GF3 {
   ///////////////////////////
   // Component containers: //
 
-  const std::set<SingleAxisJoint*> saj_set_;
-  const std::map<int, SingleAxisJoint*> saj_map_;
-  const std::set<DifferentialJoint*> dj_set_;
-  const std::map<int, DifferentialJoint*> dj_map_;
-  const std::set<Servo*> servo_set_;
-  const std::map<int, Servo*> servo_map_;
-  const std::set<int> ids_;
+  const std::set<SingleAxisJoint*> saj_set_;        // All SAJs
+  const std::map<int, SingleAxisJoint*> saj_map_;   // SUID -> SAJ
+  const std::set<DifferentialJoint*> dj_set_;       // All DJs
+  const std::map<int, DifferentialJoint*> dj_map_;  // SUID -> DJ
+  const std::set<Servo*> servo_set_;                // All Servos
+  const std::map<int, Servo*> servo_map_;           // ID -> Servo
 
   /////////////////////////
   // GF3 Command struct: //

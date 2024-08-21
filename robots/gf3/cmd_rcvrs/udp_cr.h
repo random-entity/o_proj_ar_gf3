@@ -26,9 +26,9 @@ class UdpCommandReceiver {
 
   union RecvBuf {
     struct Decoded {
-      uint8_t id;
-      uint8_t mode;
+      uint8_t suid;
       uint8_t shots;
+      uint8_t mode;
       union {
         struct {
           uint16_t read_file_index;
@@ -43,8 +43,8 @@ class UdpCommandReceiver {
         } __attribute__((packed)) saj;
         struct {
           float target_avg;
-          float target_dif;
           float vel_avg;
+          float target_dif;
           float vel_dif;
           float max_trq;
           float max_vel;
@@ -82,7 +82,7 @@ class UdpCommandReceiver {
       return;
     }
 
-    const auto id = static_cast<int>(rbuf.cmd.id);
+    const auto id = static_cast<int>(rbuf.cmd.suid);
 
     if (id == 0) {  // GF3-level Command
       gf3_.cmd_.shots = rbuf.cmd.shots;
@@ -90,8 +90,6 @@ class UdpCommandReceiver {
       gf3_.cmd_.write.fileindex = rbuf.cmd.u.gf3.write_file_index;
       return;
     }
-
-    if (gf3_.ids_.find(id) == gf3_.ids_.end()) return;
 
     const auto maybe_saj = utils::SafeAt(gf3_.saj_map_, id);
     if (maybe_saj) {  // SingleAxisJoint Command

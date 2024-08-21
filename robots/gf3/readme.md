@@ -10,7 +10,7 @@
   - https://discord.com/channels/633996205759791104/633996431530655744/838774363649605652
 
 # ToDo
-- Pd: read/write pose file Command
+- Pd: display Reply output next to Command output
 
 # ToDebug
 ## Pd
