@@ -5,22 +5,23 @@
 
 namespace gf3 {
 
-// -------------------------------------------------
-// | ServoUnits on GF3:                            |
-// |-----------------------------------------------|
-// | Type              | Part            | ServoID |
-// |                   |                 | L  | R  |
-// |-----------------------------------------------|
-// | SingleAxisJoint   | LeftShoulderZ   | 1       |
-// | DifferentialJoint | LeftShoulderXY  | 2  | 3  |
-// | DifferentialJoint | LeftElbow       | 4  | 5  |
-// | SingleAxisJoint   | LeftWrist       | 6       |
-// | SingleAxisJoint   | RightShoulderZ  | 7       |
-// | DifferentialJoint | RightShoulderXY | 8  | 9  |
-// | DifferentialJoint | RightElbow      | 10 | 11 |
-// | SingleAxisJoint   | RightWrist      | 12      |
-// | DifferentialJoint | Neck            | 13 | 14 |
-// -------------------------------------------------
+// ----------------------------------------------------------
+// | ServoUnits on GF3:                                     |
+// |--------------------------------------------------------|
+// | Type              | Part            | ServoID | SUID   |
+// |                   |                 | L  | R  |        |
+// |--------------------------------------------------------|
+// | GF3               | GF3             | 1 ~ 14  | 0      |
+// | SingleAxisJoint   | LeftShoulderZ   | 1       | 1      |
+// | DifferentialJoint | LeftShoulderXY  | 2  | 3  | 2, 3   |
+// | DifferentialJoint | LeftElbow       | 4  | 5  | 4, 5   |
+// | SingleAxisJoint   | LeftWrist       | 6       | 6      |
+// | SingleAxisJoint   | RightShoulderZ  | 7       | 7      |
+// | DifferentialJoint | RightShoulderXY | 8  | 9  | 8, 9   |
+// | DifferentialJoint | RightElbow      | 10 | 11 | 10, 11 |
+// | SingleAxisJoint   | RightWrist      | 12      | 12     |
+// | DifferentialJoint | Neck            | 13 | 14 | 13, 14 |
+// ----------------------------------------------------------
 
 class GF3 {
  public:
@@ -49,17 +50,7 @@ class GF3 {
           }
           return js;
         }()},
-        dj_lids_{[&] {
-          std::set<int> lids;
-          for (const auto& j : dj_set_) lids.emplace(j->l_.GetId());
-          return lids;
-        }()},
-        dj_rids_{[&] {
-          std::set<int> rids;
-          for (const auto& j : dj_set_) rids.emplace(j->r_.GetId());
-          return rids;
-        }()},
-        servos_set_{[&] {
+        servo_set_{[&] {
           std::set<Servo*> servos;
           for (const auto& j : saj_set_) servos.emplace(&j->s_);
           for (const auto& j : dj_set_) {
@@ -68,14 +59,14 @@ class GF3 {
           }
           return servos;
         }()},
-        servos_map_{[&] {
+        servo_map_{[&] {
           std::map<int, Servo*> map;
-          for (const auto& j : servos_set_) map.emplace(j->GetId(), j);
+          for (const auto& j : servo_set_) map.emplace(j->GetId(), j);
           return map;
         }()},
         ids_{[&] {
           std::set<int> ids;
-          for (const auto& j : servos_set_) ids.insert(j->GetId());
+          for (const auto& j : servo_set_) ids.insert(j->GetId());
           return ids;
         }()} {}
 
@@ -99,24 +90,24 @@ class GF3 {
   const std::map<int, SingleAxisJoint*> saj_map_;
   const std::set<DifferentialJoint*> dj_set_;
   const std::map<int, DifferentialJoint*> dj_map_;
-  const std::set<int> dj_lids_;
-  const std::set<int> dj_rids_;
-  const std::set<Servo*> servos_set_;
-  const std::map<int, Servo*> servos_map_;
+  const std::set<Servo*> servo_set_;
+  const std::map<int, Servo*> servo_map_;
   const std::set<int> ids_;
 
   /////////////////////////
   // GF3 Command struct: //
 
   struct Command {
+    uint8_t shots = 0;
+
+    // Oneshot for bit 0
     struct Read {
-      bool pending = false;
-      uint16_t fileindex;
+      uint16_t fileindex = 0;
     } read;
 
+    // Oneshot for bit 1
     struct Write {
-      bool pending = false;
-      uint16_t fileindex;
+      uint16_t fileindex = 0;
     } write;
   } cmd_;
 
@@ -167,7 +158,7 @@ class GF3 {
       int suid = saj_json.at("suid").get<int>();
       auto it = std::find_if(
           gf3.saj_set_.begin(), gf3.saj_set_.end(),
-          [suid](SingleAxisJoint* saj) { return saj->s_.GetId() == suid; });
+          [=](SingleAxisJoint* j) { return j->s_.GetId() == suid; });
       if (it != gf3.saj_set_.end()) {
         from_json(saj_json, **it);
       }
@@ -176,7 +167,7 @@ class GF3 {
       int suid = dj_json.at("suid").get<int>();
       auto it = std::find_if(
           gf3.dj_set_.begin(), gf3.dj_set_.end(),
-          [suid](DifferentialJoint* dj) { return dj->l_.GetId() == suid; });
+          [=](DifferentialJoint* j) { return j->l_.GetId() == suid; });
       if (it != gf3.dj_set_.end()) {
         from_json(dj_json, **it);
       }

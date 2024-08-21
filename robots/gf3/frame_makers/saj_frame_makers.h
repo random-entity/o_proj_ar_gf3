@@ -12,14 +12,10 @@ struct SingleAxisJointFrameMakers {
 
   inline static const std::map<SingleAxisJoint::Command::Mode,
                                std::vector<CanFdFrame> (*)(SingleAxisJoint*)>
-      methods{{SingleAxisJoint::Command::Mode::Stop,
-               &SingleAxisJointFrameMakers::Stop},
-              {SingleAxisJoint::Command::Mode::OutPos,
-               &SingleAxisJointFrameMakers::OutPos},
-              {SingleAxisJoint::Command::Mode::OutVel,
-               &SingleAxisJointFrameMakers::OutVel},
-              {SingleAxisJoint::Command::Mode::Fix,
-               &SingleAxisJointFrameMakers::Fix}};
+      methods{{SingleAxisJoint::Command::Mode::Stop, &Stop},
+              {SingleAxisJoint::Command::Mode::OutPos, &OutPos},
+              {SingleAxisJoint::Command::Mode::OutVel, &OutVel},
+              {SingleAxisJoint::Command::Mode::Fix, &Fix}};
 };
 
 }  // namespace gf3

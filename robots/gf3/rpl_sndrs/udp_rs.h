@@ -15,6 +15,7 @@ class UdpReplySender {
 
   ~UdpReplySender() { close(cfg_.sock); }
 
+ private:
   struct UdpConfig {
     const std::string host;  // Where to send Replies to.
     const int port;
@@ -41,6 +42,7 @@ class UdpReplySender {
     uint8_t raw_bytes[sizeof(rpl)];
   };
 
+ public:
   bool Setup() {
     cfg_.sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (cfg_.sock < 0) {
@@ -55,7 +57,7 @@ class UdpReplySender {
   }
 
   void Run() {
-    for (const auto& pair : gf3_.servos_map_) {
+    for (const auto& pair : gf3_.servo_map_) {
       const int id = pair.first;
       const auto* servo = pair.second;
       const auto rpl = servo->GetReplyAux2PositionUncoiled();
@@ -80,6 +82,7 @@ class UdpReplySender {
     }
   }
 
+ private:
   GF3& gf3_;
 };
 

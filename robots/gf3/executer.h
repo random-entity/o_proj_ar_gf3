@@ -1,6 +1,7 @@
 #pragma once
 
 #include "frame_makers/frame_makers.h"
+#include "oneshots/oneshots.h"
 #include "servo_units/gf3.h"
 
 namespace gf3 {
@@ -10,51 +11,25 @@ class Executer {
   Executer(GF3& gf3) : gf3_{gf3} {}
 
   void Run() {
-    // First process GF3-unit non-Mode-based Commands.
-    if (gf3_.cmd_.read.pending) {
-      std::ifstream infile{"../pose/" +
-                           std::to_string(gf3_.cmd_.read.fileindex) + ".pose"};
-      if (infile.is_open()) {
-        json j;
-        infile >> j;
-        from_json(j, gf3_);
-        infile.close();
-      } else {
-        std::cerr << "Error opening file for reading." << std::endl;
-      }
-
-      gf3_.cmd_.read.pending = false;
-    }
-    if (gf3_.cmd_.write.pending) {
-      json j = gf3_;
-      std::ofstream outfile{
-          "../pose/" + std::to_string(gf3_.cmd_.write.fileindex) + ".pose"};
-      if (outfile.is_open()) {
-        outfile << j.dump(4);
-        outfile.close();
-      } else {
-        std::cerr << "Error opening file for writing." << std::endl;
-      }
-
-      gf3_.cmd_.write.pending = false;
-    }
+    // First process GF3-level Oneshots.
+    GF3Oneshots::Shoot(&gf3_);
 
     // Query and distribute Replies.
     std::vector<CanFdFrame> query_frames;
     std::vector<CanFdFrame> reply_frames;
-    for (auto* s : gf3_.servos_set_) {
+    for (auto* s : gf3_.servo_set_) {
       query_frames.push_back(s->MakeQuery());
     }
     global_transport->BlockingCycle(&query_frames[0], query_frames.size(),
                                     &reply_frames);
     for (const auto& frame : reply_frames) {
       const auto& id = static_cast<int>(frame.source);
-      const auto maybe_servo = utils::SafeAt(gf3_.servos_map_, id);
+      const auto maybe_servo = utils::SafeAt(gf3_.servo_map_, id);
       if (!maybe_servo) continue;
       maybe_servo.value()->SetReply(Query::Parse(frame.data, frame.size));
     }
 
-    // Execute Commands.
+    // Execute ServoUnit Mode-based Commands.
     std::vector<CanFdFrame> command_frames;
     for (const auto& j : gf3_.saj_set_) {
       try {

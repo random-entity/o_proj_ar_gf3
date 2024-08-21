@@ -7,7 +7,8 @@ namespace gf3 {
 std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
     DifferentialJoint* j) {
   auto& cmd = j->cmd_;
-  cmd.vel = std::abs(cmd.vel);
+  cmd.vel_avg = std::abs(cmd.vel_avg);
+  cmd.vel_dif = std::abs(cmd.vel_dif);
 
   auto pm_cmd = *(j->pm_cmd_template_);
   pm_cmd.position = NaN;
@@ -30,9 +31,9 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
   if (std::abs(target_delta_avg) >= cmd.fix_thr ||
       std::abs(target_delta_dif) >= cmd.fix_thr) {
     double target_vel_avg =
-        cmd.vel * std::clamp(target_delta_avg / cmd.damp_thr, -1.0, 1.0);
+        cmd.vel_avg * std::clamp(target_delta_avg / cmd.damp_thr, -1.0, 1.0);
     double target_vel_dif =
-        cmd.vel * std::clamp(target_delta_dif / cmd.damp_thr, -1.0, 1.0);
+        cmd.vel_dif * std::clamp(target_delta_dif / cmd.damp_thr, -1.0, 1.0);
     target_vel_l = j->r_avg_ * target_vel_avg + j->r_dif_ * target_vel_dif;
     target_vel_r = j->r_avg_ * target_vel_avg - j->r_dif_ * target_vel_dif;
     cmd.fixing = false;

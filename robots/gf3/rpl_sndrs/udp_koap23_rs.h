@@ -54,7 +54,7 @@ class UdpReplySender {
   }
 
   void Run() {
-    for (const auto& pair : gf3_.servos_map_) {
+    for (const auto& pair : gf3_.servo_map_) {
       const int id = pair.first;
       const auto* servo = pair.second;
       const auto rpl = servo->GetReplyAux2PositionUncoiled();

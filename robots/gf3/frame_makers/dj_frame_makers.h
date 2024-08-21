@@ -12,14 +12,10 @@ struct DifferentialJointFrameMakers {
 
   inline static const std::map<DifferentialJoint::Command::Mode,
                                std::vector<CanFdFrame> (*)(DifferentialJoint*)>
-      methods{{DifferentialJoint::Command::Mode::Stop,
-               &DifferentialJointFrameMakers::Stop},
-              {DifferentialJoint::Command::Mode::OutPos,
-               &DifferentialJointFrameMakers::OutPos},
-              {DifferentialJoint::Command::Mode::OutVel,
-               &DifferentialJointFrameMakers::OutVel},
-              {DifferentialJoint::Command::Mode::Fix,
-               &DifferentialJointFrameMakers::Fix}};
+      methods{{DifferentialJoint::Command::Mode::Stop, &Stop},
+              {DifferentialJoint::Command::Mode::OutPos, &OutPos},
+              {DifferentialJoint::Command::Mode::OutVel, &OutVel},
+              {DifferentialJoint::Command::Mode::Fix, &Fix}};
 };
 
 }  // namespace gf3

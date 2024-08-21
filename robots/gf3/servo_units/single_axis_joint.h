@@ -5,16 +5,16 @@
 namespace gf3 {
 struct SingleAxisJointFrameMakers;
 
-// ------------------------------
-// | Single axis joints on GF3: |
-// |----------------------------|
-// | Part           | ServoID   |
-// |----------------------------|
-// | LeftShoulderZ  | 1         |
-// | LeftWrist      | 6         |
-// | RightShoulderZ | 7         |
-// | RightWrist     | 12        |
-// ------------------------------------
+// -------------------------------------
+// | Single axis joints on GF3:        |
+// |-----------------------------------|
+// | Part           | ServoID   | SUID |
+// |-----------------------------------|
+// | LeftShoulderZ  | 1         | 1    |
+// | LeftWrist      | 6         | 6    |
+// | RightShoulderZ | 7         | 7    |
+// | RightWrist     | 12        | 12   |
+// -------------------------------------
 // | Single axis joint formula:       |
 // |----------------------------------|
 // | r * Delta(output) = Delta(rotor) |
@@ -44,16 +44,16 @@ class SingleAxisJoint {
     friend struct SingleAxisJointFrameMakers;
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
-    double target_out;
+    double target_out = 0.0;
     double vel = 0.0;
-    double max_trq, max_vel, max_acc;
-    bool stop_pending;
-    bool fix_pending;
+    double max_trq = 0.0, max_vel = 0.0, max_acc = 0.0;
+    bool stop_pending = false;
+    bool fix_pending = false;
 
    private:
     inline static const double damp_thr = 0.1;
     inline static const double fix_thr = 0.0025;
-    bool fixing;
+    bool fixing = false;
 
    public:
   } cmd_;
