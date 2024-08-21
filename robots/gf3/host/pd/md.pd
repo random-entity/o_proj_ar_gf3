@@ -1,4 +1,4 @@
-#N canvas 1092 170 545 410 12;
+#N canvas 950 -8 960 1011 12;
 #X obj 10 92 vradio 38 1 0 4 empty empty empty 34 30 0 14 #c6ffc7 #000000 #000000 0;
 #X obj 46 5 inlet;
 #X obj 62 301 outlet;

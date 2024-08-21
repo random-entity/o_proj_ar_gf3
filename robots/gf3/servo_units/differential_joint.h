@@ -56,7 +56,7 @@ class DifferentialJoint {
 
   struct Command {
     friend struct DifferentialJointFrameMakers;
-    enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode;
+    enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
     double target_avg, target_dif;
     double vel = 0.0;
@@ -65,8 +65,8 @@ class DifferentialJoint {
     bool fix_pending;
 
    private:
-    inline static const double damp_thr = 0.15;
-    inline static const double fix_thr = 0.01;
+    inline static const double damp_thr = 0.1;
+    inline static const double fix_thr = 0.0025;
     bool fixing;
   } cmd_;
 

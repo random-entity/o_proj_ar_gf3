@@ -12,7 +12,8 @@ class Executer {
   void Run() {
     // First process GF3-unit non-Mode-based Commands.
     if (gf3_.cmd_.read.pending) {
-      std::ifstream infile{"../pose/" + gf3_.cmd_.read.filename};
+      std::ifstream infile{"../pose/" +
+                           std::to_string(gf3_.cmd_.read.fileindex) + ".pose"};
       if (infile.is_open()) {
         json j;
         infile >> j;
@@ -25,9 +26,9 @@ class Executer {
       gf3_.cmd_.read.pending = false;
     }
     if (gf3_.cmd_.write.pending) {
-      json j;
-      to_json(j, gf3_);
-      std::ofstream outfile{"../pose/" + gf3_.cmd_.write.filename};
+      json j = gf3_;
+      std::ofstream outfile{
+          "../pose/" + std::to_string(gf3_.cmd_.write.fileindex) + ".pose"};
       if (outfile.is_open()) {
         outfile << j.dump(4);
         outfile.close();
@@ -41,7 +42,7 @@ class Executer {
     // Query and distribute Replies.
     std::vector<CanFdFrame> query_frames;
     std::vector<CanFdFrame> reply_frames;
-    for (const auto& s : gf3_.servos_set_) {
+    for (auto* s : gf3_.servos_set_) {
       query_frames.push_back(s->MakeQuery());
     }
     global_transport->BlockingCycle(&query_frames[0], query_frames.size(),
@@ -79,6 +80,7 @@ class Executer {
         std::cerr << e.what() << std::endl;
       }
     }
+
     global_transport->BlockingCycle(&command_frames[0], command_frames.size(),
                                     nullptr);
   }

@@ -10,22 +10,20 @@ int main(int argc, char** argv) {
 
   Executer executer{gf3};
 
-  gf3.cmd_.write.pending = true;
-  executer.Run();
-
-  while (1);
-
-  UdpCommandReceiver udp_cr{gf3, "localhost", 8888};
+  UdpCommandReceiver udp_cr{gf3, "127.0.0.1", 8888};
   if (!udp_cr.Setup()) return 1;
 
-  UdpReplySender udp_rs{gf3, "localhost", 5555};
+  std::thread udp_cr_thr{[&] {
+    while (1) udp_cr.Run();
+  }};
+
+  UdpReplySender udp_rs{gf3, "127.0.0.1", 5555};
   if (!udp_rs.Setup()) return 1;
 
   utils::Beat beat{0.01};
 
   while (1) {
     if (beat.Hit()) {
-      udp_cr.Run();
       executer.Run();
       udp_rs.Run();
     }

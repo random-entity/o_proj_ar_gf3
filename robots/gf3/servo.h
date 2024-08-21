@@ -25,6 +25,8 @@ class Servo : public Controller {
         q_fmt_{q_fmt} {
     const auto maybe_rpl = SetStop(q_fmt_);
     if (maybe_rpl) {
+      // Assuming you have zeroed all Servos before launching!
+      last_sys_rpl_.abs_position = 0.0;
       SetReply(maybe_rpl->values);
     } else {
       std::cout << "Servo ID " << id << " is NOT responding." << std::endl;
@@ -34,8 +36,7 @@ class Servo : public Controller {
   int GetId() const { return id_; }
 
   CanFdFrame MakeQuery() {
-    static const auto frame = static_cast<Controller*>(this)->MakeQuery(q_fmt_);
-    return frame;
+    return static_cast<Controller*>(this)->MakeQuery(q_fmt_);
   }
 
   CanFdFrame MakePositionRelativeToRecent(PmCmd cmd) {

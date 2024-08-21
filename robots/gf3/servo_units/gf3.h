@@ -109,34 +109,44 @@ class GF3 {
   // GF3 Command struct: //
 
   struct Command {
-    struct Write {
-      bool pending;
-      std::string filename;
-    } write;
-
     struct Read {
-      bool pending;
-      std::string filename;
+      bool pending = false;
+      uint16_t fileindex;
     } read;
+
+    struct Write {
+      bool pending = false;
+      uint16_t fileindex;
+    } write;
   } cmd_;
 
   /////////////////////
   // Configurations: //
 
-  const struct {
+  inline static struct Ratios {
     // Shoulders
-    const double sz = 21.0 * 100.0 / 85.0;
-    const double sxya = 41.0 * 100.0 / 85.0;
-    const double sxyd = sxya * 94.0 / 100.0;
+    const double sz;
+    const double sxya;
+    const double sxyd;
     // Elbows
-    const double ea = 41.0 * 127.0 / 92.0;
-    const double ed = ea * 145.0 / 127.0;
+    const double ea;
+    const double ed;
     // Wrists
-    const double wr = 48.0 / 38.0 * 68.0 / 20.0;
+    const double wr;
     // Neck
-    const double na = 127.0 / 38.0;
-    const double nd = na * 145.0 / 127.0;
-  } r_;
+    const double na;
+    const double nd;
+
+    Ratios()
+        : sz{21.0 * 100.0 / 85.0},
+          sxya{41.0 * 100.0 / 85.0},
+          sxyd{sxya * 94.0 / 100.0},
+          ea{41.0 * 127.0 / 92.0},
+          ed{ea * 145.0 / 127.0},
+          wr{48.0 / 38.0 * 68.0 / 20.0},
+          na{127.0 / 38.0},
+          nd{na * 145.0 / 127.0} {}
+  } r_{};
 
   ///////////////////////////////////////////////////
   // ServoUnit Commands serializer & deserializer: //

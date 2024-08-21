@@ -42,17 +42,17 @@ class SingleAxisJoint {
 
   struct Command {
     friend struct SingleAxisJointFrameMakers;
-    enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode;
+    enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
     double target_out;
-    double vel;
+    double vel = 0.0;
     double max_trq, max_vel, max_acc;
     bool stop_pending;
     bool fix_pending;
 
    private:
-    inline static const double damp_thr = 0.15;
-    inline static const double fix_thr = 0.01;
+    inline static const double damp_thr = 0.1;
+    inline static const double fix_thr = 0.0025;
     bool fixing;
 
    public:

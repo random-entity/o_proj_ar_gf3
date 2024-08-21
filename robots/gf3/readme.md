@@ -8,3 +8,6 @@
 - "Zero velocity mode"? It does NOT hold position.
   - https://discord.com/channels/633996205759791104/633996431530655744/842789027550724136
   - https://discord.com/channels/633996205759791104/633996431530655744/838774363649605652
+# ToDebug
+## Pd
+- 0 -> NaN?

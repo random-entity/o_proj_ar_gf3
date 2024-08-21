@@ -29,14 +29,22 @@ class UdpCommandReceiver {
       uint8_t mode;
       union {
         struct {
+          uint16_t fileindex;
+        } __attribute__((packed)) gf3;
+        struct {
           float target_out;
           float vel;
-          float max_trq, max_vel, max_acc;
+          float max_trq;
+          float max_vel;
+          float max_acc;
         } __attribute__((packed)) saj;
         struct {
-          float target_avg, target_dif;
-          float vel;
-          float max_trq, max_vel, max_acc;
+          float target_avg;
+          float target_dif;
+          float vel;  // TODO: vel_avg, vel_dif
+          float max_trq;
+          float max_vel;
+          float max_acc;
         } __attribute__((packed)) dj;
       } u;
     } __attribute__((packed)) cmd;
@@ -75,9 +83,11 @@ class UdpCommandReceiver {
       switch (rbuf.cmd.mode) {
         case 0: {
           gf3_.cmd_.read.pending = true;
+          gf3_.cmd_.read.fileindex = rbuf.cmd.u.gf3.fileindex;
         } break;
         case 1: {
           gf3_.cmd_.write.pending = true;
+          gf3_.cmd_.write.fileindex = rbuf.cmd.u.gf3.fileindex;
         } break;
         default:
           break;

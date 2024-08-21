@@ -44,11 +44,11 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
     return {};
   }
 
-  return {j->l_.MakePositionRelativeToRecent([&] {
+  return {j->l_.MakePosition([&] {
             pm_cmd.velocity = target_vel_l;
             return pm_cmd;
           }()),
-          j->r_.MakePositionRelativeToRecent([&] {
+          j->r_.MakePosition([&] {
             pm_cmd.velocity = target_vel_r;
             return pm_cmd;
           }())};
