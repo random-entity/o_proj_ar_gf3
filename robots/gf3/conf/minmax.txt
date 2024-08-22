@@ -1,0 +1,30 @@
+l_shoulder_z
+-0.25, 0.117
+
+l_shoulder_xy
+avg 0, 0.462
+dif -0.42, 0.389
+
+l_elbow
+avg -0.08, 0.349
+dif -0.475, 0.33
+
+l_wrist
+-0.23, 0.221
+
+r_shoulder_z
+-0.107, 0.25
+
+r_shoulder_xy
+avg 0.01, 0.44
+dif -0.418, 0.35
+
+r_elbow
+avg
+dif
+
+r_wrist
+
+neck
+avg -0.2, 0.23
+dif -0.36, 0.36

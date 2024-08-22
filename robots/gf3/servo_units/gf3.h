@@ -26,15 +26,19 @@ namespace gf3 {
 class GF3 {
  public:
   GF3()
-      : l_shoulder_z_{1, 1, r_.sz, -0.25, 0.25},
-        l_shoulder_xy_{2, 3, 1, r_.sxya, r_.sxyd, -0.25, 0.25, -0.25, 0.25},
-        l_elbow_{4, 5, 1, r_.ea, r_.ed, -0.25, 0.25, -0.25, 0.25},
-        l_wrist_{6, 1, r_.wr, -0.25, 0.25},
-        r_shoulder_z_{7, 2, r_.sz, -0.25, 0.25},
-        r_shoulder_xy_{8, 9, 2, r_.sxya, r_.sxyd, -0.25, 0.25, -0.25, 0.25},
-        r_elbow_{10, 11, 2, r_.ea, r_.ed, -0.25, 0.25, -0.25, 0.25},
-        r_wrist_{12, 2, r_.wr, -0.25, 0.25},
-        neck_{13, 14, 3, r_.na, r_.nd, -0.25, 0.25, -0.25, 0.25},
+      : l_shoulder_z_{1, 1, r_.sz, -0.25, 0.117},
+        l_shoulder_xy_{2, 3, 1, r_.sxya, r_.sxyd, 0.0, 0.462, -0.42, 0.389},
+        l_elbow_{4, 5, 1, r_.ea, r_.ed, -0.08, 0.349, -0.475, 0.33},
+        l_wrist_{6, 1, r_.wr, -0.23, 0.221},
+
+        // Right arm minmax NOT set!
+        r_shoulder_z_{7, 2, r_.sz, -0.5, 0.5},
+        r_shoulder_xy_{8, 9, 2, r_.sxya, r_.sxyd, -0.5, 0.5, -0.5, 0.5},
+        r_elbow_{10, 11, 2, r_.ea, r_.ed, -0.5, 0.5, -0.5, 0.5},
+        r_wrist_{12, 2, r_.wr, -0.5, 0.5},
+
+        neck_{13, 14, 3, r_.na, r_.nd, -0.22, 0.22, -0.36, 0.36},
+
         saj_set_{&l_shoulder_z_, &l_wrist_, &r_shoulder_z_, &r_wrist_},
         saj_map_{[&] {
           std::map<int, SingleAxisJoint*> js;

@@ -10,7 +10,9 @@
   - https://discord.com/channels/633996205759791104/633996431530655744/838774363649605652
 
 # ToDo
-- Pd: display Reply output next to Command output
+- Pd
+  - display Reply output next to Command output
+  - visualize/plot Reply values
 
 # ToDebug
 ## Pd

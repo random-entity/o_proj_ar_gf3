@@ -31,8 +31,8 @@ class UdpCommandReceiver {
       uint8_t mode;
       union {
         struct {
-          uint16_t read_file_index;
-          uint16_t write_file_index;
+          uint8_t read_file_index;
+          uint8_t write_file_index;
         } __attribute__((packed)) gf3;
         struct {
           float target_out;

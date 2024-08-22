@@ -1,5 +1,5 @@
 #N canvas -10 19 960 984 12;
-#X obj 186 121 vsl 16 220 -1 1 0 1 empty empty empty -20 4 0 10 #c6ffc7 #000000 #000000 10950 1;
+#X obj 186 121 vsl 16 220 -0.5 0.5 0 1 empty empty empty -20 4 0 10 #c6ffc7 #000000 #000000 21900 1;
 #X floatatom 10 137 8 -0.5 0.5 2 c.avgpos - - 12;
 #X floatatom 10 247 8 0 0 2 c.avgpos - - 12;
 #X msg 346 81 0, f 2;
@@ -12,7 +12,7 @@
 #X floatatom 10 278 11 0 0 2 r.avgpos - - 8;
 #X obj 98 15 inlet;
 #X obj 10 370 outlet;
-#X obj 218 121 vsl 16 220 -0 2 0 1 empty empty empty -1 -8 0 10 #c6ffc7 #000000 #000000 0 1;
+#X obj 218 121 vsl 16 220 -0 0.5 0 1 empty empty empty -1 -8 0 10 #c6ffc7 #000000 #000000 21900 1;
 #X obj 237 121 vsl 8 220 -1 1 0 1 empty empty empty -3 -8 0 8 #bbbbbb #000000 #000000 10950 1;
 #X obj 183 370 outlet;
 #X text 180 341 opos;
@@ -22,9 +22,9 @@
 #X obj 182 15 inlet;
 #X floatatom 10 309 8 0 0 2 c.avgvel - - 12;
 #X floatatom 10 340 11 0 0 2 r.avgvel - - 8;
-#X obj 104 55 hsl 220 16 -1 1 0 0 empty empty empty -2 -10 0 12 #c6ffc7 #000000 #000000 0 1;
+#X obj 104 55 hsl 220 16 -0.5 0.5 0 0 empty empty empty -2 -10 0 12 #c6ffc7 #000000 #000000 0 1;
 #X obj 104 74 hsl 220 8 -1 1 0 0 empty empty empty -2 -10 0 12 #bbbbbb #000000 #000000 0 1;
-#X obj 104 87 hsl 220 16 -0 2 0 0 empty empty empty -2 -10 0 12 #c6ffc7 #000000 #000000 0 1;
+#X obj 104 87 hsl 220 16 -0 0.5 0 0 empty empty empty -2 -10 0 12 #c6ffc7 #000000 #000000 0 1;
 #X obj 104 106 hsl 220 8 -1 1 0 0 empty empty empty -2 -10 0 12 #bbbbbb #000000 #000000 0 1;
 #X text 69 52 opos;
 #X text 69 84 ovel;

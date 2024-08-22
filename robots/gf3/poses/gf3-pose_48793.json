@@ -1,0 +1,88 @@
+{
+    "djs": [
+        {
+            "max_acc": 8.0,
+            "max_trq": 32.0,
+            "max_vel": 8.0,
+            "suid": 2,
+            "target_avg": 0.20000000298023224,
+            "target_dif": -0.07990867644548416,
+            "vel_avg": 0.0,
+            "vel_dif": 0.0
+        },
+        {
+            "max_acc": 8.0,
+            "max_trq": 32.0,
+            "max_vel": 8.0,
+            "suid": 4,
+            "target_avg": 0.19863013923168182,
+            "target_dif": 0.5,
+            "vel_avg": 0.4292237460613251,
+            "vel_dif": 0.20000000298023224
+        },
+        {
+            "max_acc": 0.0,
+            "max_trq": 0.0,
+            "max_vel": 0.0,
+            "suid": 8,
+            "target_avg": 0.0,
+            "target_dif": 0.0,
+            "vel_avg": 0.0,
+            "vel_dif": 0.0
+        },
+        {
+            "max_acc": 0.0,
+            "max_trq": 0.0,
+            "max_vel": 0.0,
+            "suid": 10,
+            "target_avg": 0.0,
+            "target_dif": 0.0,
+            "vel_avg": 0.0,
+            "vel_dif": 0.0
+        },
+        {
+            "max_acc": 0.0,
+            "max_trq": 0.0,
+            "max_vel": 0.0,
+            "suid": 13,
+            "target_avg": 0.0,
+            "target_dif": 0.0,
+            "vel_avg": 0.0,
+            "vel_dif": 0.0
+        }
+    ],
+    "sajs": [
+        {
+            "max_acc": 4.0,
+            "max_trq": 16.0,
+            "max_vel": 4.0,
+            "suid": 1,
+            "target_out": -0.13503649830818176,
+            "vel": 0.3499999940395355
+        },
+        {
+            "max_acc": 15.55140209197998,
+            "max_trq": 14.35513973236084,
+            "max_vel": 16.149532318115234,
+            "suid": 6,
+            "target_out": -0.29927006363868713,
+            "vel": 0.28284671902656555
+        },
+        {
+            "max_acc": 0.0,
+            "max_trq": 0.0,
+            "max_vel": 0.0,
+            "suid": 7,
+            "target_out": 0.0,
+            "vel": 0.0
+        },
+        {
+            "max_acc": 0.0,
+            "max_trq": 0.0,
+            "max_vel": 0.0,
+            "suid": 12,
+            "target_out": 0.0,
+            "vel": 0.0
+        }
+    ]
+}

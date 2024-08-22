@@ -1,0 +1,6 @@
+shoulder_z
+100, 1, 0.1
+
+shoulder_xy
+50, 1, 0.1
+

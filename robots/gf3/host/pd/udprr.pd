@@ -1,4 +1,4 @@
-#N canvas 1270 -8 1280 1011 12;
+#N canvas 1920 0 1920 1011 12;
 #X declare -path f2b2f;
 #X obj 6 27 r rplbytes;
 #X obj 653 203 b2f;
@@ -32,7 +32,9 @@
 #X text 602 161 id;
 #X text 655 145 trjcpt;
 #X obj 6 76 unpack 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0, f 83;
+#X obj 739 476 expr $f1 == 15;
 #X connect 0 0 13 0;
+#X connect 5 0 32 0;
 #X connect 13 0 31 0;
 #X connect 26 0 28 0;
 #X connect 27 0 26 0;
