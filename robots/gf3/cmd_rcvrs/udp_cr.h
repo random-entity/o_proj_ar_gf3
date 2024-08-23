@@ -42,10 +42,10 @@ class UdpCommandReceiver {
           float max_acc;
         } __attribute__((packed)) saj;
         struct {
-          float target_avg;
-          float vel_avg;
           float target_dif;
           float vel_dif;
+          float target_avg;
+          float vel_avg;
           float max_trq;
           float max_vel;
           float max_acc;
@@ -70,6 +70,8 @@ class UdpCommandReceiver {
       close(cfg_.sock);
       return false;
     }
+    std::cout << "UdpCommandReceiver started listening to " << cfg_.host << ":"
+              << cfg_.port << "." << std::endl;
     return true;
   }
 

@@ -5,30 +5,30 @@
 
 namespace gf3 {
 
-// ----------------------------------------------------------
-// | ServoUnits on GF3:                                     |
-// |--------------------------------------------------------|
-// | Type              | Part            | ServoID | SUID   |
-// |                   |                 | L  | R  |        |
-// |--------------------------------------------------------|
-// | GF3               | GF3             | 1 ~ 14  | 0      |
-// | SingleAxisJoint   | LeftShoulderZ   | 1       | 1      |
-// | DifferentialJoint | LeftShoulderXY  | 2  | 3  | 2, 3   |
-// | DifferentialJoint | LeftElbow       | 4  | 5  | 4, 5   |
-// | SingleAxisJoint   | LeftWrist       | 6       | 6      |
-// | SingleAxisJoint   | RightShoulderZ  | 7       | 7      |
-// | DifferentialJoint | RightShoulderXY | 8  | 9  | 8, 9   |
-// | DifferentialJoint | RightElbow      | 10 | 11 | 10, 11 |
-// | SingleAxisJoint   | RightWrist      | 12      | 12     |
-// | DifferentialJoint | Neck            | 13 | 14 | 13, 14 |
-// ----------------------------------------------------------
+// --------------------------------------------------------
+// | ServoUnits on GF3:                                   |
+// |------------------------------------------------------|
+// | Type              | Part            | ServoID | SUID |
+// |                   |                 | L  | R  |      |
+// |------------------------------------------------------|
+// | GF3               | GF3             | 1 ~ 14  | 0    |
+// | SingleAxisJoint   | LeftShoulderZ   | 1       | 1    |
+// | DifferentialJoint | LeftShoulderXY  | 2  | 3  | 2    |
+// | DifferentialJoint | LeftElbow       | 4  | 5  | 4    |
+// | SingleAxisJoint   | LeftWrist       | 6       | 6    |
+// | SingleAxisJoint   | RightShoulderZ  | 7       | 7    |
+// | DifferentialJoint | RightShoulderXY | 8  | 9  | 8    |
+// | DifferentialJoint | RightElbow      | 10 | 11 | 10   |
+// | SingleAxisJoint   | RightWrist      | 12      | 12   |
+// | DifferentialJoint | Neck            | 13 | 14 | 13   |
+// --------------------------------------------------------
 
 class GF3 {
  public:
   GF3()
       : l_shoulder_z_{1, 1, r_.sz, -0.25, 0.117},
-        l_shoulder_xy_{2, 3, 1, r_.sxya, r_.sxyd, 0.0, 0.462, -0.42, 0.389},
-        l_elbow_{4, 5, 1, r_.ea, r_.ed, -0.08, 0.349, -0.475, 0.33},
+        l_shoulder_xy_{2, 3, 1, r_.sxya, r_.sxyd, -0.42, 0.389, 0.0, 0.462},
+        l_elbow_{4, 5, 1, r_.ea, r_.ed, -0.475, 0.33, -0.08, 0.349},
         l_wrist_{6, 1, r_.wr, -0.23, 0.221},
 
         // Right arm minmax NOT set!
@@ -37,7 +37,7 @@ class GF3 {
         r_elbow_{10, 11, 2, r_.ea, r_.ed, -0.5, 0.5, -0.5, 0.5},
         r_wrist_{12, 2, r_.wr, -0.5, 0.5},
 
-        neck_{13, 14, 3, r_.na, r_.nd, -0.22, 0.22, -0.36, 0.36},
+        neck_{13, 14, 3, r_.na, r_.nd, -0.36, 0.36, -0.22, 0.22},
 
         saj_set_{&l_shoulder_z_, &l_wrist_, &r_shoulder_z_, &r_wrist_},
         saj_map_{[&] {
@@ -48,10 +48,7 @@ class GF3 {
         dj_set_{&l_shoulder_xy_, &l_elbow_, &r_shoulder_xy_, &r_elbow_, &neck_},
         dj_map_{[&] {
           std::map<int, DifferentialJoint*> js;
-          for (const auto& j : dj_set_) {
-            js.emplace(j->l_.GetId(), j);
-            js.emplace(j->r_.GetId(), j);
-          }
+          for (const auto& j : dj_set_) js.emplace(j->l_.GetId(), j);
           return js;
         }()},
         servo_set_{[&] {
@@ -115,26 +112,26 @@ class GF3 {
   inline static struct Ratios {
     // Shoulders
     const double sz;
-    const double sxya;
     const double sxyd;
+    const double sxya;
     // Elbows
-    const double ea;
     const double ed;
+    const double ea;
     // Wrists
     const double wr;
     // Neck
-    const double na;
     const double nd;
+    const double na;
 
     Ratios()
         : sz{21.0 * 100.0 / 85.0},
-          sxya{41.0 * 100.0 / 85.0},
           sxyd{sxya * 94.0 / 100.0},
-          ea{41.0 * 127.0 / 92.0},
+          sxya{41.0 * 100.0 / 85.0},
           ed{ea * 145.0 / 127.0},
+          ea{41.0 * 127.0 / 92.0},
           wr{48.0 / 38.0 * 68.0 / 20.0},
-          na{127.0 / 38.0},
-          nd{na * 145.0 / 127.0} {}
+          nd{na * 145.0 / 127.0},
+          na{127.0 / 38.0} {}
   } r_{};
 
   ///////////////////////////////////////////////////

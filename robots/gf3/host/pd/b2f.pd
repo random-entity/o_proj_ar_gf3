@@ -8,10 +8,10 @@
 #X obj 128 45 inlet;
 #X obj 0 0 declare -path f2b2f;
 #X obj 5 75 bytes2float;
+#X connect 0 0 2 0;
 #X connect 1 0 7 0;
 #X connect 3 0 7 1;
 #X connect 4 0 7 2;
 #X connect 5 0 7 3;
 #X connect 7 0 0 0;
-#X connect 7 0 2 0;
 #X coords 0 -1 1 1 78 24 2 0 100;

@@ -18,9 +18,9 @@ struct GF3Oneshots {
         if (maybe_method) {
           maybe_method.value()(gf3);
         }
-        gf3->cmd_.shots &= ~(1 << shot);
       }
     }
+    gf3->cmd_.shots = 0;
   }
 };
 

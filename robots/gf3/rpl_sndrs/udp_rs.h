@@ -38,6 +38,7 @@ class UdpReplySender {
       float motor_temperature;
       float voltage;
       float temperature;
+      float aux2_velocity;
     } __attribute__((packed)) rpl;
     uint8_t raw_bytes[sizeof(rpl)];
   };
@@ -53,6 +54,8 @@ class UdpReplySender {
     cfg_.addr.sin_family = AF_INET;
     cfg_.addr.sin_addr.s_addr = inet_addr(cfg_.host.c_str());
     cfg_.addr.sin_port = htons(cfg_.port);
+    std::cout << "UdpReplySender started sending to " << cfg_.host << ":"
+              << cfg_.port << "." << std::endl;
     return true;
   }
 
@@ -75,7 +78,8 @@ class UdpReplySender {
       sbuf.rpl.voltage = static_cast<float>(rpl.voltage);
       sbuf.rpl.temperature = static_cast<float>(rpl.motor_temperature);
       sbuf.rpl.fault = static_cast<uint8_t>(rpl.fault);
-      sbuf.rpl.encoder_validity = static_cast<uint8_t>(rpl.extra[0].value);
+      sbuf.rpl.aux2_velocity = static_cast<float>(rpl.extra[0].value);
+      sbuf.rpl.encoder_validity = static_cast<uint8_t>(rpl.extra[1].value);
 
       sendto(cfg_.sock, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,
              (struct sockaddr*)&(cfg_.addr), sizeof(cfg_.addr));
