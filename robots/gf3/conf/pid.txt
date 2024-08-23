@@ -4,3 +4,8 @@ shoulder_z
 shoulder_xy
 50, 1, 0.1
 
+elbow
+
+wrist
+
+neck

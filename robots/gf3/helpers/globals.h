@@ -28,8 +28,8 @@ const PmCmd global_pm_cmd_template{.position = NaN,
                                    .maximum_torque = 32.0,
                                    .stop_position = NaN,  // Do NOT use!
                                    .watchdog_timeout = NaN,
-                                   .velocity_limit = 16.0,
-                                   .accel_limit = 4.0,
+                                   .velocity_limit = 32.0,
+                                   .accel_limit = 32.0,
                                    .fixed_voltage_override = NaN,
                                    .ilimit_scale = 1.0};
 

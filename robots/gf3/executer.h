@@ -32,27 +32,27 @@ class Executer {
     // Execute ServoUnit Mode-based Commands.
     std::vector<CanFdFrame> command_frames;
     for (const auto& j : gf3_.saj_set_) {
-      try {
-        const auto saj_frames =
-            SingleAxisJointFrameMakers::methods.at(j->cmd_.mode)(j);
-        utils::Merge(command_frames, saj_frames);
-      } catch (const std::out_of_range& e) {
-        std::cout << "Check if SingleAxisJointFrameMakers::methods "
-                     "has all SingleAxisJoint::Command::Mode registered."
-                  << std::endl;
-        std::cerr << e.what() << std::endl;
+      const auto maybe_fm =
+          utils::SafeAt(SingleAxisJointFrameMakers::frame_makers, j->cmd_.mode);
+      if (maybe_fm) {
+        utils::Merge(command_frames, maybe_fm.value()(j));
+      } else {
+        std::cout
+            << "Mode " << ((uint8_t)(j->cmd_.mode))
+            << " NOT registered to SingleAxisJointFrameMakers::frame_makers."
+            << std::endl;
       }
     }
     for (const auto& j : gf3_.dj_set_) {
-      try {
-        const auto dj_frames =
-            DifferentialJointFrameMakers::methods.at(j->cmd_.mode)(j);
-        utils::Merge(command_frames, dj_frames);
-      } catch (const std::out_of_range& e) {
-        std::cout << "Check if DifferentialJointFrameMakers::methods "
-                     "has all DifferentialJoint::Command::Mode registered."
-                  << std::endl;
-        std::cerr << e.what() << std::endl;
+      const auto maybe_fm = utils::SafeAt(
+          DifferentialJointFrameMakers::frame_makers, j->cmd_.mode);
+      if (maybe_fm) {
+        utils::Merge(command_frames, maybe_fm.value()(j));
+      } else {
+        std::cout
+            << "Mode " << ((uint8_t)(j->cmd_.mode))
+            << " NOT registered to DifferentialJointFrameMakers::frame_makers."
+            << std::endl;
       }
     }
 

@@ -12,6 +12,7 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::Fix(
     const auto cmd = [&] {
       auto c = *(j->pm_cmd_template_);
       c.position = NaN;
+      c.velocity = 0.0;
       return c;
     }();
 

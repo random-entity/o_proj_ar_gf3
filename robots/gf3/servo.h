@@ -25,7 +25,6 @@ class Servo : public Controller {
         q_fmt_{q_fmt} {
     const auto maybe_rpl = SetStop(q_fmt_);
     if (maybe_rpl) {
-      // Assuming you have zeroed all Servos before launching!
       last_sys_rpl_.abs_position = 0.0;
       SetReply(maybe_rpl->values);
     } else {

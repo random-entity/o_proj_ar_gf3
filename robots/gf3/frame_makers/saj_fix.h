@@ -11,6 +11,7 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::Fix(SingleAxisJoint* j) {
     return {j->s_.MakePosition([&] {
       auto c = *(j->pm_cmd_template_);
       c.position = NaN;
+      c.velocity = 0.0;
       return c;
     }())};
   } else {
