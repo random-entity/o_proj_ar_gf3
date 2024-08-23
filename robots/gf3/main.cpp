@@ -26,5 +26,7 @@ int main(int argc, char** argv) {
     }
   }
 
+  udp_cr_thread.join();
+
   return 0;
 }
