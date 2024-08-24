@@ -38,7 +38,7 @@
 #X floatatom 449 124 5 0 0 2 mode - - 0;
 #X floatatom 506 124 5 0 0 2 fault - - 0;
 #X floatatom 563 124 5 0 0 2 encvld - - 0;
-#X floatatom 620 124 5 0 0 2 mottmp - - 0;
+#X floatatom 620 124 5 0 0 2 mtrtmp - - 0;
 #X floatatom 449 143 5 0 0 2 - - - 0;
 #X floatatom 506 143 5 0 0 2 - - - 0;
 #X floatatom 563 143 5 0 0 2 - - - 0;

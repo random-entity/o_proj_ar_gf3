@@ -38,7 +38,7 @@
 #X floatatom 252 136 5 0 0 2 mode - - 0;
 #X floatatom 309 136 5 0 0 2 fault - - 0;
 #X floatatom 366 136 5 0 0 2 encvld - - 0;
-#X floatatom 423 136 5 0 0 2 mottmp - - 0;
+#X floatatom 423 136 5 0 0 2 mtrtmp - - 0;
 #X obj 524 155 expr $f1 != 15;
 #X obj 477 59 \$1, f 2;
 #X obj 104 28 r all_mode;

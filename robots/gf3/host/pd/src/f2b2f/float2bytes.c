@@ -37,9 +37,9 @@ void float2bytes_free(t_float2bytes* x) {
 }
 
 void float2bytes_setup() {
-  float2bytes_class =
-      class_new(gensym("float2bytes"), (t_newmethod)float2bytes_new, 0,
-                sizeof(t_float2bytes), CLASS_DEFAULT, 0);
+  float2bytes_class = class_new(
+      gensym("float2bytes"), (t_newmethod)float2bytes_new,
+      (t_method)float2bytes_free, sizeof(t_float2bytes), CLASS_DEFAULT, 0);
 
   class_addfloat(float2bytes_class, float2bytes_floatin1);
   class_addbang(float2bytes_class, float2bytes_bangin1);
