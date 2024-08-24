@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../globals.h"
 #include "../servo.h"
 
 namespace gf3 {
@@ -26,11 +27,11 @@ class SingleAxisJoint {
  public:
   SingleAxisJoint(const int& id, const uint8_t& bus, const double& r,
                   const double& min, const double& max)
-      : s_{id, bus, global_transport, &global_pm_fmt, &global_q_fmt},
+      : s_{id, bus, globals::transport, &globals::pm_fmt, &globals::q_fmt},
         r_{r},
         min_{min},
         max_{max},
-        pm_cmd_template_{&global_pm_cmd_template} {}
+        pm_cmd_template_{&globals::pm_cmd_template} {}
 
   /////////////////
   // Components: //

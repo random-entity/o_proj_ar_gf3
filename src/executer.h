@@ -20,8 +20,8 @@ class Executer {
     for (auto* s : gf3_.servo_set_) {
       query_frames.push_back(s->MakeQuery());
     }
-    global_transport->BlockingCycle(&query_frames[0], query_frames.size(),
-                                    &reply_frames);
+    globals::transport->BlockingCycle(&query_frames[0], query_frames.size(),
+                                      &reply_frames);
     for (const auto& frame : reply_frames) {
       const auto& id = static_cast<int>(frame.source);
       const auto maybe_servo = utils::SafeAt(gf3_.servo_map_, id);
@@ -56,8 +56,8 @@ class Executer {
       }
     }
 
-    global_transport->BlockingCycle(&command_frames[0], command_frames.size(),
-                                    nullptr);
+    globals::transport->BlockingCycle(&command_frames[0], command_frames.size(),
+                                      nullptr);
   }
 
  private:

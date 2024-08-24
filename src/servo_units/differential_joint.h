@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../globals.h"
 #include "../servo.h"
 
 namespace gf3 {
@@ -36,15 +37,15 @@ class DifferentialJoint {
                     const double& r_avg, const double& r_dif,
                     const double& min_avg, const double& max_avg,
                     const double& min_dif, const double& max_dif)
-      : l_{l_id, bus, global_transport, &global_pm_fmt, &global_q_fmt},
-        r_{r_id, bus, global_transport, &global_pm_fmt, &global_q_fmt},
+      : l_{l_id, bus, globals::transport, &globals::pm_fmt, &globals::q_fmt},
+        r_{r_id, bus, globals::transport, &globals::pm_fmt, &globals::q_fmt},
         r_dif_{r_dif},
         r_avg_{r_avg},
         min_dif_{min_dif},
         max_dif_{max_dif},
         min_avg_{min_avg},
         max_avg_{max_avg},
-        pm_cmd_template_{&global_pm_cmd_template} {}
+        pm_cmd_template_{&globals::pm_cmd_template} {}
 
   /////////////////
   // Components: //
