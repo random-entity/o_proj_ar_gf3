@@ -1,7 +1,15 @@
 cmake_minimum_required(VERSION 3.11)
-project(gf3 VERSION 0.0.1)
+project(gf3 VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+add_executable(gf3_exe src/main.cpp)
+target_compile_features(gf3_exe PUBLIC cxx_std_17)
+target_include_directories(gf3_exe PUBLIC src)
+set_target_properties(gf3_exe PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "../bin"
+)
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -18,9 +26,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(moteus)
 
-add_library(gf3 INTERFACE)
-target_compile_features(gf3 INTERFACE cxx_std_17)
-target_link_libraries(gf3 INTERFACE nlohmann_json moteus::cpp)
+target_link_libraries(gf3_exe nlohmann_json moteus::cpp)
 
 if(EXISTS "/usr/include/bcm_host.h")
   message("This system is a Raspberry Pi")
@@ -32,15 +38,7 @@ if(EXISTS "/usr/include/bcm_host.h")
   set(FETCHCONTENT_SOURCE_DIR_MOTEUS ${MOTEUS_SOURCE_DIR})
   FetchContent_MakeAvailable(pi3hat)
   add_definitions(-D__RASPBERRY_PI__)
-  target_link_libraries(gf3 INTERFACE pi3hat::pi3hat)
+  target_link_libraries(gf3_exe pi3hat::pi3hat)
 else()
   message("This system is NOT a Raspberry Pi")
 endif()
-
-target_include_directories(gf3 INTERFACE .)
-
-add_executable(gf3_exe main.cpp)
-target_link_libraries(gf3_exe gf3)
-set_target_properties(gf3_exe PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "../bin"
-)
