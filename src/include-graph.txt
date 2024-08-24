@@ -1,3 +1,0 @@
-servo.h → servo_unit.h's → gf3.h → frame_maker.h's → executer.h → main.cpp
-                                 ↘→→→→→→→→→→→→→→→→ cmd_rcvr.h's ↗
-                                 ↘→→→→→→→→→→→→→→→→ rpl_sndr.h's ↗
