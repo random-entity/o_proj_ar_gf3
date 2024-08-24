@@ -9,7 +9,8 @@ class Servo : public Controller {
   Servo(const int id, const uint8_t bus,
         const std::shared_ptr<Transport>& transport,  //
         const PmFmt* pm_fmt, const QFmt* q_fmt)
-      : Controller{[&]() {
+      : id_{id},
+        Controller{[&]() {
           Options options;
           options.id = id;
           options.bus = bus;
@@ -21,7 +22,6 @@ class Servo : public Controller {
                                           // argument whenever Querying.
           return options;
         }()},
-        id_{id},
         q_fmt_{q_fmt} {
     const auto maybe_rpl = SetStop(q_fmt_);
     if (maybe_rpl) {
