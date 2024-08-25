@@ -25,7 +25,7 @@ class Servo : public Controller {
         q_fmt_{q_fmt} {
     const auto maybe_rpl = SetStop(q_fmt_);
     if (maybe_rpl) {
-      last_sys_rpl_.abs_position = 0.0;
+      last_rpl_.abs_position = 0.0;
       SetReply(maybe_rpl->values);
     } else {
       std::cout << "Servo ID " << id << " is NOT responding." << std::endl;
@@ -44,46 +44,45 @@ class Servo : public Controller {
                    "with PmCmd::position set to NaN.  "
                    "Leaving PmCmd::position to NaN."
                 << std::endl;
-    } else if (utils::GetTime() - last_sys_rpl_time_ >= 1.0) {
+    } else if (utils::GetTime() - last_rpl_time_ >= 1.0) {
       std::cout << "You requested a Recent-relative PmCmd "
                    "but more than 1 second has past since last Reply.  "
                    "Setting PmCmd::position to NaN."
                 << std::endl;
       cmd.position = NaN;
     } else {
-      cmd.position += last_sys_rpl_.position;
+      cmd.position += last_rpl_.position;
     }
 
     return MakePosition(cmd);
   }
 
   QRpl GetReplyAux2PositionUncoiled() const {
-    auto rpl = last_sys_rpl_;
+    auto rpl = last_rpl_;
     rpl.abs_position += aux2_revs_;
     return rpl;
   }
 
-  void SetReply(const QRpl& new_sys_rpl) {
-    const auto delta_aux2_pos =
-        new_sys_rpl.abs_position - last_sys_rpl_.abs_position;
+  void SetReply(const QRpl& new_rpl) {
+    const auto delta_aux2_pos = new_rpl.abs_position - last_rpl_.abs_position;
     if (delta_aux2_pos > 0.5) {
       aux2_revs_--;
     } else if (delta_aux2_pos < -0.5) {
       aux2_revs_++;
     }
 
-    last_sys_rpl_ = new_sys_rpl;
-    last_sys_rpl_time_ = utils::GetTime();
+    last_rpl_ = new_rpl;
+    last_rpl_time_ = utils::GetTime();
   }
 
  private:
   const int id_;
   const QFmt* q_fmt_;
-  double last_sys_rpl_time_;
-  QRpl last_sys_rpl_;  // Raw system Reply where aux2 position is coiled.
-                       // Should be updated by `SetRpl()` to track aux2
-                       // revolutions. This field necessary in order to compare
-                       // with a new Reply to update aux2 revolutions.
+  double last_rpl_time_;
+  QRpl last_rpl_;  // Raw system Reply where aux2 position is coiled.
+                   // Should be updated by `SetReply()` to track aux2
+                   // revolutions. This field necessary in order to compare
+                   // with a new Reply to update aux2 revolutions.
   int aux2_revs_ = 0;
 };
 
