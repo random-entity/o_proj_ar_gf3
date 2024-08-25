@@ -79,10 +79,11 @@ class Servo : public Controller {
   const int id_;
   const QFmt* const q_fmt_;
   double last_rpl_time_;
-  QRpl last_rpl_;  // Raw Reply whose aux2 position is coiled.
-                   // Should be updated by `SetReply()` to track aux2
-                   // revolutions. This field necessary in order to compare
-                   // to a new Reply to update aux2 revolutions.
+  QRpl last_rpl_;  // Last raw Reply whose aux2 position is coiled.
+                   // Should be updated by `SetReply()` to track
+                   // aux2 revolutions.
+                   // This field necessary in order to compare it
+                   // to a new Reply to track aux2 revolutions.
   int aux2_revs_ = 0;
 };
 
