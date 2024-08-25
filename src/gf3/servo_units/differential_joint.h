@@ -59,7 +59,7 @@ class DifferentialJoint {
     friend struct DifferentialJointFrameMakers;
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
-    double target_dif = 0.0, target_avg = 0.0;
+    double pos_dif = 0.0, pos_avg = 0.0;
     double vel_dif = 0.0, vel_avg = 0.0;
     double max_trq = 0.0, max_vel = 0.0, max_acc = 0.0;
     bool stop_pending = false;
@@ -82,19 +82,17 @@ class DifferentialJoint {
   // Command serializer & deserializer: //
 
   friend void to_json(json& j, const DifferentialJoint& dj) {
-    j = json{{"suid", dj.l_.GetId()},
-             {"target_dif", dj.cmd_.target_dif},
-             {"target_avg", dj.cmd_.target_avg},
-             {"vel_dif", dj.cmd_.vel_dif},
-             {"vel_avg", dj.cmd_.vel_avg},
-             {"max_trq", dj.cmd_.max_trq},
-             {"max_vel", dj.cmd_.max_vel},
+    j = json{{"suid", dj.l_.GetId()},  //
+             {"pos_dif", dj.cmd_.pos_dif}, {"pos_avg", dj.cmd_.pos_avg},
+             {"vel_dif", dj.cmd_.vel_dif}, {"vel_avg", dj.cmd_.vel_avg},
+             {"max_trq", dj.cmd_.max_trq},  //
+             {"max_vel", dj.cmd_.max_vel},  //
              {"max_acc", dj.cmd_.max_acc}};
   }
 
   friend void from_json(const json& j, DifferentialJoint& dj) {
-    j.at("target_dif").get_to(dj.cmd_.target_dif);
-    j.at("target_avg").get_to(dj.cmd_.target_avg);
+    j.at("pos_dif").get_to(dj.cmd_.pos_dif);
+    j.at("pos_avg").get_to(dj.cmd_.pos_avg);
     j.at("vel_dif").get_to(dj.cmd_.vel_dif);
     j.at("vel_avg").get_to(dj.cmd_.vel_avg);
     j.at("max_trq").get_to(dj.cmd_.max_trq);

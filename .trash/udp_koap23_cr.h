@@ -83,7 +83,7 @@ class UdpCommandReceiver {
       if (maybe_saj) {
         auto& cmd = maybe_saj.value()->cmd_;
         cmd.mode = SingleAxisJoint::Command::Mode::OutPos;
-        cmd.target_out = static_cast<double>(rbuf.cmd.position);
+        cmd.pos = static_cast<double>(rbuf.cmd.position);
         cmd.max_trq = static_cast<double>(rbuf.cmd.maximum_torque);
         cmd.max_vel = static_cast<double>(rbuf.cmd.velocity);
         cmd.max_acc = static_cast<double>(rbuf.cmd.accel_limit);
@@ -97,9 +97,9 @@ class UdpCommandReceiver {
         auto& cmd = maybe_dj.value()->cmd_;
         cmd.mode = DifferentialJoint::Command::Mode::OutPos;
         if (gf3_.dj_lids_.find(id) != gf3_.dj_lids_.end()) {
-          cmd.target_dif = static_cast<double>(rbuf.cmd.position);
+          cmd.pos_dif = static_cast<double>(rbuf.cmd.position);
         } else if (gf3_.dj_rids_.find(id) != gf3_.dj_rids_.end()) {
-          cmd.target_avg = static_cast<double>(rbuf.cmd.position);
+          cmd.pos_avg = static_cast<double>(rbuf.cmd.position);
         }
         cmd.max_trq = static_cast<double>(rbuf.cmd.maximum_torque);
         cmd.max_vel = static_cast<double>(rbuf.cmd.velocity);

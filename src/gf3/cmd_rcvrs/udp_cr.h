@@ -35,16 +35,16 @@ class UdpCommandReceiver {
           uint8_t write_file_index;
         } __attribute__((packed)) gf3;
         struct {
-          float target_out;
+          float pos;
           float vel;
           float max_trq;
           float max_vel;
           float max_acc;
         } __attribute__((packed)) saj;
         struct {
-          float target_dif;
+          float pos_dif;
           float vel_dif;
-          float target_avg;
+          float pos_avg;
           float vel_avg;
           float max_trq;
           float max_vel;
@@ -108,7 +108,7 @@ class UdpCommandReceiver {
         } break;
         case M::OutPos:
         case M::OutVel: {
-          cmd.target_out = static_cast<double>(rbuf.cmd.u.saj.target_out);
+          cmd.pos = static_cast<double>(rbuf.cmd.u.saj.pos);
           cmd.vel = static_cast<double>(rbuf.cmd.u.saj.vel);
           cmd.max_trq = static_cast<double>(rbuf.cmd.u.saj.max_trq);
           cmd.max_vel = static_cast<double>(rbuf.cmd.u.saj.max_vel);
@@ -135,10 +135,10 @@ class UdpCommandReceiver {
         } break;
         case M::OutPos:
         case M::OutVel: {
-          cmd.target_avg = static_cast<double>(rbuf.cmd.u.dj.target_avg);
-          cmd.target_dif = static_cast<double>(rbuf.cmd.u.dj.target_dif);
-          cmd.vel_avg = static_cast<double>(rbuf.cmd.u.dj.vel_avg);
+          cmd.pos_dif = static_cast<double>(rbuf.cmd.u.dj.pos_dif);
+          cmd.pos_avg = static_cast<double>(rbuf.cmd.u.dj.pos_avg);
           cmd.vel_dif = static_cast<double>(rbuf.cmd.u.dj.vel_dif);
+          cmd.vel_avg = static_cast<double>(rbuf.cmd.u.dj.vel_avg);
           cmd.max_trq = static_cast<double>(rbuf.cmd.u.dj.max_trq);
           cmd.max_vel = static_cast<double>(rbuf.cmd.u.dj.max_vel);
           cmd.max_acc = static_cast<double>(rbuf.cmd.u.dj.max_acc);

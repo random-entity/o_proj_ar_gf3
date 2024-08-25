@@ -45,7 +45,7 @@ class SingleAxisJoint {
     friend struct SingleAxisJointFrameMakers;
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
-    double target_out = 0.0;
+    double pos = 0.0;
     double vel = 0.0;
     double max_trq = 0.0, max_vel = 0.0, max_acc = 0.0;
     bool stop_pending = false;
@@ -70,16 +70,16 @@ class SingleAxisJoint {
   // Command serializer & deserializer: //
 
   friend void to_json(json& j, const SingleAxisJoint& saj) {
-    j = json{{"suid", saj.s_.GetId()},  //
-             {"target_out", saj.cmd_.target_out},
-             {"vel", saj.cmd_.vel},
-             {"max_trq", saj.cmd_.max_trq},
-             {"max_vel", saj.cmd_.max_vel},
+    j = json{{"suid", saj.s_.GetId()},       //
+             {"pos", saj.cmd_.pos},          //
+             {"vel", saj.cmd_.vel},          //
+             {"max_trq", saj.cmd_.max_trq},  //
+             {"max_vel", saj.cmd_.max_vel},  //
              {"max_acc", saj.cmd_.max_acc}};
   }
 
   friend void from_json(const json& j, SingleAxisJoint& saj) {
-    j.at("target_out").get_to(saj.cmd_.target_out);
+    j.at("pos").get_to(saj.cmd_.pos);
     j.at("vel").get_to(saj.cmd_.vel);
     j.at("max_trq").get_to(saj.cmd_.max_trq);
     j.at("max_vel").get_to(saj.cmd_.max_vel);
