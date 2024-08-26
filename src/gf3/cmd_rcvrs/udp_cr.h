@@ -87,6 +87,7 @@ class UdpCommandReceiver {
     const auto id = static_cast<int>(rbuf.cmd.suid);
 
     if (id == 0) {  // GF3-level Command
+      std::lock_guard lock{gf3_.cmd_.mtx};
       gf3_.cmd_.shots = rbuf.cmd.shots;
       gf3_.cmd_.read.fileindex = rbuf.cmd.u.gf3.read_file_index;
       gf3_.cmd_.write.fileindex = rbuf.cmd.u.gf3.write_file_index;
@@ -97,7 +98,7 @@ class UdpCommandReceiver {
     if (maybe_saj) {  // SingleAxisJoint Command
       auto& cmd = maybe_saj.value()->cmd_;
       using M = SingleAxisJoint::Command::Mode;
-
+      std::lock_guard lock{cmd.mtx};
       cmd.mode = static_cast<M>(rbuf.cmd.mode);
       switch (cmd.mode) {
         case M::Stop: {
@@ -124,7 +125,7 @@ class UdpCommandReceiver {
     if (maybe_dj) {  // DifferentialJoint Command
       auto& cmd = maybe_dj.value()->cmd_;
       using M = DifferentialJoint::Command::Mode;
-
+      std::lock_guard lock{cmd.mtx};
       cmd.mode = static_cast<M>(rbuf.cmd.mode);
       switch (cmd.mode) {
         case M::Stop: {

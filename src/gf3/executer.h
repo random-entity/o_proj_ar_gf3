@@ -12,7 +12,10 @@ class Executer {
 
   void Run() {
     // First process GF3-level Oneshots.
-    GF3Oneshots::Shoot(&gf3_);
+    {
+      std::lock_guard lock{gf3_.cmd_.mtx};
+      GF3Oneshots::Shoot(&gf3_);
+    }
 
     // Query and distribute Replies.
     std::vector<CanFdFrame> query_frames;
@@ -32,6 +35,7 @@ class Executer {
     // Execute ServoUnit Mode-based Commands.
     std::vector<CanFdFrame> command_frames;
     for (const auto& j : gf3_.saj_set_) {
+      std::lock_guard lock{j->cmd_.mtx};
       const auto maybe_fm =
           utils::SafeAt(SingleAxisJointFrameMakers::frame_makers, j->cmd_.mode);
       if (maybe_fm) {
@@ -44,6 +48,7 @@ class Executer {
       }
     }
     for (const auto& j : gf3_.dj_set_) {
+      std::lock_guard lock{j->cmd_.mtx};
       const auto maybe_fm = utils::SafeAt(
           DifferentialJointFrameMakers::frame_makers, j->cmd_.mode);
       if (maybe_fm) {

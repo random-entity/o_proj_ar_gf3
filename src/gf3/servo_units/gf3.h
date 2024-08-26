@@ -26,19 +26,34 @@ namespace gf3 {
 class GF3 {
  public:
   GF3()
-      : l_shoulder_z_{1, 1, r_.sz, -0.25, 0.117},
-        l_shoulder_xy_{2, 3, 1, r_.sxyd, r_.sxya, -0.42, 0.389, 0.0, 0.462},
-        l_elbow_{4, 5, 1, r_.ed, r_.ea, -0.475, 0.33, -0.08, 0.349},
-        l_wrist_{6, 1, r_.wr, -0.23, 0.221},
-
-        // Right arm minmax NOT set!
-        r_shoulder_z_{7, 2, r_.sz, -0.5, 0.5},
-        r_shoulder_xy_{8, 9, 2, r_.sxyd, r_.sxya, -0.5, 0.5, -0.5, 0.5},
-        r_elbow_{10, 11, 2, r_.ed, r_.ea, -0.5, 0.5, -0.5, 0.5},
-        r_wrist_{12, 2, r_.wr, -0.5, 0.5},
-
-        neck_{13, 14, 3, r_.nd, r_.na, -0.36, 0.36, -0.22, 0.22},
-
+      : l_shoulder_z_{1, 1, r_.sz, mm_.lszmin, mm_.lszmax},
+        l_shoulder_xy_{2,
+                       3,
+                       1,
+                       r_.sxyd,
+                       r_.sxya,
+                       mm_.lsxydmin,
+                       mm_.lsxydmax,
+                       mm_.lsxyamin,
+                       mm_.lsxyamax},
+        l_elbow_{4,          5,          1,          r_.ed,     r_.ea,
+                 mm_.ledmin, mm_.ledmax, mm_.leamin, mm_.leamax},
+        l_wrist_{6, 1, r_.wr, mm_.lwrmin, mm_.lwrmax},
+        r_shoulder_z_{7, 2, r_.sz, mm_.rszmin, mm_.rszmax},
+        r_shoulder_xy_{8,
+                       9,
+                       2,
+                       r_.sxyd,
+                       r_.sxya,
+                       mm_.rsxydmin,
+                       mm_.rsxydmax,
+                       mm_.rsxyamin,
+                       mm_.rsxyamax},
+        r_elbow_{10,         11,         2,          r_.ed,     r_.ea,
+                 mm_.redmin, mm_.redmax, mm_.reamin, mm_.reamax},
+        r_wrist_{12, 2, r_.wr, mm_.rwrmin, mm_.rwrmax},
+        neck_{13,        14,        3,         r_.nd,    r_.na,
+              mm_.ndmin, mm_.ndmax, mm_.namin, mm_.namax},
         saj_set_{&l_shoulder_z_, &l_wrist_, &r_shoulder_z_, &r_wrist_},
         saj_map_{[&] {
           std::map<int, SingleAxisJoint*> js;
@@ -93,14 +108,16 @@ class GF3 {
   // GF3 Command struct: //
 
   struct Command {
+    std::mutex mtx;
+
     uint8_t shots = 0;
 
-    // Oneshot for bit 0
+    // Oneshot for bit 0.
     struct Read {
       uint16_t fileindex = 0;
     } read;
 
-    // Oneshot for bit 1
+    // Oneshot for bit 1.
     struct Write {
       uint16_t fileindex = 0;
     } write;
@@ -122,17 +139,61 @@ class GF3 {
     // Neck
     const double nd;
     const double na;
+  } r_{.sz{21.0 * 100.0 / 85.0},
+       .sxyd{41.0 * 100.0 / 85.0 * 94.0 / 100.0},
+       .sxya{41.0 * 100.0 / 85.0},
+       .ed{41.0 * 127.0 / 92.0 * 145.0 / 127.0},
+       .ea{41.0 * 127.0 / 92.0},
+       .wr{48.0 / 38.0 * 68.0 / 20.0},
+       .nd{127.0 / 38.0 * 145.0 / 127.0},
+       .na{127.0 / 38.0}};
 
-    Ratios()
-        : sz{21.0 * 100.0 / 85.0},
-          sxyd{41.0 * 100.0 / 85.0 * 94.0 / 100.0},
-          sxya{41.0 * 100.0 / 85.0},
-          ed{41.0 * 127.0 / 92.0 * 145.0 / 127.0},
-          ea{41.0 * 127.0 / 92.0},
-          wr{48.0 / 38.0 * 68.0 / 20.0},
-          nd{127.0 / 38.0 * 145.0 / 127.0},
-          na{127.0 / 38.0} {}
-  } r_{};
+  inline static struct MinMaxPos {
+    const double lszmin, lszmax;
+    const double lsxydmin, lsxydmax;
+    const double lsxyamin, lsxyamax;
+    const double ledmin, ledmax;
+    const double leamin, leamax;
+    const double lwrmin, lwrmax;
+    const double rszmin, rszmax;
+    const double rsxydmin, rsxydmax;
+    const double rsxyamin, rsxyamax;
+    const double redmin, redmax;
+    const double reamin, reamax;
+    const double rwrmin, rwrmax;
+    const double ndmin, ndmax;
+    const double namin, namax;
+  } mm_{.lszmin{-0.25},
+        .lszmax{0.115},
+        .lsxydmin{-0.42},
+        .lsxydmax{0.385},
+        .lsxyamin{0.0},
+        .lsxyamax{0.46},
+        .ledmin{-0.475},
+        .ledmax{0.33},
+        .leamin{-0.08},
+        .leamax{0.345},
+        .lwrmin{-0.22},
+        .lwrmax{0.22},
+
+        // Right arm minmax NOT set!
+        .rszmin{-0.5},
+        .rszmax{0.5},
+        .rsxydmin{-0.5},
+        .rsxydmax{0.5},
+        .rsxyamin{-0.5},
+        .rsxyamax{0.5},
+        .redmin{-0.5},
+        .redmax{0.5},
+        .reamin{-0.5},
+        .reamax{0.5},
+        .rwrmin{-0.5},
+        .rwrmax{0.5},
+
+        .ndmin{-0.36},
+        .ndmax{0.36},
+        .namin{-0.22},
+        .namax{0.22}};
 
   ///////////////////////////////////////////////////
   // ServoUnit Commands serializer & deserializer: //

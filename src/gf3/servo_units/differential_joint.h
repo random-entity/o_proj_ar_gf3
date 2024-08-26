@@ -30,8 +30,6 @@ struct DifferentialJointFrameMakers;
 // --------------------------------------------------
 
 class DifferentialJoint {
-  friend struct DifferentialJointFrameMakers;
-
  public:
   DifferentialJoint(const int& l_id, const int& r_id, const uint8_t& bus,
                     const double& r_dif, const double& r_avg,
@@ -57,6 +55,8 @@ class DifferentialJoint {
 
   struct Command {
     friend struct DifferentialJointFrameMakers;
+    std::mutex mtx;
+
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
     double pos_dif = 0.0;

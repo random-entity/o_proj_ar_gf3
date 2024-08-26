@@ -22,8 +22,6 @@ struct SingleAxisJointFrameMakers;
 // ------------------------------------
 
 class SingleAxisJoint {
-  friend struct SingleAxisJointFrameMakers;
-
  public:
   SingleAxisJoint(const int& id, const uint8_t& bus, const double& r,
                   const double& min_pos, const double& max_pos)
@@ -43,6 +41,8 @@ class SingleAxisJoint {
 
   struct Command {
     friend struct SingleAxisJointFrameMakers;
+    std::mutex mtx;
+
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
     double pos = 0.0;

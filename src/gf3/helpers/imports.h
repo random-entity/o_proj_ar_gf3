@@ -9,10 +9,12 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <set>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "moteus.h"
