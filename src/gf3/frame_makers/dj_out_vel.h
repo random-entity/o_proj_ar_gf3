@@ -10,8 +10,10 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
   cmd.vel_dif = std::abs(cmd.vel_dif);
   cmd.vel_avg = std::abs(cmd.vel_avg);
 
-  const auto target_pos_dif = std::clamp(cmd.pos_dif, j->min_dif_, j->max_dif_);
-  const auto target_pos_avg = std::clamp(cmd.pos_avg, j->min_avg_, j->max_avg_);
+  const auto target_pos_dif =
+      std::clamp(cmd.pos_dif, j->min_pos_dif_, j->max_pos_dif_);
+  const auto target_pos_avg =
+      std::clamp(cmd.pos_avg, j->min_pos_avg_, j->max_pos_avg_);
 
   const auto cur_pos_dif = j->l_.GetReplyAux2PositionUncoiled().abs_position;
   const auto cur_pos_avg = j->r_.GetReplyAux2PositionUncoiled().abs_position;

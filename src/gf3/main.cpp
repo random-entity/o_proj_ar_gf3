@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
   Executer executer{gf3};
 
   const std::string udp_cr_host = argc >= 2 ? argv[1] : "127.0.0.1";
-  const int udp_cr_port = argc >= 3 ? std::stoi(argv[1]) : 8888;
+  const int udp_cr_port = argc >= 3 ? std::stoi(argv[2]) : 8888;
   UdpCommandReceiver udp_cr{gf3, udp_cr_host, udp_cr_port};
   if (!udp_cr.Setup()) return 1;
   std::thread udp_cr_thread{[&] {

@@ -8,7 +8,7 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
   auto& cmd = j->cmd_;
   cmd.vel = std::abs(cmd.vel);
 
-  const auto target_pos = std::clamp(cmd.pos, j->min_, j->max_);
+  const auto target_pos = std::clamp(cmd.pos, j->min_pos_, j->max_pos_);
   const auto cur_pos = j->s_.GetReplyAux2PositionUncoiled().abs_position;
   const auto target_delta_pos = target_pos - cur_pos;
 

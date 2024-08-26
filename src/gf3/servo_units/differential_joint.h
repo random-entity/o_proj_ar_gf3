@@ -34,17 +34,17 @@ class DifferentialJoint {
 
  public:
   DifferentialJoint(const int& l_id, const int& r_id, const uint8_t& bus,
-                    const double& r_avg, const double& r_dif,
-                    const double& min_avg, const double& max_avg,
-                    const double& min_dif, const double& max_dif)
+                    const double& r_dif, const double& r_avg,
+                    const double& min_pos_dif, const double& max_pos_dif,
+                    const double& min_pos_avg, const double& max_pos_avg)
       : l_{l_id, bus, globals::transport, &globals::pm_fmt, &globals::q_fmt},
         r_{r_id, bus, globals::transport, &globals::pm_fmt, &globals::q_fmt},
         r_dif_{r_dif},
         r_avg_{r_avg},
-        min_dif_{min_dif},
-        max_dif_{max_dif},
-        min_avg_{min_avg},
-        max_avg_{max_avg},
+        min_pos_dif_{min_pos_dif},
+        max_pos_dif_{max_pos_dif},
+        min_pos_avg_{min_pos_avg},
+        max_pos_avg_{max_pos_avg},
         pm_cmd_template_{&globals::pm_cmd_template} {}
 
   /////////////////
@@ -75,7 +75,7 @@ class DifferentialJoint {
   // Configurations: //
 
   const double r_dif_, r_avg_;
-  const double min_dif_, max_dif_, min_avg_, max_avg_;
+  const double min_pos_dif_, max_pos_dif_, min_pos_avg_, max_pos_avg_;
   const PmCmd* const pm_cmd_template_;
 
   ////////////////////////////////////////

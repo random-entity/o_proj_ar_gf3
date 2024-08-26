@@ -136,8 +136,8 @@ class UdpCommandReceiver {
         case M::OutPos:
         case M::OutVel: {
           cmd.pos_dif = static_cast<double>(rbuf.cmd.u.dj.pos_dif);
-          cmd.pos_avg = static_cast<double>(rbuf.cmd.u.dj.pos_avg);
           cmd.vel_dif = static_cast<double>(rbuf.cmd.u.dj.vel_dif);
+          cmd.pos_avg = static_cast<double>(rbuf.cmd.u.dj.pos_avg);
           cmd.vel_avg = static_cast<double>(rbuf.cmd.u.dj.vel_avg);
           cmd.max_trq = static_cast<double>(rbuf.cmd.u.dj.max_trq);
           cmd.max_vel = static_cast<double>(rbuf.cmd.u.dj.max_vel);

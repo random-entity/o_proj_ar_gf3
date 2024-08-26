@@ -26,11 +26,11 @@ class SingleAxisJoint {
 
  public:
   SingleAxisJoint(const int& id, const uint8_t& bus, const double& r,
-                  const double& min, const double& max)
+                  const double& min_pos, const double& max_pos)
       : s_{id, bus, globals::transport, &globals::pm_fmt, &globals::q_fmt},
         r_{r},
-        min_{min},
-        max_{max},
+        min_pos_{min_pos},
+        max_pos_{max_pos},
         pm_cmd_template_{&globals::pm_cmd_template} {}
 
   /////////////////
@@ -63,7 +63,7 @@ class SingleAxisJoint {
   // Configurations: //
 
   const double r_;
-  const double min_, max_;
+  const double min_pos_, max_pos_;
   const PmCmd* const pm_cmd_template_;
 
   ////////////////////////////////////////

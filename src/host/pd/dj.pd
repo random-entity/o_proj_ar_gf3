@@ -1,4 +1,4 @@
-#N canvas -10 -8 1280 1011 12;
+#N canvas 378 240 1280 984 12;
 #X obj 51 119 cnv 20 618 311 empty empty DifferentialJoint 45 -9 0 16 #f3e6f0 #000000 0;
 #X obj 53 176 md;
 #X obj 111 119 do;
@@ -24,11 +24,11 @@
 #X obj 175 543 pack \$1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0, f 84;
 #X obj 461 513 f2b;
 #X obj 53 7 r all_stop;
-#X obj 111 27 r all_outpos0;
-#X obj 175 47 r all_outvel0;
+#X obj 111 47 r all_outpos0;
+#X obj 175 7 r all_outvel0;
 #X obj 867 152 r rpl;
-#X obj 681 338 unpack f f f f f f f f;
-#X obj 841 338 unpack f f f f f f f f;
+#X obj 680 346 unpack f f f f f f f f;
+#X obj 849 347 unpack f f f f f f f f;
 #X obj 841 315 route;
 #X obj 681 315 route;
 #X obj 441 7 r all_maxtva0;
@@ -44,7 +44,7 @@
 #X floatatom 563 143 5 0 0 2 - - - 0;
 #X floatatom 620 143 5 0 0 2 - - - 0;
 #X obj 804 175 \$1, f 2;
-#X obj 913 191 expr \$1 + 1;
+#X obj 825 175 expr \$1 + 1;
 #X obj 104 485 t b f;
 #X obj 195 485 t b f;
 #X obj 241 485 t b f;
@@ -53,6 +53,7 @@
 #X obj 524 485 t b f;
 #X obj 570 485 t b f;
 #X obj 616 485 t b f;
+#X obj 104 27 r all_mode;
 #X connect 1 1 20 0;
 #X connect 2 0 19 0;
 #X connect 2 1 18 0;
@@ -120,17 +121,17 @@
 #X connect 28 2 38 0;
 #X connect 28 3 3 5;
 #X connect 28 4 3 2;
-#X connect 28 5 2 4;
+#X connect 28 5 2 2;
 #X connect 28 6 39 0;
-#X connect 28 7 2 5;
+#X connect 28 7 2 3;
 #X connect 29 0 40 0;
 #X connect 29 1 41 0;
 #X connect 29 2 42 0;
 #X connect 29 3 3 6;
 #X connect 29 4 3 3;
-#X connect 29 5 2 2;
+#X connect 29 5 2 4;
 #X connect 29 6 43 0;
-#X connect 29 7 2 3;
+#X connect 29 7 2 5;
 #X connect 30 0 29 0;
 #X connect 31 0 28 0;
 #X connect 32 0 3 0;
@@ -155,4 +156,5 @@
 #X connect 52 1 9 0;
 #X connect 53 0 22 0;
 #X connect 53 1 12 0;
+#X connect 54 0 1 1;
 #X coords 0 -1 1 1 620 331 1 50 100;
