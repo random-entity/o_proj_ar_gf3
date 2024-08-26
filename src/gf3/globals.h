@@ -4,7 +4,12 @@
 
 namespace gf3::globals {
 
-std::shared_ptr<Transport> transport{Controller::MakeSingletonTransport({})};
+std::shared_ptr<Transport> transport{[] {
+#ifdef __RASPBERRY_PI__
+  mjbots::pi3hat::Pi3HatMoteusFactory::Register();
+#endif
+  return Controller::MakeSingletonTransport({});
+}()};
 
 const PmFmt pm_fmt{.position = kFloat,
                    .velocity = kFloat,
