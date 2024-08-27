@@ -20,16 +20,20 @@ class Executer {
     // Query and distribute Replies.
     std::vector<CanFdFrame> query_frames;
     std::vector<CanFdFrame> reply_frames;
-    static int query_servo_id = 1;
-    const auto maybe_servo = utils::SafeAt(gf3_.servo_map_, query_servo_id);
-    if (maybe_servo) {
-      query_frames.push_back(maybe_servo.value()->MakeQuery());
+    static bool query_group_label;
+    query_group_label = !query_group_label;
+    std::set<int> query_group;
+    if (query_group_label) {
+      query_group = {1, 2, 3, 7, 8, 9, 13, 14};
+    } else {
+      query_group = {4, 5, 6, 10, 11, 12, 13, 14};
     }
-    query_servo_id++;
-    if (query_servo_id == 15) query_servo_id = 1;
-    // for (auto* s : gf3_.servo_set_) {
-    //   query_frames.push_back(s->MakeQuery());
-    // }
+    for (const auto id : query_group) {
+      const auto maybe_servo = utils::SafeAt(gf3_.servo_map_, id);
+      if (maybe_servo) {
+        query_frames.push_back(maybe_servo.value()->MakeQuery());
+      }
+    }
     globals::transport->BlockingCycle(&query_frames[0], query_frames.size(),
                                       &reply_frames);
     for (const auto& frame : reply_frames) {
