@@ -7,21 +7,26 @@ namespace gf3::globals {
 std::shared_ptr<Transport> transport{[] {
 #ifdef __RASPBERRY_PI__
   mjbots::pi3hat::ConfigureRealtime(2);
-  return std::make_shared<Pi3HatMoteusTransport>({.cpu = 3,
-                                                  .servo_map = {{1, 1},
-                                                                {2, 1},
-                                                                {3, 1},
-                                                                {4, 1},
-                                                                {5, 1},
-                                                                {6, 1},
-                                                                {7, 2},
-                                                                {8, 2},
-                                                                {9, 2},
-                                                                {10, 2},
-                                                                {11, 2},
-                                                                {12, 2},
-                                                                {13, 3},
-                                                                {14, 3}}});
+  return std::make_shared<Pi3HatMoteusTransport>([] {
+    Pi3HatMoteusTransport::Options options;
+    options.cpu = 3;
+    options.servo_map = {
+      {1, 1},
+      {2, 1},
+      {3, 1},
+      {4, 1},
+      {5, 1},
+      {6, 1},
+      {7, 2},
+      {8, 2},
+      {9, 2},
+      {10, 2},
+      {11, 2},
+      {12, 2},
+      {13, 3},
+      {14, 3}
+    }
+  }());
   // mjbots::pi3hat::Pi3HatMoteusFactory::Register();
   // return Controller::MakeSingletonTransport(
   //     {"--pi3hat-cpu", "1",  //
