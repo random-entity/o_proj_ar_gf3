@@ -6,9 +6,12 @@ namespace gf3::globals {
 
 std::shared_ptr<Transport> transport{[] {
 #ifdef __RASPBERRY_PI__
+  pi3hat::ConfigureRealtime({.realtime = 2});
   mjbots::pi3hat::Pi3HatMoteusFactory::Register();
-#endif
+  return Controller::MakeSingletonTransport({"--pi3hat-cpu", "3"});
+#else
   return Controller::MakeSingletonTransport({});
+#endif
 }()};
 
 const PmFmt pm_fmt{.position = kFloat,
