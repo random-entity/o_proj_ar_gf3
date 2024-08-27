@@ -8,7 +8,9 @@ std::shared_ptr<Transport> transport{[] {
 #ifdef __RASPBERRY_PI__
   mjbots::pi3hat::ConfigureRealtime(2);
   mjbots::pi3hat::Pi3HatMoteusFactory::Register();
-  return Controller::MakeSingletonTransport({"--pi3hat-cpu", "3"});
+  return Controller::MakeSingletonTransport(
+      {"--pi3hat-cpu", "3", "--pi3hat-cfg",
+       "1=1,2,3,4,5,6;2=7,8,9,10,11,12;3=13,14", "--pi3hat-disable-aux"});
 #else
   return Controller::MakeSingletonTransport({});
 #endif
