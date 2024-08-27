@@ -1,4 +1,4 @@
-#N canvas 1270 -8 1280 1011 12;
+#N canvas 1270 -8 1280 984 12;
 #X declare -path queuestream;
 #X obj 601 25 r rpl;
 #X obj 2 2 declare -path queuestream;
@@ -30,8 +30,8 @@
 #X msg 340 191 OK, f 2;
 #X connect 0 0 6 0;
 #X connect 2 2 12 0;
-#X connect 2 6 3 0;
 #X connect 2 6 22 0;
+#X connect 2 6 3 0;
 #X connect 3 0 11 0;
 #X connect 4 0 8 0;
 #X connect 4 0 9 0;
