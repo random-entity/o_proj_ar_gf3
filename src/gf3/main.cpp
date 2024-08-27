@@ -22,7 +22,8 @@ int main(int argc, char** argv) {
   UdpReplySender udp_rs{gf3, udp_rs_host, udp_rs_port};
   if (!udp_rs.Setup()) return 1;
 
-  utils::Beat beat{0.01};
+  const double period = argc >= 6 ? std::stod(argv[5]) : 0.01;
+  utils::Beat beat{period};
   while (1) {
     if (beat.Hit()) {
       executer.Run();
