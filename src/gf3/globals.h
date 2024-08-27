@@ -6,7 +6,8 @@ namespace gf3::globals {
 
 std::shared_ptr<Transport> transport{[] {
 #ifdef __RASPBERRY_PI__
-  mjbots::pi3hat::ConfigureRealtime(2);
+  using namespace mjbots::pi3hat;
+  ConfigureRealtime(2);
   Pi3HatMoteusTransport::Options options;
   options.cpu = 3;
   options.servo_map = {{1, 1},  {2, 1},  {3, 1},  {4, 1}, {5, 1},
