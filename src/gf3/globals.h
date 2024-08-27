@@ -13,8 +13,7 @@ std::shared_ptr<Transport> transport{[] {
   options.servo_map = {{1, 1},  {2, 1},  {3, 1},  {4, 1}, {5, 1},
                        {6, 1},  {7, 2},  {8, 2},  {9, 2}, {10, 2},
                        {11, 2}, {12, 2}, {13, 3}, {14, 3}};
-  Pi3HatMoteusTransport pi3hat_transport{options};
-  return static_cast<Transport*>(&pi3hat_transport);
+  return std::make_shared<Pi3HatMoteusTransport>(options);
 
   // return std::make_shared<Pi3HatMoteusTransport>([] { return options; }());
   // mjbots::pi3hat::Pi3HatMoteusFactory::Register();
