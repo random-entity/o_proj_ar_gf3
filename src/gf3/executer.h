@@ -20,13 +20,24 @@ class Executer {
     // Query and distribute Replies.
     std::vector<CanFdFrame> query_frames;
     std::vector<CanFdFrame> reply_frames;
-    static bool query_group_label;
-    query_group_label = !query_group_label;
+    static uint8_t query_group_label = 0;
+    if (++query_group_label == 4) query_group_label = 0;
     std::set<int> query_group;
-    if (query_group_label) {
-      query_group = {1, 2, 3, 7, 8, 9, 13, 14};
-    } else {
-      query_group = {4, 5, 6, 10, 11, 12, 13, 14};
+    switch (query_group_label) {
+      case 0:
+        query_group = {1, 2, 3, 13};
+        break;
+      case 1:
+        query_group = {7, 8, 9, 14};
+        break;
+      case 2:
+        query_group = {4, 5, 6, 13};
+        break;
+      case 3:
+        query_group = {10, 11, 12, 14};
+        break;
+      default:
+        break;
     }
     for (const auto id : query_group) {
       const auto maybe_servo = utils::SafeAt(gf3_.servo_map_, id);
