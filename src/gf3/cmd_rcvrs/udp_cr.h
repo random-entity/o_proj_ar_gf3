@@ -27,7 +27,7 @@ class UdpCommandReceiver {
   union RecvBuf {
     struct Decoded {
       uint8_t suid;
-      uint8_t shots;
+      uint8_t oneshots;
       uint8_t mode;
       union {
         struct {
@@ -88,7 +88,7 @@ class UdpCommandReceiver {
 
     if (id == 0) {  // GF3-level Command
       std::lock_guard lock{gf3_.cmd_.mtx};
-      gf3_.cmd_.shots = rbuf.cmd.shots;
+      gf3_.cmd_.oneshots = rbuf.cmd.oneshots;
       gf3_.cmd_.read.fileindex = rbuf.cmd.u.gf3.read_file_index;
       gf3_.cmd_.write.fileindex = rbuf.cmd.u.gf3.write_file_index;
       return;

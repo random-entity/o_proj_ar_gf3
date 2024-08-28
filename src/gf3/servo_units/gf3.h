@@ -110,7 +110,7 @@ class GF3 {
   struct Command {
     std::mutex mtx;
 
-    uint8_t shots = 0;
+    uint8_t oneshots = 0;
 
     // Oneshot for bit 0.
     struct Read {

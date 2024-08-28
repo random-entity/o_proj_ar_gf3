@@ -2,10 +2,10 @@
 #include "executer.h"
 #include "rpl_sndrs/udp_rs.h"
 
-using namespace mjbots;
-using namespace gf3;
-
 int main(int argc, char** argv) {
+  using namespace mjbots;
+  using namespace gf3;
+
   std::cout << "Usage: gf3 "
                "[UDP CommandReceiver port] "
                "[UDP ReplySender host] "
