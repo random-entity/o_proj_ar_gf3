@@ -11,19 +11,9 @@ std::shared_ptr<Transport> transport{[] {
   if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0) {
     throw std::runtime_error("Error locking memory");
   }
-  ConfigureRealtime(2);
-
-  // Pi3HatMoteusTransport::Options options;
-  // options.cpu = 3;
-  // options.servo_map = {{1, 1},  {2, 1},  {3, 1},  {4, 1}, {5, 1},
-  //                      {6, 1},  {7, 2},  {8, 2},  {9, 2}, {10, 2},
-  //                      {11, 2}, {12, 2}, {13, 3}, {14, 3}};
-  // std::cout << "pi3hat configuration complete." << std::endl;
-  // return std::make_shared<Pi3HatMoteusTransport>(options);
-
   mjbots::pi3hat::Pi3HatMoteusFactory::Register();
   return Controller::MakeSingletonTransport(
-      {"--pi3hat-cpu", "3",  //
+      {"--pi3hat-cpu", "2",  //
        "--pi3hat-cfg", "1=1,2,3,4,5,6;2=7,8,9,10,11,12;3=13,14",
        "--pi3hat-disable-aux"});
 #else
