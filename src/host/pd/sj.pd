@@ -1,4 +1,4 @@
-#N canvas 1548 42 1280 1011 12;
+#N canvas 1548 42 1280 984 12;
 #X obj 51 119 cnv 20 419 311 empty empty SingleAxisJoint 45 -9 0 16 #ebebff #000000 0;
 #X floatatom 53 143 4 0 0 2 SUID - - 24;
 #X obj 53 176 md;
@@ -24,7 +24,7 @@
 #X obj 274 8 r all_maxtrq;
 #X obj 368 8 r all_maxvel;
 #X obj 111 48 r all_outpos0;
-#X obj 152 8 r all_outvel0;
+#X obj 142 8 r all_outvel0;
 #X obj 562 8 r rpl;
 #X obj 562 31 route \$1;
 #X obj 104 475 t b f;
@@ -42,6 +42,7 @@
 #X obj 524 155 expr $f1 != 15;
 #X obj 477 59 \$1, f 2;
 #X obj 104 28 r all_mode;
+#X obj 173 68 r all_outvel;
 #X connect 2 1 18 0;
 #X connect 3 0 17 0;
 #X connect 3 1 16 0;
@@ -110,11 +111,12 @@
 #X connect 34 3 4 6;
 #X connect 34 4 4 2;
 #X connect 34 4 4 3;
-#X connect 34 5 3 2;
+#X connect 34 5 3 3;
 #X connect 34 6 39 0;
-#X connect 34 7 3 3;
+#X connect 34 7 3 4;
 #X connect 35 0 4 7;
 #X connect 38 0 40 0;
 #X connect 41 0 1 0;
 #X connect 42 0 2 1;
+#X connect 43 0 3 2;
 #X coords 0 -1 1 1 421 331 1 50 100;

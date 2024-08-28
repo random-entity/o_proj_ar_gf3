@@ -111,6 +111,10 @@
 #X obj 313 211 >> 8;
 #X obj 341 211 & 255;
 #X obj 313 233 & 255;
+#X floatatom 124 532 7 0 0 0 - - - 0;
+#X obj 124 758 s all_outvel;
+#X obj 124 490 loadbang;
+#X obj 124 511 0.125;
 #X connect 2 0 3 0;
 #X connect 3 0 73 0;
 #X connect 3 1 85 0;
@@ -168,3 +172,6 @@
 #X connect 108 0 110 0;
 #X connect 109 0 107 5;
 #X connect 110 0 107 6;
+#X connect 111 0 112 0;
+#X connect 113 0 114 0;
+#X connect 114 0 111 0;
