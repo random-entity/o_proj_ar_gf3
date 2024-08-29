@@ -7,10 +7,41 @@ namespace gf3 {
 std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
   auto& cmd = j->cmd_;
   cmd.vel = std::abs(cmd.vel);
+  auto& rpl = j->rpl_;
 
-  const auto target_pos = std::clamp(cmd.pos, j->min_pos_, j->max_pos_);
-  const auto cur_pos = j->s_.GetReplyAux2PositionUncoiled().abs_position;
-  const auto target_delta_pos = target_pos - cur_pos;
+  const auto target_pos_out = std::clamp(cmd.pos, j->min_pos_, j->max_pos_);
+  const auto cur_pos_out = j->s_.GetReplyAux2PositionUncoiled().abs_position;
+  const auto target_delta_pos_out = target_pos_out - cur_pos_out;
+
+  double target_vel_rotor;
+
+  if (std::abs(target_delta_pos_out) >= cmd.fix_thr) {
+    const auto target_vel_out =
+        cmd.vel * std::clamp(target_delta_pos_out / cmd.damp_thr, -1.0, 1.0);
+    target_vel_rotor = j->r_ * target_vel_out;
+    cmd.fixing = false;
+
+    {
+      std::lock_guard lock{rpl.mtx};
+      rpl.target_delta_pos_out = target_delta_pos_out;
+      rpl.target_vel_out = target_vel_out;
+      rpl.target_vel_rotor = target_vel_rotor;
+      rpl.fixing = false;
+    }
+  } else if (!cmd.fixing) {
+    target_vel_rotor = 0.0;
+    cmd.fixing = true;
+
+    {
+      std::lock_guard lock{rpl.mtx};
+      rpl.target_delta_pos_out = target_delta_pos_out;
+      rpl.target_vel_out = 0.0;
+      rpl.target_vel_rotor = 0.0;
+      rpl.fixing = true;
+    }
+  } else {
+    return {};
+  }
 
   auto pm_cmd = *(j->pm_cmd_template_);
   pm_cmd.position = NaN;
@@ -18,16 +49,7 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
   pm_cmd.velocity_limit = cmd.max_vel;
   pm_cmd.accel_limit = cmd.max_acc;
 
-  if (std::abs(target_delta_pos) >= cmd.fix_thr) {
-    pm_cmd.velocity = j->r_ * cmd.vel *
-                      std::clamp(target_delta_pos / cmd.damp_thr, -1.0, 1.0);
-    cmd.fixing = false;
-  } else if (!cmd.fixing) {
-    pm_cmd.velocity = 0.0;
-    cmd.fixing = true;
-  } else {
-    return {};
-  }
+  pm_cmd.velocity = target_vel_rotor;
 
   return {j->s_.MakePosition(pm_cmd)};
 }

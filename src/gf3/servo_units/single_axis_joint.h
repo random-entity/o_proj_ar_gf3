@@ -36,8 +36,8 @@ class SingleAxisJoint {
 
   Servo s_;
 
-  /////////////////////////////////////
-  // SingleAxisJoint Command struct: //
+  //////////////////////////////////////////////
+  // SingleAxisJoint Command & Reply structs: //
 
   struct Command {
     friend struct SingleAxisJointFrameMakers;
@@ -47,15 +47,23 @@ class SingleAxisJoint {
 
     double pos = 0.0;
     double vel = 0.0;
-    double max_trq = 0.0, max_vel = 0.0, max_acc = 0.0;
+    double max_trq = 32.0, max_vel = 32.0, max_acc = 32.0;
     bool stop_pending = false;
     bool fix_pending = false;
-
-   private:
     inline static const double damp_thr = 0.1;
     inline static const double fix_thr = 0.0075;
+
+   private:
     bool fixing = false;
   } cmd_;
+
+  struct Reply {
+    std::mutex mtx;
+    double target_delta_pos_out;
+    double target_vel_out;
+    double target_vel_rotor;
+    bool fixing;
+  } rpl_;
 
   /////////////////////
   // Configurations: //
