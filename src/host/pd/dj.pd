@@ -1,4 +1,4 @@
-#N canvas 950 19 1920 984 12;
+#N canvas 1920 27 1920 984 12;
 #X obj 51 119 cnv 20 618 311 empty empty DifferentialJoint 45 -9 0 16 #f3e6f0 #000000 0;
 #X obj 53 176 md;
 #X obj 111 119 do;
@@ -10,7 +10,7 @@
 #X obj 305 513 f2b;
 #X obj 617 513 f2b;
 #X obj 227 513 f2b;
-#X obj 176 569 s cmdbytes;
+#X obj 175 569 s cmdbytes;
 #X obj 695 513 f2b;
 #X obj 681 411 expr \$1 < 100;
 #X obj 616 462 spigot;
@@ -57,6 +57,8 @@
 #X obj 218 27 r all_outvel;
 #X text 450 124 left;
 #X text 443 142 right;
+#X obj 1000 370 abs;
+#X obj 831 369 abs;
 #X connect 1 1 20 0;
 #X connect 2 0 19 0;
 #X connect 2 1 18 0;
@@ -124,7 +126,7 @@
 #X connect 26 4 3 2;
 #X connect 26 5 2 3;
 #X connect 26 6 37 0;
-#X connect 26 7 2 4;
+#X connect 26 7 59 0;
 #X connect 27 0 38 0;
 #X connect 27 1 39 0;
 #X connect 27 2 40 0;
@@ -132,7 +134,7 @@
 #X connect 27 4 3 3;
 #X connect 27 5 2 5;
 #X connect 27 6 41 0;
-#X connect 27 7 2 6;
+#X connect 27 7 58 0;
 #X connect 28 0 27 0;
 #X connect 29 0 26 0;
 #X connect 30 0 3 0;
@@ -161,4 +163,6 @@
 #X connect 53 0 2 0;
 #X connect 54 0 2 1;
 #X connect 55 0 2 2;
+#X connect 58 0 2 6;
+#X connect 59 0 2 4;
 #X coords 0 -1 1 1 620 331 1 50 100;
