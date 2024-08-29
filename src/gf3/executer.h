@@ -41,17 +41,20 @@ class Executer {
     }
     for (const auto id : query_group) {
       const auto maybe_servo = utils::SafeAt(gf3_.servo_map_, id);
-      if (maybe_servo) {
-        query_frames.push_back(maybe_servo.value()->MakeQuery());
-      }
+      if (!maybe_servo) continue;
+      auto* servo = maybe_servo.value();
+      std::lock_guard lock{servo->mtx_};
+      query_frames.push_back(servo->MakeQuery());
     }
     globals::transport->BlockingCycle(&query_frames[0], query_frames.size(),
                                       &reply_frames);
     for (const auto& frame : reply_frames) {
-      const auto& id = static_cast<int>(frame.source);
+      const auto id = static_cast<int>(frame.source);
       const auto maybe_servo = utils::SafeAt(gf3_.servo_map_, id);
       if (!maybe_servo) continue;
-      maybe_servo.value()->SetReply(Query::Parse(frame.data, frame.size));
+      auto* servo = maybe_servo.value();
+      std::lock_guard lock{servo->mtx_};
+      servo->SetReply(Query::Parse(frame.data, frame.size));
     }
 
     // Execute ServoUnit Mode-based Commands.
@@ -61,10 +64,11 @@ class Executer {
       const auto maybe_fm =
           utils::SafeAt(SingleAxisJointFrameMakers::frame_makers, j->cmd_.mode);
       if (maybe_fm) {
+        std::lock_guard lock{j->s_.mtx_};
         utils::Merge(command_frames, maybe_fm.value()(j));
       } else {
         std::cout
-            << "Mode " << ((uint8_t)(j->cmd_.mode))
+            << "Mode " << (static_cast<uint8_t>(j->cmd_.mode))
             << " NOT registered to SingleAxisJointFrameMakers::frame_makers."
             << std::endl;
       }
@@ -74,10 +78,12 @@ class Executer {
       const auto maybe_fm = utils::SafeAt(
           DifferentialJointFrameMakers::frame_makers, j->cmd_.mode);
       if (maybe_fm) {
+        std::lock_guard lock_l{j->l_.mtx_};
+        std::lock_guard lock_r{j->r_.mtx_};
         utils::Merge(command_frames, maybe_fm.value()(j));
       } else {
         std::cout
-            << "Mode " << ((uint8_t)(j->cmd_.mode))
+            << "Mode " << (static_cast<uint8_t>(j->cmd_.mode))
             << " NOT registered to DifferentialJointFrameMakers::frame_makers."
             << std::endl;
       }

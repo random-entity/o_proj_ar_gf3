@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     }
   }};
 
-  const double executer_period = argc >= 6 ? std::stod(argv[5]) : 0.01;
+  const double executer_period = argc >= 6 ? std::stod(argv[5]) : 0.005;
   utils::Beat executer_beat{executer_period};
   while (1) {
     if (executer_beat.Hit()) executer.Run();

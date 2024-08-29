@@ -75,6 +75,8 @@ class Servo : public Controller {
     last_rpl_time_ = utils::GetTime();
   }
 
+  std::mutex mtx_;
+
  private:
   const int id_;
   const QFmt* const q_fmt_;
