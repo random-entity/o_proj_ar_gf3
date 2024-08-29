@@ -1,4 +1,4 @@
-#N canvas 0 27 1920 984 10;
+#N canvas 0 27 1920 1011 10;
 #X declare -path f2b2f;
 #X obj 3689 2321 vsl 15 1280 0 127 0 0 empty empty empty 0 -9 0 10 #fcfcfc #000000 #000000 0 1;
 #X obj 3708 2303 hsl 1280 15 0 127 0 0 empty empty empty -2 -8 0 10 #fcfcfc #000000 #000000 0 1;
@@ -114,9 +114,9 @@
 #X floatatom 124 532 7 0 0 0 - - - 0;
 #X obj 124 758 s all_outvel;
 #X obj 124 490 loadbang;
-#X obj 124 511 0.125;
 #X obj 131 186 t b b;
 #X obj 165 186 t b b;
+#X obj 124 511 0.1;
 #X connect 2 0 3 0;
 #X connect 3 0 73 0;
 #X connect 3 1 85 0;
@@ -149,8 +149,8 @@
 #X connect 64 0 63 1;
 #X connect 65 0 67 0;
 #X connect 66 0 65 1;
-#X connect 69 0 116 0;
-#X connect 70 0 115 0;
+#X connect 69 0 115 0;
+#X connect 70 0 114 0;
 #X connect 71 0 107 1;
 #X connect 72 0 107 1;
 #X connect 79 0 105 0;
@@ -173,9 +173,9 @@
 #X connect 109 0 107 5;
 #X connect 110 0 107 6;
 #X connect 111 0 112 0;
-#X connect 113 0 114 0;
-#X connect 114 0 111 0;
+#X connect 113 0 116 0;
+#X connect 114 0 107 0;
+#X connect 114 1 71 0;
 #X connect 115 0 107 0;
-#X connect 115 1 71 0;
-#X connect 116 0 107 0;
-#X connect 116 1 72 0;
+#X connect 115 1 72 0;
+#X connect 116 0 111 0;
