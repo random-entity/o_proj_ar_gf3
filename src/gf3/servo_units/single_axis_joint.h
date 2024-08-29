@@ -53,7 +53,7 @@ class SingleAxisJoint {
 
    private:
     inline static const double damp_thr = 0.1;
-    inline static const double fix_thr = 0.005;
+    inline static const double fix_thr = 0.0075;
     bool fixing = false;
   } cmd_;
 
