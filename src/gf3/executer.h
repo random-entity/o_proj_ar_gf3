@@ -28,12 +28,12 @@ class Executer {
         command_group = {1, 6, 7, 12};
         break;
       case 1:
-        query_group = {2, 3, 8, 9};
-        command_group = {2, 8};
+        query_group = {2, 3, 4, 5};
+        command_group = {2, 4};
         break;
       case 2:
-        query_group = {4, 5, 10, 11};
-        command_group = {4, 10};
+        query_group = {8, 9, 10, 11};
+        command_group = {8, 10};
         break;
       case 3:
         query_group = {13, 14};
