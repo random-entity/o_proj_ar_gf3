@@ -51,7 +51,7 @@ class SingleAxisJoint {
     bool stop_pending = false;
     bool fix_pending = false;
     inline static const double damp_thr = 0.1;
-    inline static const double fix_thr = 0.0075;
+    inline static const double fix_thr = 0.01;
 
    private:
     bool fixing = false;
