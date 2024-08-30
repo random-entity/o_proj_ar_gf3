@@ -25,9 +25,6 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
   double target_vel_rotor_l;
   double target_vel_rotor_r;
 
-  double temp_fftrq_l = 0.0;
-  double temp_fftrq_r = 0.0;
-
   if (std::abs(target_delta_pos_dif) >= cmd.fix_thr ||
       std::abs(target_delta_pos_avg) >= cmd.fix_thr) {
     const auto target_vel_dif =
@@ -41,19 +38,6 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
     target_vel_rotor_r =
         j->r_avg_ * target_vel_avg - j->r_dif_ * target_vel_dif;
     cmd.fixing = false;
-
-    if (j->l_.id_ == 2 || j->l_.id_ == 8) {
-      const auto target_delta_vel_rotor_l =
-          target_vel_rotor_l - j->l_.last_rpl_.velocity;
-      if (std::abs(target_delta_vel_rotor_l) > 0.25) {
-        temp_fftrq_l = 1.0 * std::clamp(target_delta_vel_rotor_l, -16.0, 16.0);
-      }
-      const auto target_delta_vel_rotor_r =
-          target_vel_rotor_r - j->r_.last_rpl_.velocity;
-      if (std::abs(target_delta_vel_rotor_r) > 0.25) {
-        temp_fftrq_r = 1.0 * std::clamp(target_delta_vel_rotor_r, -16.0, 16.0);
-      }
-    }
 
     {
       std::lock_guard lock{rpl.mtx};
@@ -93,13 +77,11 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
   return {j->l_.MakePosition([=] {
             auto cmd = pm_cmd;
             cmd.velocity = target_vel_rotor_l;
-            cmd.feedforward_torque = temp_fftrq_l;
             return cmd;
           }()),
           j->r_.MakePosition([=] {
             auto cmd = pm_cmd;
             cmd.velocity = target_vel_rotor_r;
-            cmd.feedforward_torque = temp_fftrq_r;
             return cmd;
           }())};
 }
