@@ -74,12 +74,12 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
   pm_cmd.velocity_limit = cmd.max_vel;
   pm_cmd.accel_limit = cmd.max_acc;
 
-  return {j->l_.MakePosition([=] {
+  return {j->l_.MakePosition([&] {
             auto cmd = pm_cmd;
             cmd.velocity = target_vel_rotor_l;
             return cmd;
           }()),
-          j->r_.MakePosition([=] {
+          j->r_.MakePosition([&] {
             auto cmd = pm_cmd;
             cmd.velocity = target_vel_rotor_r;
             return cmd;
