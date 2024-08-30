@@ -1,4 +1,4 @@
-#N canvas 0 0 2560 1011 10;
+#N canvas 0 0 1920 1011 10;
 #X declare -path f2b2f;
 #X obj 1430 895 bng 120 250 50 0 empty empty STOP 0 61 0 50 #ff0400 #00faff #000000;
 #X obj 1421 525 md;
