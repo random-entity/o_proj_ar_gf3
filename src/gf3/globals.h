@@ -23,7 +23,7 @@ std::shared_ptr<Transport> transport{[] {
 
 const PmFmt pm_fmt{.position = kFloat,
                    .velocity = kFloat,
-                   .feedforward_torque = kIgnore,
+                   .feedforward_torque = kFloat,
                    .kp_scale = kIgnore,
                    .kd_scale = kIgnore,
                    .maximum_torque = kFloat,
