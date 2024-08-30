@@ -1,4 +1,4 @@
-#N canvas 57 1208 1280 984 12;
+#N canvas 950 19 960 984 12;
 #X obj 50 119 cnv 20 419 311 empty empty SingleAxisJoint 45 -9 0 16 #ebebff #000000 0;
 #X floatatom 52 143 4 0 0 2 SUID - - 24;
 #X obj 52 176 md;
@@ -43,9 +43,9 @@
 #X msg 685 -84 STOP;
 #X obj 738 -83 select 10;
 #X msg 738 -60 PM, f 2;
-#X obj 1087 70 \$0;
-#X obj 1147 47 bng 20 250 50 0 empty empty empty 0 -10 0 12 #fcfcfc #000000 #000000;
-#X obj 1087 47 loadbang;
+#X obj 1053 136 \$0;
+#X obj 1113 113 bng 20 250 50 0 empty empty empty 0 -10 0 12 #fcfcfc #000000 #000000;
+#X obj 1053 113 loadbang;
 #X obj 783 137 queuestream 125;
 #X obj 783 287 queuestream 125;
 #X obj 783 237 queuestream 125;
@@ -77,7 +77,7 @@
 #X obj 931 -47 f;
 #X obj 878 -139 t f f;
 #X obj 931 -70 bng 20 250 50 0 empty empty empty 0 -10 0 12 #fcfcfc #000000 #000000;
-#X obj 493 -36 r sjrpl;
+#X obj 493 -86 r sjrpl;
 #X obj 493 68 unpack f f f f;
 #N canvas 547 313 450 250 (subpatch) 0;
 #X array \$0-arr_mtrtmp 125 float 0;
@@ -120,6 +120,8 @@
 #X msg 1106 548 \; \$1-arr_rvelout color 900;
 #X msg 1106 652 \; \$1-arr_tvelrot color 750;
 #X msg 1106 690 \; \$1-arr_rvelrot color 900;
+#X obj 451 411 tgl 20 0 empty empty empty 0 -10 0 12 #fcfcfc #000000 #000000 0 1;
+#X obj 493 -55 spigot;
 #X connect 2 1 19 0;
 #X connect 3 0 20 0;
 #X connect 3 0 50 1;
@@ -216,8 +218,6 @@
 #X connect 44 0 103 0;
 #X connect 44 0 104 0;
 #X connect 45 0 44 0;
-#X connect 46 0 51 0;
-#X connect 46 0 57 0;
 #X connect 46 0 44 0;
 #X connect 47 0 89 0;
 #X connect 48 0 91 0;
@@ -254,8 +254,12 @@
 #X connect 76 0 69 0;
 #X connect 76 1 75 1;
 #X connect 77 0 75 0;
-#X connect 78 0 53 0;
+#X connect 78 0 106 0;
 #X connect 79 0 82 0;
 #X connect 79 2 59 0;
 #X connect 79 3 60 0;
+#X connect 105 0 106 1;
+#X connect 105 0 51 0;
+#X connect 105 0 57 0;
+#X connect 106 0 53 0;
 #X coords 0 -1 1 1 421 331 1 50 100;

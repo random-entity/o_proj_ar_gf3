@@ -1,4 +1,4 @@
-#N canvas 1270 -8 1280 1011 12;
+#N canvas 1270 -8 1280 984 12;
 #X declare -path f2b2f;
 #X declare -path queuestream;
 #X obj 51 119 cnv 20 618 311 empty empty DifferentialJoint 45 -9 0 16 #f3e6f0 #000000 0;
@@ -6,7 +6,7 @@
 #X obj 111 119 do;
 #X obj 441 479 mtva;
 #X floatatom 53 143 4 0 0 2 SUID - - 24;
-#X obj 262 -56 loadbang;
+#X obj 262 -76 loadbang;
 #X obj 539 806 f2b;
 #X obj 383 806 f2b;
 #X obj 305 806 f2b;
@@ -29,8 +29,8 @@
 #X floatatom 590 118 5 0 0 2 mtmp - - 0;
 #X floatatom 516 137 5 0 0 2 - - - 0;
 #X floatatom 590 137 5 0 0 2 - - - 0;
-#X obj 357 -10 \$1, f 2;
-#X obj 517 -10 expr \$1 + 1;
+#X obj 357 -40 \$1, f 2;
+#X obj 517 -40 expr \$1 + 1;
 #X obj 104 758 t b f;
 #X obj 208 758 t b f;
 #X obj 247 758 t b f;
@@ -47,7 +47,7 @@
 #X text 440 136 right;
 #X obj 636 71 abs;
 #X obj 476 70 abs;
-#X obj 325 -56 r srpl;
+#X obj 325 -76 r srpl;
 #X obj 53 -50 declare -path f2b2f;
 #X obj 53 -30 declare -path queuestream;
 #X obj 909 64 select 15;
@@ -82,8 +82,8 @@
 #X obj 889 307 array set \$0-arr_mtrtmp-l;
 #X obj 1079 307 array set \$0-arr_mtrtmp-r;
 #X obj 1385 154 \$0;
-#X obj 1445 131 bng 20 250 50 0 empty empty empty 0 -10 0 12 #fcfcfc #000000 #000000;
-#X obj 1385 131 loadbang;
+#X obj 1440 125 bng 20 250 50 0 empty empty empty 0 -10 0 12 #fcfcfc #000000 #000000;
+#X obj 1380 125 loadbang;
 #X msg 1404 286 \; \$1-arr_mtrtmp-l color 900;
 #X msg 1594 286 \; \$1-arr_mtrtmp-r color 9;
 #X obj 1079 284 queuestream 125;
@@ -112,7 +112,7 @@
 #X msg 1587 404 \; \$1-arr_rposavg color 9;
 #X msg 1404 404 \; \$1-arr_rposdif color 900;
 #X msg 1404 366 \; \$1-arr_cposdif color 750;
-#X obj 705 -56 r djrpl;
+#X obj 705 -66 r djrpl;
 #X obj 705 16 route;
 #X obj 627 126 tgl 20 0 empty empty fixing 0 -10 0 12 #fcfcfc #000000 #000000 0 1;
 #X obj 1079 644 queuestream 125;
@@ -203,6 +203,8 @@
 #X obj 1397 -114 t f f;
 #X obj 1450 -45 bng 20 250 50 0 empty empty empty 0 -10 0 12 #fcfcfc #000000 #000000;
 #X symbolatom 596 162 7 0 0 0 - - - 16;
+#X obj 705 -36 spigot;
+#X obj 650 411 tgl 20 0 empty empty empty 0 -10 0 12 #fcfcfc #000000 #000000 0 1;
 #X connect 1 1 30 0;
 #X connect 2 0 31 0;
 #X connect 2 0 92 1;
@@ -354,10 +356,6 @@
 #X connect 76 0 153 0;
 #X connect 76 0 152 0;
 #X connect 77 0 76 0;
-#X connect 78 0 95 0;
-#X connect 78 0 93 0;
-#X connect 78 0 111 0;
-#X connect 78 0 109 0;
 #X connect 78 0 76 0;
 #X connect 81 0 75 0;
 #X connect 82 0 74 0;
@@ -371,7 +369,7 @@
 #X connect 95 0 96 0;
 #X connect 96 0 94 0;
 #X connect 97 0 92 0;
-#X connect 101 0 102 0;
+#X connect 101 0 178 0;
 #X connect 102 0 114 0;
 #X connect 104 0 119 0;
 #X connect 105 0 117 0;
@@ -434,4 +432,10 @@
 #X connect 175 0 168 0;
 #X connect 175 1 174 1;
 #X connect 176 0 174 0;
+#X connect 178 0 102 0;
+#X connect 179 0 178 1;
+#X connect 179 0 93 0;
+#X connect 179 0 95 0;
+#X connect 179 0 109 0;
+#X connect 179 0 111 0;
 #X coords 0 -1 1 1 620 331 1 50 100;
