@@ -9,15 +9,6 @@
   - https://discord.com/channels/633996205759791104/633996431530655744/842789027550724136
   - https://discord.com/channels/633996205759791104/633996431530655744/838774363649605652
 
-# ToDo
-- Pd
-  - display Reply output next to Command output
-  - visualize/plot Reply values
-
-# ToDebug
-## Pd
-- 0 -> NaN?
-
 # Don't need
 - Pd: tree propagation of cmd and rpl => Not that practical
 - further Command Items e.g. kp_scale => Do at conf time
