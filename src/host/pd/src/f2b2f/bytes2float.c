@@ -40,7 +40,7 @@ void* bytes2float_new() {
   x->value.f = 0.0f;
 
   /* Inlet 1 (the default inlet) which does not have to be
-     explicitly created by inlet_new, will handle byte 0 */
+     explicitly created by inlet_new, will handle byte 0. */
   // Inlet 2
   inlet_new(&x->o, &x->o.ob_pd, &s_float, gensym("in2"));
   // Inlet 3
