@@ -47,9 +47,7 @@ class UdpReplySender {
     struct Encoded {
       uint8_t suid;
       uint8_t fixing;
-      float target_delta_pos_out;
-      float target_vel_out;
-      float target_vel_rotor;
+      float target_rotor;
     } __attribute__((packed)) rpl;
     uint8_t raw_bytes[sizeof(rpl)];
   };
@@ -58,9 +56,8 @@ class UdpReplySender {
     struct Encoded {
       uint8_t suid;
       uint8_t fixing;
-      float target_delta_pos_dif, target_delta_pos_avg;
-      float target_vel_dif, target_vel_avg;
-      float target_vel_rotor_l, target_vel_rotor_r;
+      float target_rotor_l;
+      float target_rotor_r;
     } __attribute__((packed)) rpl;
     uint8_t raw_bytes[sizeof(rpl)];
   };
@@ -120,10 +117,10 @@ class UdpReplySender {
         std::lock_guard lock{rpl.mtx};
         sbuf.rpl.suid = static_cast<uint8_t>(100 + suid);
         sbuf.rpl.fixing = static_cast<uint8_t>(rpl.fixing);
-        sbuf.rpl.target_delta_pos_out =
-            static_cast<float>(rpl.target_delta_pos_out);
-        sbuf.rpl.target_vel_out = static_cast<float>(rpl.target_vel_out);
-        sbuf.rpl.target_vel_rotor = static_cast<float>(rpl.target_vel_rotor);
+        sbuf.rpl.target_rotor = static_cast<float>(
+            j->cmd_.mode == SingleAxisJoint::Command::Mode::OutVel
+                ? rpl.target_rotor.vel
+                : rpl.target_rotor.delta_pos);
       }
 
       sendto(cfg_.sock, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,
@@ -139,16 +136,14 @@ class UdpReplySender {
         std::lock_guard lock{rpl.mtx};
         sbuf.rpl.suid = static_cast<uint8_t>(100 + suid);
         sbuf.rpl.fixing = static_cast<uint8_t>(rpl.fixing);
-        sbuf.rpl.target_delta_pos_dif =
-            static_cast<float>(rpl.target_delta_pos_dif);
-        sbuf.rpl.target_delta_pos_avg =
-            static_cast<float>(rpl.target_delta_pos_avg);
-        sbuf.rpl.target_vel_dif = static_cast<float>(rpl.target_vel_dif);
-        sbuf.rpl.target_vel_avg = static_cast<float>(rpl.target_vel_avg);
-        sbuf.rpl.target_vel_rotor_l =
-            static_cast<float>(rpl.target_vel_rotor_l);
-        sbuf.rpl.target_vel_rotor_r =
-            static_cast<float>(rpl.target_vel_rotor_r);
+        sbuf.rpl.target_rotor_l = static_cast<float>(
+            j->cmd_.mode == DifferentialJoint::Command::Mode::OutVel
+                ? rpl.target.vel_rotor.l
+                : rpl.target.delta_pos_rotor.l);
+        sbuf.rpl.target_rotor_r = static_cast<float>(
+            j->cmd_.mode == DifferentialJoint::Command::Mode::OutVel
+                ? rpl.target.vel_rotor.r
+                : rpl.target.delta_pos_rotor.r);
       }
 
       sendto(cfg_.sock, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,

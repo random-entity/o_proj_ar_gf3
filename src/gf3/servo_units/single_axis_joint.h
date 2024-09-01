@@ -45,9 +45,11 @@ class SingleAxisJoint {
 
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
-    double pos = 0.0;
-    double vel = 0.0;
-    double max_trq = 32.0, max_vel = 32.0, max_acc = 32.0;
+    // Ensure min/max clamp for position, and non-negativeness for velocity,
+    // at time of reception from CommandReceivers.
+    double pos_out;
+    double vel_out;
+    double max_trq, max_vel, max_acc;  // of rotor.
     bool stop_pending = false;
     bool fix_pending = false;
     inline static const double damp_thr = 0.1;
@@ -59,10 +61,12 @@ class SingleAxisJoint {
 
   struct Reply {
     std::mutex mtx;
-    double target_delta_pos_out;
-    double target_vel_out;
-    double target_vel_rotor;
+
     bool fixing;
+    union {
+      double delta_pos;
+      double vel;
+    } target_rotor;
   } rpl_;
 
   /////////////////////
@@ -77,16 +81,16 @@ class SingleAxisJoint {
 
   friend void to_json(json& j, const SingleAxisJoint& saj) {
     j = json{{"suid", saj.s_.GetId()},       //
-             {"pos", saj.cmd_.pos},          //
-             {"vel", saj.cmd_.vel},          //
+             {"pos_out", saj.cmd_.pos_out},  //
+             {"vel_out", saj.cmd_.vel_out},  //
              {"max_trq", saj.cmd_.max_trq},  //
              {"max_vel", saj.cmd_.max_vel},  //
              {"max_acc", saj.cmd_.max_acc}};
   }
 
   friend void from_json(const json& j, SingleAxisJoint& saj) {
-    j.at("pos").get_to(saj.cmd_.pos);
-    j.at("vel").get_to(saj.cmd_.vel);
+    j.at("pos_out").get_to(saj.cmd_.pos_out);
+    j.at("vel_out").get_to(saj.cmd_.vel_out);
     j.at("max_trq").get_to(saj.cmd_.max_trq);
     j.at("max_vel").get_to(saj.cmd_.max_vel);
     j.at("max_acc").get_to(saj.cmd_.max_acc);

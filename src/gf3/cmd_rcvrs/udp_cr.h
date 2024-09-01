@@ -35,8 +35,8 @@ class UdpCommandReceiver {
           uint16_t write_file_index;
         } __attribute__((packed)) gf3;
         struct {
-          float pos;
-          float vel;
+          float pos_out;
+          float vel_out;
           float max_trq;
           float max_vel;
           float max_acc;
@@ -96,7 +96,8 @@ class UdpCommandReceiver {
 
     const auto maybe_saj = utils::SafeAt(gf3_.saj_map_, id);
     if (maybe_saj) {  // SingleAxisJoint Command
-      auto& cmd = maybe_saj.value()->cmd_;
+      auto* j = maybe_saj.value();
+      auto& cmd = j->cmd_;
       using M = SingleAxisJoint::Command::Mode;
       std::lock_guard lock{cmd.mtx};
       cmd.mode = static_cast<M>(rbuf.cmd.mode);
@@ -109,8 +110,9 @@ class UdpCommandReceiver {
         } break;
         case M::OutPos:
         case M::OutVel: {
-          cmd.pos = static_cast<double>(rbuf.cmd.u.saj.pos);
-          cmd.vel = static_cast<double>(rbuf.cmd.u.saj.vel);
+          cmd.pos_out = std::clamp(static_cast<double>(rbuf.cmd.u.saj.pos_out),
+                               j->min_pos_, j->max_pos_);
+          cmd.vel_out = std::abs(static_cast<double>(rbuf.cmd.u.saj.vel_out));
           cmd.max_trq = static_cast<double>(rbuf.cmd.u.saj.max_trq);
           cmd.max_vel = static_cast<double>(rbuf.cmd.u.saj.max_vel);
           cmd.max_acc = static_cast<double>(rbuf.cmd.u.saj.max_acc);
@@ -123,7 +125,8 @@ class UdpCommandReceiver {
 
     const auto maybe_dj = utils::SafeAt(gf3_.dj_map_, id);
     if (maybe_dj) {  // DifferentialJoint Command
-      auto& cmd = maybe_dj.value()->cmd_;
+      auto* j = maybe_dj.value();
+      auto& cmd = j->cmd_;
       using M = DifferentialJoint::Command::Mode;
       std::lock_guard lock{cmd.mtx};
       cmd.mode = static_cast<M>(rbuf.cmd.mode);
@@ -136,10 +139,12 @@ class UdpCommandReceiver {
         } break;
         case M::OutPos:
         case M::OutVel: {
-          cmd.pos_dif = static_cast<double>(rbuf.cmd.u.dj.pos_dif);
-          cmd.vel_dif = static_cast<double>(rbuf.cmd.u.dj.vel_dif);
-          cmd.pos_avg = static_cast<double>(rbuf.cmd.u.dj.pos_avg);
-          cmd.vel_avg = static_cast<double>(rbuf.cmd.u.dj.vel_avg);
+          cmd.pos_dif = std::clamp(static_cast<double>(rbuf.cmd.u.dj.pos_dif),
+                                   j->min_pos_dif_, j->max_pos_dif_);
+          cmd.vel_dif = std::abs(static_cast<double>(rbuf.cmd.u.dj.vel_dif));
+          cmd.pos_avg = std::clamp(static_cast<double>(rbuf.cmd.u.dj.pos_avg),
+                                   j->min_pos_avg_, j->max_pos_avg_);
+          cmd.vel_avg = std::abs(static_cast<double>(rbuf.cmd.u.dj.vel_avg));
           cmd.max_trq = static_cast<double>(rbuf.cmd.u.dj.max_trq);
           cmd.max_vel = static_cast<double>(rbuf.cmd.u.dj.max_vel);
           cmd.max_acc = static_cast<double>(rbuf.cmd.u.dj.max_acc);

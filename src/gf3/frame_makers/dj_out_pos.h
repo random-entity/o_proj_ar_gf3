@@ -7,14 +7,10 @@ namespace gf3 {
 std::vector<CanFdFrame> DifferentialJointFrameMakers::OutPos(
     DifferentialJoint* j) {
   auto& cmd = j->cmd_;
-  cmd.vel_dif = std::abs(cmd.vel_dif);
-  cmd.vel_avg = std::abs(cmd.vel_avg);
   auto& rpl = j->rpl_;
 
-  const auto target_pos_dif =
-      std::clamp(cmd.pos_dif, j->min_pos_dif_, j->max_pos_dif_);
-  const auto target_pos_avg =
-      std::clamp(cmd.pos_avg, j->min_pos_avg_, j->max_pos_avg_);
+  const auto& target_pos_dif = cmd.pos_dif;
+  const auto& target_pos_avg = cmd.pos_avg;
 
   const auto cur_pos_dif = j->l_.GetReplyAux2PositionUncoiled().abs_position;
   const auto cur_pos_avg = j->r_.GetReplyAux2PositionUncoiled().abs_position;
@@ -32,22 +28,23 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutPos(
     target_delta_pos_rotor_r =
         j->r_avg_ * target_delta_pos_avg - j->r_dif_ * target_delta_pos_dif;
     cmd.fixing = false;
-
-    {
-      std::lock_guard lock{rpl.mtx};
-      rpl.fixing = false;
-    }
   } else if (!cmd.fixing) {
     target_delta_pos_rotor_l = NaN;
     target_delta_pos_rotor_r = NaN;
     cmd.fixing = true;
-
-    {
-      std::lock_guard lock{rpl.mtx};
-      rpl.fixing = true;
-    }
   } else {
     return {};
+  }
+
+  {
+    std::lock_guard lock{rpl.mtx};
+    rpl.fixing = cmd.fixing;
+    rpl.target.delta_pos_rotor.l = std::isfinite(target_delta_pos_rotor_l)
+                                       ? target_delta_pos_rotor_l
+                                       : 0.0;
+    rpl.target.delta_pos_rotor.r = std::isfinite(target_delta_pos_rotor_r)
+                                       ? target_delta_pos_rotor_r
+                                       : 0.0;
   }
 
   const auto target_vel_dif =
@@ -62,23 +59,21 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutPos(
   auto pm_cmd = *(j->pm_cmd_template_);
   pm_cmd.velocity = 0.0;
   pm_cmd.maximum_torque = cmd.max_trq;
-  // pm_cmd.velocity_limit = cmd.max_vel;
   pm_cmd.accel_limit = cmd.max_acc;
 
-  return {j->l_.MakePositionRelativeToRecent([&] {
-            auto cmd = pm_cmd;
-            cmd.position = target_delta_pos_rotor_l;
-            // cmd.position = 0.04 * target_vel_rotor_l;
-            cmd.velocity_limit = std::abs(target_vel_rotor_l);
-            return cmd;
-          }()),
-          j->r_.MakePositionRelativeToRecent([&] {
-            auto cmd = pm_cmd;
-            cmd.position = target_delta_pos_rotor_r;
-            // cmd.position = 0.04 * target_vel_rotor_r;
-            cmd.velocity_limit = std::abs(target_vel_rotor_r);
-            return cmd;
-          }())};
+  return {
+      j->l_.MakePositionRelativeToRecent([&] {
+        auto c = pm_cmd;
+        c.position = target_delta_pos_rotor_l;
+        c.velocity_limit = std::min(std::abs(target_vel_rotor_l), cmd.max_vel);
+        return c;
+      }()),
+      j->r_.MakePositionRelativeToRecent([&] {
+        auto c = pm_cmd;
+        c.position = target_delta_pos_rotor_r;
+        c.velocity_limit = std::min(std::abs(target_vel_rotor_r), cmd.max_vel);
+        return c;
+      }())};
 }
 
 }  // namespace gf3

@@ -55,14 +55,17 @@ class DifferentialJoint {
 
   struct Command {
     friend struct DifferentialJointFrameMakers;
-
     std::mutex mtx;
+
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
-    double pos_dif = 0.0;
-    double vel_dif = 0.0;
-    double pos_avg = 0.0;
-    double vel_avg = 0.0;
-    double max_trq = 32.0, max_vel = 32.0, max_acc = 32.0;
+
+    // Ensure min/max clamp for position, and non-negativeness for velocity,
+    // at time of reception from CommandReceivers.
+    double pos_dif;
+    double vel_dif;
+    double pos_avg;
+    double vel_avg;
+    double max_trq, max_vel, max_acc;  // of rotors.
     bool stop_pending = false;
     bool fix_pending = false;
     inline static const double damp_thr = 0.1;
@@ -74,10 +77,16 @@ class DifferentialJoint {
 
   struct Reply {
     std::mutex mtx;
-    double target_delta_pos_dif, target_delta_pos_avg;
-    double target_vel_dif, target_vel_avg;
-    double target_vel_rotor_l, target_vel_rotor_r;
+
     bool fixing;
+    union {
+      struct {
+        double l, r;
+      } delta_pos_rotor;
+      struct {
+        double l, r;
+      } vel_rotor;
+    } target;
   } rpl_;
 
   /////////////////////

@@ -75,6 +75,9 @@ class Servo : public Controller {
     last_rpl_time_ = utils::GetTime();
   }
 
+  std::mutex mtx_;
+
+ private:
   const int id_;
   const QFmt* const q_fmt_;
   double last_rpl_time_;
@@ -84,7 +87,6 @@ class Servo : public Controller {
                    // This field necessary in order to compare it
                    // to a new Reply to track aux2 revolutions.
   int aux2_revs_ = 0;
-  std::mutex mtx_;
 };
 
 }  // namespace gf3
