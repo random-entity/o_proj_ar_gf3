@@ -25,7 +25,7 @@ class UdpReplySender {
 
   union ServoRplSendBuf {
     struct Encoded {
-      uint8_t id;
+      uint8_t rid;
       uint8_t mode;
       uint8_t trajectory_complete;
       uint8_t fault;
@@ -45,7 +45,7 @@ class UdpReplySender {
 
   union SAJRplSendBuf {
     struct Encoded {
-      uint8_t suid;
+      uint8_t rid;
       uint8_t fixing;
       float target_rotor;
     } __attribute__((packed)) rpl;
@@ -54,7 +54,7 @@ class UdpReplySender {
 
   union DJRplSendBuf {
     struct Encoded {
-      uint8_t suid;
+      uint8_t rid;
       uint8_t fixing;
       float target_rotor_l;
       float target_rotor_r;
@@ -64,7 +64,7 @@ class UdpReplySender {
 
   union SAJCRRplSendBuf {
     struct Encoded {
-      uint8_t suid;
+      uint8_t rid;
       float pos_out;
       float vel_out;
       float max_trq, max_vel, max_acc;
@@ -74,7 +74,7 @@ class UdpReplySender {
 
   union DJCRRplSendBuf {
     struct Encoded {
-      uint8_t suid;
+      uint8_t rid;
       float pos_dif;
       float vel_dif;
       float pos_avg;
@@ -110,7 +110,7 @@ class UdpReplySender {
         rpl = servo->GetReplyAux2PositionUncoiled();
       }
       ServoRplSendBuf sbuf;
-      sbuf.rpl.id = static_cast<uint8_t>(id);
+      sbuf.rpl.rid = static_cast<uint8_t>(id);
       sbuf.rpl.mode = static_cast<uint8_t>(rpl.mode);
       sbuf.rpl.position = static_cast<float>(rpl.position);
       sbuf.rpl.velocity = static_cast<float>(rpl.velocity);
@@ -139,7 +139,7 @@ class UdpReplySender {
         SAJRplSendBuf sbuf;
         {
           std::lock_guard lock{rpl.mtx};
-          sbuf.rpl.suid = static_cast<uint8_t>(100 + suid);
+          sbuf.rpl.rid = static_cast<uint8_t>(100 + suid);
           sbuf.rpl.fixing = static_cast<uint8_t>(rpl.fixing);
           sbuf.rpl.target_rotor = static_cast<float>(
               j->cmd_.mode == SingleAxisJoint::Command::Mode::OutVel
@@ -154,7 +154,7 @@ class UdpReplySender {
         SAJCRRplSendBuf sbuf;
         {
           std::lock_guard lock{cmd.mtx};
-          sbuf.rpl.suid = static_cast<uint8_t>(200 + j->s_.GetId());
+          sbuf.rpl.rid = static_cast<uint8_t>(200 + suid);
           sbuf.rpl.pos_out = static_cast<float>(cmd.pos_out);
           sbuf.rpl.vel_out = static_cast<float>(cmd.vel_out);
           sbuf.rpl.max_trq = static_cast<float>(cmd.max_trq);
@@ -176,7 +176,7 @@ class UdpReplySender {
         DJRplSendBuf sbuf;
         {
           std::lock_guard lock{rpl.mtx};
-          sbuf.rpl.suid = static_cast<uint8_t>(100 + suid);
+          sbuf.rpl.rid = static_cast<uint8_t>(100 + suid);
           sbuf.rpl.fixing = static_cast<uint8_t>(rpl.fixing);
           sbuf.rpl.target_rotor_l = static_cast<float>(
               j->cmd_.mode == DifferentialJoint::Command::Mode::OutVel
@@ -195,7 +195,7 @@ class UdpReplySender {
         DJCRRplSendBuf sbuf;
         {
           std::lock_guard lock{cmd.mtx};
-          sbuf.rpl.suid = static_cast<uint8_t>(200 + j->l_.GetId());
+          sbuf.rpl.rid = static_cast<uint8_t>(200 + suid);
           sbuf.rpl.pos_dif = static_cast<float>(cmd.pos_dif);
           sbuf.rpl.vel_dif = static_cast<float>(cmd.vel_dif);
           sbuf.rpl.pos_avg = static_cast<float>(cmd.pos_avg);
