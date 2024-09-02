@@ -126,6 +126,8 @@ class DifferentialJoint {
         std::clamp(dj.cmd_.pos_dif, dj.min_pos_dif_, dj.max_pos_dif_);
     dj.cmd_.pos_avg =
         std::clamp(dj.cmd_.pos_avg, dj.min_pos_avg_, dj.max_pos_avg_);
+
+    dj.cmd_.received = true;
   }
 };
 

@@ -103,7 +103,7 @@ class UdpCommandReceiver {
       std::lock_guard lock{cmd.mtx};
 
       cmd.pos_out = std::clamp(static_cast<double>(rbuf.cmd.u.saj.pos_out),
-                               j->min_pos_, j->max_pos_);
+                               j->min_pos_out_, j->max_pos_out_);
       cmd.vel_out = std::abs(static_cast<double>(rbuf.cmd.u.saj.vel_out));
       cmd.max_trq = static_cast<double>(rbuf.cmd.u.saj.max_trq);
       cmd.max_vel = static_cast<double>(rbuf.cmd.u.saj.max_vel);

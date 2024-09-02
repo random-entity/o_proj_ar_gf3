@@ -27,8 +27,8 @@ class SingleAxisJoint {
                   const double& min_pos, const double& max_pos)
       : s_{id, bus, globals::transport, &globals::pm_fmt, &globals::q_fmt},
         r_{r},
-        min_pos_{min_pos},
-        max_pos_{max_pos},
+        min_pos_out_{min_pos},
+        max_pos_out_{max_pos},
         pm_cmd_template_{&globals::pm_cmd_template} {}
 
   /////////////////
@@ -74,7 +74,7 @@ class SingleAxisJoint {
   // Configurations: //
 
   const double r_;
-  const double min_pos_, max_pos_;
+  const double min_pos_out_, max_pos_out_;
   const PmCmd* const pm_cmd_template_;
 
   ////////////////////////////////////////
@@ -95,6 +95,13 @@ class SingleAxisJoint {
     j.at("max_trq").get_to(saj.cmd_.max_trq);
     j.at("max_vel").get_to(saj.cmd_.max_vel);
     j.at("max_acc").get_to(saj.cmd_.max_acc);
+
+    // For compatibility with poses saved before changing
+    // "where to clamp at" policy.
+    saj.cmd_.pos_out =
+        std::clamp(saj.cmd_.pos_out, saj.min_pos_out_, saj.max_pos_out_);
+
+    saj.cmd_.received = true;
   }
 };
 
