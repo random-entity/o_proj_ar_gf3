@@ -20,9 +20,10 @@
 #X obj 33 62 bng 28 250 50 0 empty empty 0 9 15 0 19 #faff00 #ff0400 #000000;
 #X obj 3 12 inlet;
 #X obj 33 12 inlet;
-#X obj 145 12 inlet;
-#X obj 180 12 inlet;
-#X obj 89 12 inlet;
+#X obj 195 12 inlet;
+#X obj 234 12 inlet;
+#X obj 129 12 inlet;
+#X obj 85 12 inlet;
 #X connect 0 0 2 0;
 #X connect 0 0 3 0;
 #X connect 1 0 0 0;
@@ -42,4 +43,5 @@
 #X connect 21 0 6 0;
 #X connect 22 0 9 0;
 #X connect 23 0 13 0;
+#X connect 24 0 1 0;
 #X coords 0 -1 1 1 132 310 2 0 50;

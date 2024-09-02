@@ -1,4 +1,4 @@
-#N canvas -10 1099 960 984 12;
+#N canvas -10 19 960 984 12;
 #X declare -path f2b2f;
 #X obj 6 27 r rplbytes;
 #X obj 653 203 b2f;
@@ -36,10 +36,8 @@
 #X text 607 396 outvel;
 #X obj 735 435 pack \$1 f f f f f f f f;
 #X obj 735 126 t b f;
-#X obj 6 50 spigot;
-#X obj 55 50 expr \$1 < 100;
 #X obj 735 458 s srpl;
-#X connect 0 0 36 0;
+#X connect 0 0 13 0;
 #X connect 2 0 35 0;
 #X connect 4 0 34 2;
 #X connect 5 0 34 3;
@@ -50,7 +48,6 @@
 #X connect 13 0 31 0;
 #X connect 25 0 27 0;
 #X connect 26 0 25 0;
-#X connect 26 0 37 0;
 #X connect 30 0 34 8;
 #X connect 31 0 2 0;
 #X connect 31 1 3 0;
@@ -92,9 +89,7 @@
 #X connect 31 37 30 1;
 #X connect 31 38 30 2;
 #X connect 31 39 30 3;
-#X connect 34 0 38 0;
+#X connect 34 0 36 0;
 #X connect 35 0 34 0;
 #X connect 35 1 34 1;
-#X connect 36 0 13 0;
-#X connect 37 0 36 1;
 #X coords 0 -1 1 1 133 296 1 600 125;
