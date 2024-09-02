@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 
   const std::string udp_rs_host = argc >= 3 ? argv[2] : "192.168.0.200";
   const int udp_rs_port = argc >= 4 ? std::stoi(argv[3]) : 5555;
-  const double udp_rs_period = argc >= 5 ? std::stod(argv[4]) : 1.0 / 24.0;
+  const double udp_rs_period = argc >= 5 ? std::stod(argv[4]) : 0.1;
   UdpReplySender udp_rs{gf3, udp_rs_host, udp_rs_port};
   if (!udp_rs.Setup()) return 1;
   std::thread udp_rs_thread{[&] {
