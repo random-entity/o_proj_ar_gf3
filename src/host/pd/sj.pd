@@ -21,11 +21,11 @@
 #X obj 110 48 r all_outpos0;
 #X obj 135 8 r all_outvel0;
 #X obj 103 861 t b f;
-#X obj 159 861 t b f;
-#X obj 198 861 t b f;
-#X obj 315 861 t b f;
-#X obj 354 861 t b f;
-#X obj 393 861 t b f;
+#X obj 169 861 t b f;
+#X obj 208 861 t b f;
+#X obj 323 861 t b f;
+#X obj 362 861 t b f;
+#X obj 401 861 t b f;
 #X obj 276 45 unpack f f f f f f f f;
 #X obj 461 459 r all_maxacc;
 #X floatatom 307 137 5 0 0 2 fault - - 0;
@@ -154,7 +154,7 @@
 #X connect 3 1 111 0;
 #X connect 4 1 115 0;
 #X connect 4 2 119 0;
-#X connect 4 3 124 0;
+#X connect 4 3 123 0;
 #X connect 5 0 28 0;
 #X connect 6 0 12 15;
 #X connect 6 1 12 16;
