@@ -62,6 +62,28 @@ class UdpReplySender {
     uint8_t raw_bytes[sizeof(rpl)];
   };
 
+  union SAJCRRplSendBuf {
+    struct Encoded {
+      uint8_t suid;
+      float pos_out;
+      float vel_out;
+      float max_trq, max_vel, max_acc;
+    } __attribute__((packed)) rpl;
+    uint8_t raw_bytes[sizeof(rpl)];
+  };
+
+  union DJCRRplSendBuf {
+    struct Encoded {
+      uint8_t suid;
+      float pos_dif;
+      float vel_dif;
+      float pos_avg;
+      float vel_avg;
+      float max_trq, max_vel, max_acc;
+    } __attribute__((packed)) rpl;
+    uint8_t raw_bytes[sizeof(rpl)];
+  };
+
  public:
   bool Setup() {
     cfg_.sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -111,43 +133,81 @@ class UdpReplySender {
     for (const auto& pair : gf3_.saj_map_) {
       const auto suid = pair.first;
       auto* j = pair.second;
+      auto& cmd = j->cmd_;
       auto& rpl = j->rpl_;
-      SAJRplSendBuf sbuf;
       {
-        std::lock_guard lock{rpl.mtx};
-        sbuf.rpl.suid = static_cast<uint8_t>(100 + suid);
-        sbuf.rpl.fixing = static_cast<uint8_t>(rpl.fixing);
-        sbuf.rpl.target_rotor = static_cast<float>(
-            j->cmd_.mode == SingleAxisJoint::Command::Mode::OutVel
-                ? rpl.target_rotor.vel
-                : rpl.target_rotor.delta_pos);
+        SAJRplSendBuf sbuf;
+        {
+          std::lock_guard lock{rpl.mtx};
+          sbuf.rpl.suid = static_cast<uint8_t>(100 + suid);
+          sbuf.rpl.fixing = static_cast<uint8_t>(rpl.fixing);
+          sbuf.rpl.target_rotor = static_cast<float>(
+              j->cmd_.mode == SingleAxisJoint::Command::Mode::OutVel
+                  ? rpl.target_rotor.vel
+                  : rpl.target_rotor.delta_pos);
+        }
+        sendto(cfg_.sock, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,
+               (struct sockaddr*)&(cfg_.addr), sizeof(cfg_.addr));
       }
 
-      sendto(cfg_.sock, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,
-             (struct sockaddr*)&(cfg_.addr), sizeof(cfg_.addr));
+      if (j->cmd_.received) {
+        SAJCRRplSendBuf sbuf;
+        {
+          std::lock_guard lock{cmd.mtx};
+          sbuf.rpl.suid = static_cast<uint8_t>(200 + j->s_.GetId());
+          sbuf.rpl.pos_out = static_cast<float>(cmd.pos_out);
+          sbuf.rpl.vel_out = static_cast<float>(cmd.vel_out);
+          sbuf.rpl.max_trq = static_cast<float>(cmd.max_trq);
+          sbuf.rpl.max_vel = static_cast<float>(cmd.max_vel);
+          sbuf.rpl.max_acc = static_cast<float>(cmd.max_acc);
+        }
+        sendto(cfg_.sock, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,
+               (struct sockaddr*)&(cfg_.addr), sizeof(cfg_.addr));
+        j->cmd_.received = false;
+      }
     }
 
     for (const auto& pair : gf3_.dj_map_) {
       const auto suid = pair.first;
       auto* j = pair.second;
+      auto& cmd = j->cmd_;
       auto& rpl = j->rpl_;
-      DJRplSendBuf sbuf;
       {
-        std::lock_guard lock{rpl.mtx};
-        sbuf.rpl.suid = static_cast<uint8_t>(100 + suid);
-        sbuf.rpl.fixing = static_cast<uint8_t>(rpl.fixing);
-        sbuf.rpl.target_rotor_l = static_cast<float>(
-            j->cmd_.mode == DifferentialJoint::Command::Mode::OutVel
-                ? rpl.target.vel_rotor.l
-                : rpl.target.delta_pos_rotor.l);
-        sbuf.rpl.target_rotor_r = static_cast<float>(
-            j->cmd_.mode == DifferentialJoint::Command::Mode::OutVel
-                ? rpl.target.vel_rotor.r
-                : rpl.target.delta_pos_rotor.r);
+        DJRplSendBuf sbuf;
+        {
+          std::lock_guard lock{rpl.mtx};
+          sbuf.rpl.suid = static_cast<uint8_t>(100 + suid);
+          sbuf.rpl.fixing = static_cast<uint8_t>(rpl.fixing);
+          sbuf.rpl.target_rotor_l = static_cast<float>(
+              j->cmd_.mode == DifferentialJoint::Command::Mode::OutVel
+                  ? rpl.target.vel_rotor.l
+                  : rpl.target.delta_pos_rotor.l);
+          sbuf.rpl.target_rotor_r = static_cast<float>(
+              j->cmd_.mode == DifferentialJoint::Command::Mode::OutVel
+                  ? rpl.target.vel_rotor.r
+                  : rpl.target.delta_pos_rotor.r);
+        }
+        sendto(cfg_.sock, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,
+               (struct sockaddr*)&(cfg_.addr), sizeof(cfg_.addr));
       }
 
-      sendto(cfg_.sock, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,
-             (struct sockaddr*)&(cfg_.addr), sizeof(cfg_.addr));
+      if (j->cmd_.received) {
+        DJCRRplSendBuf sbuf;
+        {
+          std::lock_guard lock{cmd.mtx};
+          sbuf.rpl.suid = static_cast<uint8_t>(200 + j->l_.GetId());
+          sbuf.rpl.pos_dif = static_cast<float>(cmd.pos_dif);
+          sbuf.rpl.vel_dif = static_cast<float>(cmd.vel_dif);
+          sbuf.rpl.pos_avg = static_cast<float>(cmd.pos_avg);
+          sbuf.rpl.vel_avg = static_cast<float>(cmd.vel_avg);
+          sbuf.rpl.max_trq = static_cast<float>(cmd.max_trq);
+          sbuf.rpl.max_vel = static_cast<float>(cmd.max_vel);
+          sbuf.rpl.max_acc = static_cast<float>(cmd.max_acc);
+        }
+        sendto(cfg_.sock, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,
+               (struct sockaddr*)&(cfg_.addr), sizeof(cfg_.addr));
+        j->cmd_.received = false;
+      }
     }
   }
 

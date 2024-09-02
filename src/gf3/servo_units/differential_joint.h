@@ -56,6 +56,7 @@ class DifferentialJoint {
   struct Command {
     friend struct DifferentialJointFrameMakers;
     std::mutex mtx;
+    bool received;
 
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
@@ -118,6 +119,13 @@ class DifferentialJoint {
     j.at("max_trq").get_to(dj.cmd_.max_trq);
     j.at("max_vel").get_to(dj.cmd_.max_vel);
     j.at("max_acc").get_to(dj.cmd_.max_acc);
+
+    // For compatibility with poses saved before changing
+    // "where to clamp at" policy.
+    dj.cmd_.pos_dif =
+        std::clamp(dj.cmd_.pos_dif, dj.min_pos_dif_, dj.max_pos_dif_);
+    dj.cmd_.pos_avg =
+        std::clamp(dj.cmd_.pos_avg, dj.min_pos_avg_, dj.max_pos_avg_);
   }
 };
 

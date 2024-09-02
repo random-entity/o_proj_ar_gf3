@@ -99,7 +99,16 @@ class UdpCommandReceiver {
       auto* j = maybe_saj.value();
       auto& cmd = j->cmd_;
       using M = SingleAxisJoint::Command::Mode;
+
       std::lock_guard lock{cmd.mtx};
+
+      cmd.pos_out = std::clamp(static_cast<double>(rbuf.cmd.u.saj.pos_out),
+                               j->min_pos_, j->max_pos_);
+      cmd.vel_out = std::abs(static_cast<double>(rbuf.cmd.u.saj.vel_out));
+      cmd.max_trq = static_cast<double>(rbuf.cmd.u.saj.max_trq);
+      cmd.max_vel = static_cast<double>(rbuf.cmd.u.saj.max_vel);
+      cmd.max_acc = static_cast<double>(rbuf.cmd.u.saj.max_acc);
+
       cmd.mode = static_cast<M>(rbuf.cmd.mode);
       switch (cmd.mode) {
         case M::Stop: {
@@ -108,18 +117,12 @@ class UdpCommandReceiver {
         case M::Fix: {
           cmd.fix_pending = true;
         } break;
-        case M::OutPos:
-        case M::OutVel: {
-          cmd.pos_out = std::clamp(static_cast<double>(rbuf.cmd.u.saj.pos_out),
-                               j->min_pos_, j->max_pos_);
-          cmd.vel_out = std::abs(static_cast<double>(rbuf.cmd.u.saj.vel_out));
-          cmd.max_trq = static_cast<double>(rbuf.cmd.u.saj.max_trq);
-          cmd.max_vel = static_cast<double>(rbuf.cmd.u.saj.max_vel);
-          cmd.max_acc = static_cast<double>(rbuf.cmd.u.saj.max_acc);
-        } break;
         default:
           break;
       }
+
+      cmd.received = true;
+
       return;
     }
 
@@ -128,7 +131,19 @@ class UdpCommandReceiver {
       auto* j = maybe_dj.value();
       auto& cmd = j->cmd_;
       using M = DifferentialJoint::Command::Mode;
+
       std::lock_guard lock{cmd.mtx};
+
+      cmd.pos_dif = std::clamp(static_cast<double>(rbuf.cmd.u.dj.pos_dif),
+                               j->min_pos_dif_, j->max_pos_dif_);
+      cmd.vel_dif = std::abs(static_cast<double>(rbuf.cmd.u.dj.vel_dif));
+      cmd.pos_avg = std::clamp(static_cast<double>(rbuf.cmd.u.dj.pos_avg),
+                               j->min_pos_avg_, j->max_pos_avg_);
+      cmd.vel_avg = std::abs(static_cast<double>(rbuf.cmd.u.dj.vel_avg));
+      cmd.max_trq = static_cast<double>(rbuf.cmd.u.dj.max_trq);
+      cmd.max_vel = static_cast<double>(rbuf.cmd.u.dj.max_vel);
+      cmd.max_acc = static_cast<double>(rbuf.cmd.u.dj.max_acc);
+
       cmd.mode = static_cast<M>(rbuf.cmd.mode);
       switch (cmd.mode) {
         case M::Stop: {
@@ -137,21 +152,12 @@ class UdpCommandReceiver {
         case M::Fix: {
           cmd.fix_pending = true;
         } break;
-        case M::OutPos:
-        case M::OutVel: {
-          cmd.pos_dif = std::clamp(static_cast<double>(rbuf.cmd.u.dj.pos_dif),
-                                   j->min_pos_dif_, j->max_pos_dif_);
-          cmd.vel_dif = std::abs(static_cast<double>(rbuf.cmd.u.dj.vel_dif));
-          cmd.pos_avg = std::clamp(static_cast<double>(rbuf.cmd.u.dj.pos_avg),
-                                   j->min_pos_avg_, j->max_pos_avg_);
-          cmd.vel_avg = std::abs(static_cast<double>(rbuf.cmd.u.dj.vel_avg));
-          cmd.max_trq = static_cast<double>(rbuf.cmd.u.dj.max_trq);
-          cmd.max_vel = static_cast<double>(rbuf.cmd.u.dj.max_vel);
-          cmd.max_acc = static_cast<double>(rbuf.cmd.u.dj.max_acc);
-        } break;
         default:
           break;
       }
+
+      cmd.received = true;
+
       return;
     }
   }

@@ -42,6 +42,7 @@ class SingleAxisJoint {
   struct Command {
     friend struct SingleAxisJointFrameMakers;
     std::mutex mtx;
+    bool received;
 
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
