@@ -42,7 +42,7 @@ class SingleAxisJoint {
   struct Command {
     friend struct SingleAxisJointFrameMakers;
     std::mutex mtx;
-    bool received;
+    bool loaded;
 
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
@@ -101,7 +101,7 @@ class SingleAxisJoint {
     saj.cmd_.pos_out =
         std::clamp(saj.cmd_.pos_out, saj.min_pos_out_, saj.max_pos_out_);
 
-    saj.cmd_.received = true;
+    saj.cmd_.loaded = true;
   }
 };
 

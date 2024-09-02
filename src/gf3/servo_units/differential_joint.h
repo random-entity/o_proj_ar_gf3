@@ -56,7 +56,7 @@ class DifferentialJoint {
   struct Command {
     friend struct DifferentialJointFrameMakers;
     std::mutex mtx;
-    bool received;
+    bool loaded;
 
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 
@@ -127,7 +127,7 @@ class DifferentialJoint {
     dj.cmd_.pos_avg =
         std::clamp(dj.cmd_.pos_avg, dj.min_pos_avg_, dj.max_pos_avg_);
 
-    dj.cmd_.received = true;
+    dj.cmd_.loaded = true;
   }
 };
 

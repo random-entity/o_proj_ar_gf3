@@ -121,8 +121,6 @@ class UdpCommandReceiver {
           break;
       }
 
-      cmd.received = true;
-
       return;
     }
 
@@ -155,8 +153,6 @@ class UdpCommandReceiver {
         default:
           break;
       }
-
-      cmd.received = true;
 
       return;
     }

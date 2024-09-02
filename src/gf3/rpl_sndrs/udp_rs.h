@@ -150,7 +150,7 @@ class UdpReplySender {
                (struct sockaddr*)&(cfg_.addr), sizeof(cfg_.addr));
       }
 
-      if (j->cmd_.received) {
+      if (j->cmd_.loaded) {
         SAJCRRplSendBuf sbuf;
         {
           std::lock_guard lock{cmd.mtx};
@@ -163,7 +163,7 @@ class UdpReplySender {
         }
         sendto(cfg_.sock, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,
                (struct sockaddr*)&(cfg_.addr), sizeof(cfg_.addr));
-        j->cmd_.received = false;
+        j->cmd_.loaded = false;
       }
     }
 
@@ -191,7 +191,7 @@ class UdpReplySender {
                (struct sockaddr*)&(cfg_.addr), sizeof(cfg_.addr));
       }
 
-      if (j->cmd_.received) {
+      if (j->cmd_.loaded) {
         DJCRRplSendBuf sbuf;
         {
           std::lock_guard lock{cmd.mtx};
@@ -206,7 +206,7 @@ class UdpReplySender {
         }
         sendto(cfg_.sock, static_cast<void*>(sbuf.raw_bytes), sizeof(sbuf), 0,
                (struct sockaddr*)&(cfg_.addr), sizeof(cfg_.addr));
-        j->cmd_.received = false;
+        j->cmd_.loaded = false;
       }
     }
   }
