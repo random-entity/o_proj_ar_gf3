@@ -21,6 +21,10 @@ std::shared_ptr<Transport> transport{[] {
 #endif
 }()};
 
+const uint8_t bus_leftarm = 1;
+const uint8_t bus_rightarm = 2;
+const uint8_t bus_neck = 3;
+
 const PmFmt pm_fmt{.position = kFloat,
                    .velocity = kFloat,
                    .feedforward_torque = kIgnore,

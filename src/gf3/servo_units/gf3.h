@@ -21,39 +21,41 @@ namespace gf3 {
 // | DifferentialJoint | RightElbow      | 10 | 11 | 10   |
 // | SingleAxisJoint   | RightWrist      | 12      | 12   |
 // | DifferentialJoint | Neck            | 13 | 14 | 13   |
+// | Hands             | Hands           | -       | 255  |
 // --------------------------------------------------------
 
 class GF3 {
  public:
   GF3()
-      : l_shoulder_z_{1, 1, r_.sz, mm_.lszmin, mm_.lszmax},
+      : l_shoulder_z_{1, globals::bus_leftarm, r_.sz, mm_.lszmin, mm_.lszmax},
         l_shoulder_xy_{2,
                        3,
-                       1,
+                       globals::bus_leftarm,
                        r_.sxyd,
                        r_.sxya,
                        mm_.lsxydmin,
                        mm_.lsxydmax,
                        mm_.lsxyamin,
                        mm_.lsxyamax},
-        l_elbow_{4,          5,          1,          r_.ed,     r_.ea,
-                 mm_.ledmin, mm_.ledmax, mm_.leamin, mm_.leamax},
-        l_wrist_{6, 1, r_.wr, mm_.lwrmin, mm_.lwrmax},
-        r_shoulder_z_{7, 4, r_.sz, mm_.rszmin, mm_.rszmax},
+        l_elbow_{4,          5,          globals::bus_leftarm, r_.ed,     r_.ea,
+                 mm_.ledmin, mm_.ledmax, mm_.leamin,           mm_.leamax},
+        l_wrist_{6, globals::bus_leftarm, r_.wr, mm_.lwrmin, mm_.lwrmax},
+        r_shoulder_z_{7, globals::bus_rightarm, r_.sz, mm_.rszmin, mm_.rszmax},
         r_shoulder_xy_{8,
                        9,
-                       4,
+                       globals::bus_rightarm,
                        r_.sxyd,
                        r_.sxya,
                        mm_.rsxydmin,
                        mm_.rsxydmax,
                        mm_.rsxyamin,
                        mm_.rsxyamax},
-        r_elbow_{10,         11,         4,          r_.ed,     r_.ea,
-                 mm_.redmin, mm_.redmax, mm_.reamin, mm_.reamax},
-        r_wrist_{12, 4, r_.wr, mm_.rwrmin, mm_.rwrmax},
-        neck_{13,        14,        3,         r_.nd,    r_.na,
-              mm_.ndmin, mm_.ndmax, mm_.namin, mm_.namax},
+        r_elbow_{10,         11,         globals::bus_rightarm,
+                 r_.ed,      r_.ea,      mm_.redmin,
+                 mm_.redmax, mm_.reamin, mm_.reamax},
+        r_wrist_{12, globals::bus_rightarm, r_.wr, mm_.rwrmin, mm_.rwrmax},
+        neck_{13,        14,        globals::bus_neck, r_.nd,    r_.na,
+              mm_.ndmin, mm_.ndmax, mm_.namin,         mm_.namax},
         saj_set_{&l_shoulder_z_, &l_wrist_, &r_shoulder_z_, &r_wrist_},
         saj_map_{[&] {
           std::map<int, SingleAxisJoint*> js;
