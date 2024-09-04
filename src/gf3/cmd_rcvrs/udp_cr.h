@@ -99,26 +99,7 @@ class UdpCommandReceiver {
 
     if (suid == 255) {  // Hand Command:
                         // Just forward to Pimoroni Servo 2040 hands driver.
-      // Send the start byte.
-      ssize_t n = write(gf3_.hands_.fd_, &rbuf.cmd.suid, sizeof(rbuf.cmd.suid));
-      if (n < 0) {
-        std::cerr << "Error writing start byte to serial port: "
-                  << strerror(errno) << std::endl;
-      } else if (n != sizeof(rbuf.cmd.suid)) {
-        std::cerr << "Warning: Partial write of start byte to serial port"
-                  << std::endl;
-      }
-
-      // Send the 10 uint8_t values.
-      n = write(gf3_.hands_.fd_, &rbuf.cmd.u.hands, sizeof(rbuf.cmd.u.hands));
-      if (n < 0) {
-        std::cerr << "Error writing hands data to serial port: "
-                  << strerror(errno) << std::endl;
-      } else if (n != sizeof(rbuf.cmd.u.hands)) {
-        std::cerr << "Warning: Partial write of hands data to serial port"
-                  << std::endl;
-      }
-
+      gf3_.hands_.Send(&rbuf.cmd.suid, rbuf.cmd.u.hands.fingers);
       return;
     }
 
