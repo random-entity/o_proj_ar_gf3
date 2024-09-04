@@ -67,4 +67,3 @@ sleep 0.1
 moteus_tool --pi3hat-cfg '3=13,14' -t 13,14 --write-config slip_neck.cfg
 sleep 0.1
 moteus_tool --pi3hat-cfg '3=13,14' -t 13,14 --write-config conf-write.cfg
-sleep 0.1
