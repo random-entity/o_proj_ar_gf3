@@ -48,9 +48,9 @@ class SingleAxisJoint {
 
     // Ensure min/max clamp for position, and non-negativeness for velocity,
     // at time of reception from CommandReceivers.
-    double pos_out;
-    double vel_out;
-    double max_trq, max_vel, max_acc;  // of rotor.
+    double pos_out = 0.0;
+    double vel_out = 0.1;
+    double max_trq = 16.0, max_vel = 16.0, max_acc = 16.0;  // of rotor.
     bool stop_pending = false;
     bool fix_pending = false;
     inline static const double damp_thr = 0.1;
