@@ -4,7 +4,7 @@
 #X declare -path timseq;
 #X obj 1428 822 bng 120 250 50 0 empty empty STOP 0 61 0 50 #ff0400 #00faff #000000;
 #X obj 1419 469 md;
-#X obj 0 -2 declare -path f2b2f;
+#X obj 1 1 declare -path f2b2f;
 #X obj 1577 470 mtva;
 #X obj 1207 1317 sj 1;
 #X obj 1628 1317 sj 7;
@@ -161,8 +161,8 @@
 #X obj 1926 784 & 255;
 #X obj 1889 826 t f f;
 #X msg 1808 264 connect 192.168.0.9 7777;
-#X obj 118 -2 declare -path queuestream;
-#X obj 272 -2 declare -path timseq;
+#X obj 119 1 declare -path queuestream;
+#X obj 273 1 declare -path timseq;
 #X obj 1926 826 s cuebytes;
 #X obj 1814 335 r cuebytes;
 #X connect 0 0 1 0;
