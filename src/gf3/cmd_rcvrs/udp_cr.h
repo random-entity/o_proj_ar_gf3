@@ -50,6 +50,9 @@ class UdpCommandReceiver {
           float max_vel;
           float max_acc;
         } __attribute__((packed)) dj;
+        struct {
+          uint8_t fingers[10];
+        } __attribute__((packed)) hands;
       } u;
     } __attribute__((packed)) cmd;
     uint8_t raw_bytes[sizeof(cmd)];
@@ -84,9 +87,9 @@ class UdpCommandReceiver {
       return;
     }
 
-    const auto id = static_cast<int>(rbuf.cmd.suid);
+    const auto suid = static_cast<int>(rbuf.cmd.suid);
 
-    if (id == 0) {  // GF3-level Command
+    if (suid == 0) {  // GF3-level Command
       std::lock_guard lock{gf3_.cmd_.mtx};
       gf3_.cmd_.oneshots = rbuf.cmd.oneshots;
       gf3_.cmd_.read.fileindex = rbuf.cmd.u.gf3.read_file_index;
@@ -94,7 +97,32 @@ class UdpCommandReceiver {
       return;
     }
 
-    const auto maybe_saj = utils::SafeAt(gf3_.saj_map_, id);
+    if (suid == 255) {  // Hand Command:
+                        // Just forward to Pimoroni Servo 2040 hands driver.
+      // Send the start byte.
+      ssize_t n = write(gf3_.hands_.fd_, &rbuf.cmd.suid, sizeof(rbuf.cmd.suid));
+      if (n < 0) {
+        std::cerr << "Error writing start byte to serial port: "
+                  << strerror(errno) << std::endl;
+      } else if (n != sizeof(rbuf.cmd.suid)) {
+        std::cerr << "Warning: Partial write of start byte to serial port"
+                  << std::endl;
+      }
+
+      // Send the 10 uint8_t values.
+      n = write(gf3_.hands_.fd_, &rbuf.cmd.u.hands, sizeof(rbuf.cmd.u.hands));
+      if (n < 0) {
+        std::cerr << "Error writing hands data to serial port: "
+                  << strerror(errno) << std::endl;
+      } else if (n != sizeof(rbuf.cmd.u.hands)) {
+        std::cerr << "Warning: Partial write of hands data to serial port"
+                  << std::endl;
+      }
+
+      return;
+    }
+
+    const auto maybe_saj = utils::SafeAt(gf3_.saj_map_, suid);
     if (maybe_saj) {  // SingleAxisJoint Command
       auto* j = maybe_saj.value();
       auto& cmd = j->cmd_;
@@ -124,7 +152,7 @@ class UdpCommandReceiver {
       return;
     }
 
-    const auto maybe_dj = utils::SafeAt(gf3_.dj_map_, id);
+    const auto maybe_dj = utils::SafeAt(gf3_.dj_map_, suid);
     if (maybe_dj) {  // DifferentialJoint Command
       auto* j = maybe_dj.value();
       auto& cmd = j->cmd_;

@@ -1,11 +1,14 @@
 #pragma once
 
+#include <fcntl.h>
 #include <sys/mman.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <iterator>

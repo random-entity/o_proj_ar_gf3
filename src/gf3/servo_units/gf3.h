@@ -1,6 +1,7 @@
 #pragma once
 
 #include "differential_joint.h"
+#include "hands.h"
 #include "single_axis_joint.h"
 
 namespace gf3 {
@@ -56,6 +57,7 @@ class GF3 {
         r_wrist_{12, globals::bus_rightarm, r_.wr, mm_.rwrmin, mm_.rwrmax},
         neck_{13,        14,        globals::bus_neck, r_.nd,    r_.na,
               mm_.ndmin, mm_.ndmax, mm_.namin,         mm_.namax},
+        hands_{"/dev/servo2040", 115200},
         saj_set_{&l_shoulder_z_, &l_wrist_, &r_shoulder_z_, &r_wrist_},
         saj_map_{[&] {
           std::map<int, SingleAxisJoint*> js;
@@ -95,6 +97,7 @@ class GF3 {
   DifferentialJoint r_elbow_;
   SingleAxisJoint r_wrist_;
   DifferentialJoint neck_;
+  Hands hands_;
 
   ///////////////////////////
   // Component containers: //

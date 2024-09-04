@@ -1,0 +1,4 @@
+# Rule to create a consistent symbolic link for Pimoroni Servo 2040
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="0005", ATTRS{serial}=="e6609103c33da52a", SYMLINK+="servo2040"
+
+# Copy this file to /etc/udev/rules.d/
