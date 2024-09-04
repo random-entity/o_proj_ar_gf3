@@ -30,21 +30,19 @@ int main(int argc, char** argv) {
   const double udp_rs_period = argc >= 5 ? std::stod(argv[4]) : 0.1;
   UdpReplySender udp_rs{gf3, udp_rs_host, udp_rs_port};
   if (!udp_rs.Setup()) return 1;
-  std::thread udp_rs_thread{[&] {
-    utils::Beat udp_rs_beat{udp_rs_period};
-    while (1) {
-      if (udp_rs_beat.Hit()) udp_rs.Run();
-    }
-  }};
+  utils::Beat udp_rs_beat{udp_rs_period};
 
   const double executer_period = argc >= 6 ? std::stod(argv[5]) : 0.01;
   utils::Beat executer_beat{executer_period};
+
   while (1) {
-    if (executer_beat.Hit()) executer.Run();
+    if (executer_beat.Hit()) {
+      executer.Run();
+      if (udp_rs_beat.Hit()) udp_rs.Run();
+    }
   }
 
   udp_cr_thread.join();
-  udp_rs_thread.join();
 
   return 0;
 }

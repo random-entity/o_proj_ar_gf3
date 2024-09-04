@@ -14,14 +14,6 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
 
   double target_vel_rotor;
 
-  if (cmd.loaded && j->s_.GetId() == 1) {
-    std::cout << "Pose loaded" << std::endl;
-    std::cout << "SUID = " << j->s_.GetId() << std::endl;
-    std::cout << "target_pos_out = " << target_pos_out << std::endl;
-    std::cout << "cur_pos_out = " << cur_pos_out << std::endl;
-    std::cout << "target_delta_pos_out = " << target_delta_pos_out << std::endl;
-  }
-
   if (std::abs(target_delta_pos_out) >= cmd.fix_thr) {
     const auto target_vel_out =
         cmd.vel_out *
@@ -39,11 +31,6 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
     std::lock_guard lock{rpl.mtx};
     rpl.fixing = cmd.fixing;
     rpl.target_rotor.vel = target_vel_rotor;
-  }
-
-  if (cmd.loaded) {
-    std::cout << "cmd.fixing = " << cmd.fixing << std::endl;
-    std::cout << "target_vel_rotor = " << target_vel_rotor << std::endl;
   }
 
   auto pm_cmd = *(j->pm_cmd_template_);
