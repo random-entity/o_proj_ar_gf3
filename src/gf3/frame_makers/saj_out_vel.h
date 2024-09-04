@@ -34,14 +34,15 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
     return {};
   }
 
-  if (cmd.loaded) {
-    std::cout << "cmd.fixing = " << cmd.fixing << std::endl;
-  }
-
   {
     std::lock_guard lock{rpl.mtx};
     rpl.fixing = cmd.fixing;
     rpl.target_rotor.vel = target_vel_rotor;
+  }
+
+  if (cmd.loaded) {
+    std::cout << "cmd.fixing = " << cmd.fixing << std::endl;
+    std::cout << "target_vel_rotor = " << target_vel_rotor << std::endl;
   }
 
   auto pm_cmd = *(j->pm_cmd_template_);
