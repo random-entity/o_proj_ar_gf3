@@ -34,6 +34,10 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
     return {};
   }
 
+  if (cmd.loaded) {
+    std::cout << "cmd.fixing = " << cmd.fixing << std::endl;
+  }
+
   {
     std::lock_guard lock{rpl.mtx};
     rpl.fixing = cmd.fixing;
