@@ -1,4 +1,4 @@
-#N canvas 950 19 960 984 12;
+#N canvas 0 27 1920 984 12;
 #X declare -path f2b2f;
 #X declare -path queuestream;
 #X obj 51 119 cnv 20 618 311 empty empty DifferentialJoint 45 -9 0 16 #f3e6f0 #000000 0;
@@ -519,5 +519,4 @@
 #X connect 206 0 197 0;
 #X connect 206 0 201 0;
 #X connect 206 0 205 0;
-#X connect 206 0 204 0;
 #X coords 0 -1 1 1 620 331 1 50 100;
