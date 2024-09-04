@@ -82,6 +82,18 @@ class Executer {
               << " NOT registered to SingleAxisJointFrameMakers::frame_makers."
               << std::endl;
         }
+
+        if (j->cmd_.loaded && j->s_.GetId() == 1) {
+          std::cout << "Executer: SUID = " << j->s_.GetId() << std::endl;
+          std::cout << "command_frames.size() = " << command_frames.size()
+                    << std::endl;
+          for (auto i : command_frames.back().data) {
+            std::cout << std::hex << std::setw(2) << std::setfill('0')
+                      << static_cast<int>(i);
+          }
+          std::cout << std::endl;
+        }
+
         continue;
       }
 

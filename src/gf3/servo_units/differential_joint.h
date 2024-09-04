@@ -56,7 +56,7 @@ class DifferentialJoint {
   struct Command {
     friend struct DifferentialJointFrameMakers;
     std::mutex mtx;
-    bool loaded;
+    bool loaded = false;
 
     enum class Mode : uint8_t { Stop, OutPos, OutVel, Fix } mode = Mode::Stop;
 

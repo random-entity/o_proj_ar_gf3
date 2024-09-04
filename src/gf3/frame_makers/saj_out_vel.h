@@ -14,8 +14,9 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
 
   double target_vel_rotor;
 
-  if (cmd.loaded) {
+  if (cmd.loaded && j->s_.GetId() == 1) {
     std::cout << "Pose loaded" << std::endl;
+    std::cout << "SUID = " << j->s_.GetId() << std::endl;
     std::cout << "target_pos_out = " << target_pos_out << std::endl;
     std::cout << "cur_pos_out = " << cur_pos_out << std::endl;
     std::cout << "target_delta_pos_out = " << target_delta_pos_out << std::endl;
