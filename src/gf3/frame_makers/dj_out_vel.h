@@ -26,13 +26,13 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
     const auto target_vel_dif =
         cmd.vel_dif *
         std::clamp(target_delta_pos_dif / cmd.damp_thr, -1.0, 1.0)
-        // Temp 0.75x speed for demonstration to Noam
-        * 0.75;
+        // Temp low speed for demonstration to Noam
+        * 0.675;
     const auto target_vel_avg =
         cmd.vel_avg *
         std::clamp(target_delta_pos_avg / cmd.damp_thr, -1.0, 1.0)
-        // Temp 0.75x speed for demonstration to Noam
-        * 0.75;
+        // Temp low speed for demonstration to Noam
+        * 0.675;
     target_vel_rotor_l =
         j->r_avg_ * target_vel_avg + j->r_dif_ * target_vel_dif;
     target_vel_rotor_r =

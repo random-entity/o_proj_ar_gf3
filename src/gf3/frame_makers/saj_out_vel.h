@@ -18,8 +18,8 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
     const auto target_vel_out =
         cmd.vel_out *
         std::clamp(target_delta_pos_out / cmd.damp_thr, -1.0, 1.0)
-        // Temp 0.75x speed for demonstration to Noam
-        * 0.75;
+        // Temp low speed for demonstration to Noam
+        * 0.675;
     target_vel_rotor = j->r_ * target_vel_out;
     cmd.fixing = false;
   } else if (!cmd.fixing) {
