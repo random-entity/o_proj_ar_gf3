@@ -42,7 +42,7 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
   pm_cmd.velocity_limit = cmd.max_vel;
   // pm_cmd.accel_limit = cmd.max_acc;
   // Temp low accel for testing motion aesthetics
-  pm_cmd.accel_limit = 1.0;
+  pm_cmd.accel_limit = 2.0;
 
   return {j->s_.MakePosition(pm_cmd)};
 }

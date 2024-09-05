@@ -59,7 +59,7 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
   pm_cmd.velocity_limit = cmd.max_vel;
   // pm_cmd.accel_limit = cmd.max_acc;
   // Temp low accel for testing motion aesthetics
-  pm_cmd.accel_limit = 1.0;
+  pm_cmd.accel_limit = 2.0;
 
   return {j->l_.MakePosition([&] {
             auto cmd = pm_cmd;
