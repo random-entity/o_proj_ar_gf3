@@ -166,7 +166,8 @@
 #X obj 1892 376 print cuebytes;
 #X obj 1890 805 - 50000;
 #X obj 1797 853 t b b;
-#X obj 1546 570 vsl 16 180 0 0.5 0 1 empty empty empty -1 -8 0 10 #c6ffc7 #000000 #000000 12415 1;
+#X obj 1546 570 vsl 16 180 0 0.5 0 1 empty empty empty -1 -8 0 10 #c6ffc7 #000000 #000000 3580 1;
+#X floatatom 1490 794 9 0 0 0 - - - 0;
 #X connect 0 0 1 0;
 #X connect 1 0 57 0;
 #X connect 1 1 69 0;
@@ -274,3 +275,4 @@
 #X connect 163 0 90 0;
 #X connect 163 1 55 0;
 #X connect 164 0 95 0;
+#X connect 164 0 165 0;
