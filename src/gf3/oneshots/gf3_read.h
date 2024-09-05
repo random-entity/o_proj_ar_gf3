@@ -12,6 +12,8 @@ void GF3Oneshots::Read(GF3* gf3) {
     infile >> j;
     from_json(j, *gf3);
     infile.close();
+
+    std::cout << "Loaded pose " << gf3->cmd_.read.fileindex << std::endl;
   } else {
     std::cerr << "Error opening file for reading." << std::endl;
   }

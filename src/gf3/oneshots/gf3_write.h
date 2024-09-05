@@ -11,6 +11,8 @@ void GF3Oneshots::Write(GF3* gf3) {
   if (outfile.is_open()) {
     outfile << j.dump(4);
     outfile.close();
+
+    std::cout << "Saved pose " << gf3->cmd_.write.fileindex << std::endl;
   } else {
     std::cerr << "Error opening file for writing." << std::endl;
   }
