@@ -1,5 +1,5 @@
 # Rule to create a consistent symbolic link for Pimoroni Servo 2040
-SUBSYSTEM=="tty", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="0005", ATTRS{serial}=="e6609103c33da52a", SYMLINK+="servo2040_l"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2e8a", ATTRS{idProduct}=="000a", ATTRS{serial}=="E6609103C3839736", SYMLINK+="servo2040_l"
 
 # Find the temporary serial port with `ls /dev/ttyACM*`
 # Find the values for {idVendor} = ID_VENDOR_ID; {idProduct} = ID_MODEL_ID; {serial} = ID_SERIAL_SHORT;
