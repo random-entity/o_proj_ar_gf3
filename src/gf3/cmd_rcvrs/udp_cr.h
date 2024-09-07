@@ -88,6 +88,7 @@ class UdpCommandReceiver {
     }
 
     const auto suid = static_cast<int>(rbuf.cmd.suid);
+    std::cout << "Got UDP packet, first byte = " << suid << std::endl;
 
     if (suid == 0) {  // GF3-level Command
       std::lock_guard lock{gf3_.cmd_.mtx};
