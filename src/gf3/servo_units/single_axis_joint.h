@@ -92,9 +92,11 @@ class SingleAxisJoint {
   friend void from_json(const json& j, SingleAxisJoint& saj) {
     j.at("pos_out").get_to(saj.cmd_.pos_out);
     j.at("vel_out").get_to(saj.cmd_.vel_out);
-    j.at("max_trq").get_to(saj.cmd_.max_trq);
-    j.at("max_vel").get_to(saj.cmd_.max_vel);
-    j.at("max_acc").get_to(saj.cmd_.max_acc);
+    // Ignore maxtva values in pose files since some are corrupt.
+    // Maintain the default values instead.
+    // j.at("max_trq").get_to(saj.cmd_.max_trq);
+    // j.at("max_vel").get_to(saj.cmd_.max_vel);
+    // j.at("max_acc").get_to(saj.cmd_.max_acc);
 
     // For compatibility with poses saved before changing
     // "where to clamp at" policy.

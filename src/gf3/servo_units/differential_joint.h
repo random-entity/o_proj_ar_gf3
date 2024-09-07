@@ -116,9 +116,11 @@ class DifferentialJoint {
     j.at("vel_dif").get_to(dj.cmd_.vel_dif);
     j.at("pos_avg").get_to(dj.cmd_.pos_avg);
     j.at("vel_avg").get_to(dj.cmd_.vel_avg);
-    j.at("max_trq").get_to(dj.cmd_.max_trq);
-    j.at("max_vel").get_to(dj.cmd_.max_vel);
-    j.at("max_acc").get_to(dj.cmd_.max_acc);
+    // Ignore maxtva values in pose files since some are corrupt.
+    // Maintain the default values instead.
+    // j.at("max_trq").get_to(dj.cmd_.max_trq);
+    // j.at("max_vel").get_to(dj.cmd_.max_vel);
+    // j.at("max_acc").get_to(dj.cmd_.max_acc);
 
     // For compatibility with poses saved before changing
     // "where to clamp at" policy.
