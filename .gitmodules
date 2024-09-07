@@ -1,0 +1,3 @@
+[submodule "src/host/pd/hands"]
+	path = src/host/pd/hands
+	url = https://github.com/seoul-open-media/hand_gf3_2024.git
