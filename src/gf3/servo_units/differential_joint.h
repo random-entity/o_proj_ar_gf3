@@ -122,6 +122,11 @@ class DifferentialJoint {
     // j.at("max_vel").get_to(dj.cmd_.max_vel);
     // j.at("max_acc").get_to(dj.cmd_.max_acc);
 
+    // Just force maxtva to be constant
+    dj.cmd_.max_trq = 32.0;
+    dj.cmd_.max_vel = 32.0;
+    dj.cmd_.max_acc = 32.0;
+
     // For compatibility with poses saved before changing
     // "where to clamp at" policy.
     dj.cmd_.pos_dif =

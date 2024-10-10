@@ -115,9 +115,15 @@ class UdpCommandReceiver {
       cmd.pos_out = std::clamp(static_cast<double>(rbuf.cmd.u.saj.pos_out),
                                j->min_pos_out_, j->max_pos_out_);
       cmd.vel_out = std::abs(static_cast<double>(rbuf.cmd.u.saj.vel_out));
-      cmd.max_trq = static_cast<double>(rbuf.cmd.u.saj.max_trq);
-      cmd.max_vel = static_cast<double>(rbuf.cmd.u.saj.max_vel);
-      cmd.max_acc = static_cast<double>(rbuf.cmd.u.saj.max_acc);
+
+      // cmd.max_trq = static_cast<double>(rbuf.cmd.u.saj.max_trq);
+      // cmd.max_vel = static_cast<double>(rbuf.cmd.u.saj.max_vel);
+      // cmd.max_acc = static_cast<double>(rbuf.cmd.u.saj.max_acc);
+
+      // Just force maxtva to be constant
+      cmd.max_trq = 32.0;
+      cmd.max_vel = 32.0;
+      cmd.max_acc = 32.0;
 
       cmd.mode = static_cast<M>(rbuf.cmd.mode);
       switch (cmd.mode) {
@@ -148,9 +154,15 @@ class UdpCommandReceiver {
       cmd.pos_avg = std::clamp(static_cast<double>(rbuf.cmd.u.dj.pos_avg),
                                j->min_pos_avg_, j->max_pos_avg_);
       cmd.vel_avg = std::abs(static_cast<double>(rbuf.cmd.u.dj.vel_avg));
-      cmd.max_trq = static_cast<double>(rbuf.cmd.u.dj.max_trq);
-      cmd.max_vel = static_cast<double>(rbuf.cmd.u.dj.max_vel);
-      cmd.max_acc = static_cast<double>(rbuf.cmd.u.dj.max_acc);
+
+      // cmd.max_trq = static_cast<double>(rbuf.cmd.u.dj.max_trq);
+      // cmd.max_vel = static_cast<double>(rbuf.cmd.u.dj.max_vel);
+      // cmd.max_acc = static_cast<double>(rbuf.cmd.u.dj.max_acc);
+
+      // Just force maxtva to be constant
+      cmd.max_trq = 32.0;
+      cmd.max_vel = 32.0;
+      cmd.max_acc = 32.0;
 
       cmd.mode = static_cast<M>(rbuf.cmd.mode);
       switch (cmd.mode) {

@@ -98,6 +98,11 @@ class SingleAxisJoint {
     // j.at("max_vel").get_to(saj.cmd_.max_vel);
     // j.at("max_acc").get_to(saj.cmd_.max_acc);
 
+    // Just force maxtva to be constant
+    saj.cmd_.max_trq = 32.0;
+    saj.cmd_.max_vel = 32.0;
+    saj.cmd_.max_acc = 32.0;
+
     // For compatibility with poses saved before changing
     // "where to clamp at" policy.
     saj.cmd_.pos_out =
