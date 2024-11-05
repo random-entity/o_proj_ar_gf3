@@ -43,11 +43,11 @@ const PmCmd pm_cmd_template{.position = NaN,
                             .feedforward_torque = 0.0,
                             .kp_scale = 1.0,
                             .kd_scale = 1.0,
-                            .maximum_torque = 32.0,
+                            .maximum_torque = 64.0,
                             .stop_position = NaN,  // Do NOT use!
-                            .watchdog_timeout = NaN,
+                            .watchdog_timeout = 0.1,
                             .velocity_limit = 32.0,
-                            .accel_limit = 32.0,
+                            .accel_limit = 128.0,
                             .fixed_voltage_override = NaN,
                             .ilimit_scale = 1.0};
 

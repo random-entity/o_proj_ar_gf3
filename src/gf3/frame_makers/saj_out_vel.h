@@ -22,10 +22,12 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
         * 0.675;
     target_vel_rotor = j->r_ * target_vel_out;
     cmd.fixing = false;
-  } else if (!cmd.fixing) {
+  }
+  // else if (!cmd.fixing) {
+  // Just keep fixing to utilize the watchdog timeout.
+  else {
     target_vel_rotor = 0.0;
     cmd.fixing = true;
-  } else {
     return {};
   }
 
@@ -38,9 +40,6 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
   auto pm_cmd = *(j->pm_cmd_template_);
   pm_cmd.position = NaN;
   pm_cmd.velocity = target_vel_rotor;
-  pm_cmd.maximum_torque = cmd.max_trq;
-  pm_cmd.velocity_limit = cmd.max_vel;
-  pm_cmd.accel_limit = cmd.max_acc;
 
   return {j->s_.MakePosition(pm_cmd)};
 }

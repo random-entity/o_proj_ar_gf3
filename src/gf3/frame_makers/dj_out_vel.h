@@ -38,12 +38,13 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
     target_vel_rotor_r =
         j->r_avg_ * target_vel_avg - j->r_dif_ * target_vel_dif;
     cmd.fixing = false;
-  } else if (!cmd.fixing) {
+  }
+  // else if (!cmd.fixing) {
+  // Just keep fixing to utilize the watchdog timeout.
+  else {
     target_vel_rotor_l = 0.0;
     target_vel_rotor_r = 0.0;
     cmd.fixing = true;
-  } else {
-    return {};
   }
 
   {
@@ -55,9 +56,7 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
 
   auto pm_cmd = *(j->pm_cmd_template_);
   pm_cmd.position = NaN;
-  pm_cmd.maximum_torque = cmd.max_trq;
-  pm_cmd.velocity_limit = cmd.max_vel;
-  pm_cmd.accel_limit = cmd.max_acc;
+  pm_cmd.watchdog_timeout = 0.1;
 
   return {j->l_.MakePosition([&] {
             auto cmd = pm_cmd;
