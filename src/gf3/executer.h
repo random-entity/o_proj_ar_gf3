@@ -65,16 +65,27 @@ class Executer {
       servo->SetReply(Query::Parse(frame.data, frame.size));
     }
 
+    bool halt = false;
     for (const auto& s : gf3_.servo_set_) {
       if (static_cast<uint8_t>(
               s->GetReplyAux2PositionUncoiled().extra[1].value) != 0xF) {
-        udp_rs_.Run();
-        for (const auto& _s : gf3_.servo_set_) {
-          s->SetBrake();
+        std::cout << "ENCODER INVALIDITY reported from Servo ID " << s->GetId()
+                  << std::endl;
+        if (s->GetId() == 10 || s->GetId() == 11) {
+          std::cout << "But temporarily skipping halt for Servo ID "
+                    << s->GetId() << std::endl;
+          continue;
         }
-        std::cout << "HALTING program due to ENCODER INVALIDITY" << std::endl;
-        while (1);
+        halt = true;
       }
+    }
+    if (halt) {
+      udp_rs_.Run();
+      for (const auto& s : gf3_.servo_set_) {
+        s->SetBrake();
+      }
+      std::cout << "HALTING program due to ENCODER INVALIDITY" << std::endl;
+      while (1);
     }
 
     // Execute ServoUnit Mode-based Commands.
