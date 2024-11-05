@@ -2,13 +2,14 @@
 
 #include "frame_makers/frame_makers.h"
 #include "oneshots/oneshots.h"
+#include "rpl_sndrs/udp_rs.h"
 #include "servo_units/gf3.h"
 
 namespace gf3 {
 
 class Executer {
  public:
-  Executer(GF3& gf3) : gf3_{gf3} {}
+  Executer(GF3& gf3, UdpReplySender& udp_rs) : gf3_{gf3}, udp_rs_{udp_rs} {}
 
   void Run() {
     // First process GF3-level Oneshots.
@@ -64,6 +65,17 @@ class Executer {
       servo->SetReply(Query::Parse(frame.data, frame.size));
     }
 
+    for (const auto& s : gf3_.servo_set_) {
+      if (static_cast<uint8_t>(
+              s->GetReplyAux2PositionUncoiled().extra[1].value) != 0xF) {
+        udp_rs_.Run();
+        for (const auto& _s : gf3_.servo_set_) {
+          s->SetBrake();
+        }
+        while (1);
+      }
+    }
+
     // Execute ServoUnit Mode-based Commands.
     std::vector<CanFdFrame> command_frames;
     for (const auto suid : command_group) {
@@ -112,6 +124,7 @@ class Executer {
 
  private:
   GF3& gf3_;
+  UdpReplySender& udp_rs_;
 };
 
 }  // namespace gf3

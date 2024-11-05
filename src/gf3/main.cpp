@@ -15,7 +15,6 @@ int main(int argc, char** argv) {
             << std::endl;
 
   GF3 gf3{};
-  Executer executer{gf3};
 
   const std::string udp_cr_host = "0.0.0.0";
   const int udp_cr_port = argc >= 2 ? std::stoi(argv[1]) : 8888;
@@ -34,6 +33,8 @@ int main(int argc, char** argv) {
 
   const double executer_period = argc >= 6 ? std::stod(argv[5]) : 0.01;
   utils::Beat executer_beat{executer_period};
+
+  Executer executer{gf3, udp_rs};
 
   while (1) {
     if (executer_beat.Hit()) {
