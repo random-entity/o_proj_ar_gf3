@@ -28,7 +28,7 @@ std::vector<CanFdFrame> SingleAxisJointFrameMakers::OutVel(SingleAxisJoint* j) {
   else {
     target_vel_rotor = 0.0;
     cmd.fixing = true;
-    return {};
+    // return {};
   }
 
   {
