@@ -72,6 +72,7 @@ class Executer {
         for (const auto& _s : gf3_.servo_set_) {
           s->SetBrake();
         }
+        std::cout << "HALTING program due to ENCODER INVALIDITY" << std::endl;
         while (1);
       }
     }
