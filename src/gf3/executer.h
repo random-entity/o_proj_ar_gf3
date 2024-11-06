@@ -71,7 +71,7 @@ class Executer {
               s->GetReplyAux2PositionUncoiled().extra[1].value) != 0xF) {
         std::cout << "ENCODER INVALIDITY reported from Servo ID " << s->GetId()
                   << std::endl;
-        if (s->GetId() == 8 || s->GetId() == 10 || s->GetId() == 11) {
+        if (false) {
           std::cout << "But temporarily skipping halt for Servo ID "
                     << s->GetId() << std::endl;
           continue;
