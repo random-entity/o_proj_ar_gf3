@@ -266,6 +266,10 @@
 #X msg 513 2686 50037 0 0 4.5 700 2.5 705 3 710 2.5 715 1.5 720 2 725
 2 730 2.5 735 1 740 1.5 745 1.2 750 1 755 2 760 1 765 1.5 770 2 775
 3, f 8;
+#X obj 249 94 r dance_start;
+#X obj 142 125 r dance_stop;
+#X obj 142 150 t b b;
+#X obj 114 180 s global_stop;
 #X connect 1 0 12 0;
 #X connect 2 0 26 0;
 #X connect 2 1 14 1;
@@ -441,3 +445,7 @@
 #X connect 187 0 46 2;
 #X connect 188 0 16 0;
 #X connect 189 0 79 0;
+#X connect 190 0 81 0;
+#X connect 191 0 192 0;
+#X connect 192 0 193 0;
+#X connect 192 1 4 0;
