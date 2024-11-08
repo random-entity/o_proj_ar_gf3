@@ -87,7 +87,7 @@ class Executer {
     }
     bool halt = false;
     for (int sid = 1; sid <= 14; sid++) {
-      if (encoder_invalidity_count[sid] >= 5) {
+      if (encoder_invalidity_count[sid] >= 10) {
         std::cout << "Consecutive ENCODER INVALIDITY reported from Servo ID "
                   << sid << std::endl;
 
