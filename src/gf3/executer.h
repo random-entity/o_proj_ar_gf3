@@ -7,6 +7,14 @@
 
 namespace gf3 {
 
+std::map<int, int> encoder_invalidity_count = [] {
+  std::map<int, int> result;
+  for (int i = 1; i <= 14; i++) {
+    result.insert({i, 0});
+  }
+  return result;
+}();
+
 class Executer {
  public:
   Executer(GF3& gf3, UdpReplySender& udp_rs) : gf3_{gf3}, udp_rs_{udp_rs} {}
@@ -65,17 +73,30 @@ class Executer {
       servo->SetReply(Query::Parse(frame.data, frame.size));
     }
 
-    bool halt = false;
-    for (const auto& s : gf3_.servo_set_) {
+    // Check for encoder validity.
+    for (int sid = 1; sid <= 14; sid++) {
+      const auto* s = gf3_.servo_map_.at(sid);
       if (static_cast<uint8_t>(
               s->GetReplyAux2PositionUncoiled().extra[1].value) != 0xF) {
         std::cout << "ENCODER INVALIDITY reported from Servo ID " << s->GetId()
                   << std::endl;
-        if (false) {
-          std::cout << "But temporarily skipping halt for Servo ID "
-                    << s->GetId() << std::endl;
+        encoder_invalidity_count[sid]++;
+      } else {
+        encoder_invalidity_count[sid] = 0;
+      }
+    }
+    bool halt = false;
+    for (int sid = 1; sid <= 14; sid++) {
+      if (encoder_invalidity_count[sid] >= 10) {
+        std::cout << "Consecutive ENCODER INVALIDITY reported from Servo ID "
+                  << sid << std::endl;
+
+        if (false) {  // Skipping specific SUIDs temporarily.
+          std::cout << "But temporarily skipping halt for Servo ID " << sid
+                    << std::endl;
           continue;
         }
+
         halt = true;
       }
     }

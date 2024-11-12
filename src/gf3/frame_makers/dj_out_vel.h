@@ -56,7 +56,6 @@ std::vector<CanFdFrame> DifferentialJointFrameMakers::OutVel(
 
   auto pm_cmd = *(j->pm_cmd_template_);
   pm_cmd.position = NaN;
-  pm_cmd.watchdog_timeout = 0.1;
 
   return {j->l_.MakePosition([&] {
             auto cmd = pm_cmd;
