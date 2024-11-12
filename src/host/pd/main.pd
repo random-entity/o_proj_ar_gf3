@@ -1,4 +1,4 @@
-#N canvas 0 27 1920 984 10;
+#N canvas 521 9 3309 984 10;
 #X declare -path f2b2f;
 #X declare -path queuestream;
 #X declare -path timseq;
@@ -208,7 +208,7 @@
 #X obj 1884 504 spigot;
 #X obj 1932 467 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000
 #000000 0 1;
-#X msg 1665 54 listen 0;
+#X msg 1755 78 listen 0;
 #X obj 1665 125 netreceive -u -b;
 #X msg 1665 78 listen 1999;
 #X obj 1665 148 select 2;
@@ -240,6 +240,7 @@
 #X connect 34 0 13 0;
 #X connect 36 0 46 0;
 #X connect 36 0 100 0;
+#X connect 36 0 175 0;
 #X connect 37 0 40 0;
 #X connect 38 0 37 0;
 #X connect 39 0 35 0;
