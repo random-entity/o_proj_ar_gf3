@@ -1,4 +1,4 @@
-#N canvas 521 9 3309 984 10;
+#N canvas 1103 26 1920 984 10;
 #X declare -path f2b2f;
 #X declare -path queuestream;
 #X declare -path timseq;
@@ -222,6 +222,9 @@
 #X obj 1320 763 r global_stop;
 #X msg 1464 421 2;
 #X obj 1369 414 r dance_start;
+#X obj 1389 72 s GF3_dance_bang;
+#X text 1421 55 for fingers;
+#X obj 1289 37 hands/Pd/GF3_hand/01_Hand_Recorder;
 #X connect 0 0 1 0;
 #X connect 1 0 57 0;
 #X connect 1 1 69 0;
@@ -345,6 +348,7 @@
 #X connect 176 0 177 0;
 #X connect 176 1 180 0;
 #X connect 177 0 178 0;
+#X connect 177 0 185 0;
 #X connect 179 0 181 0;
 #X connect 180 0 179 0;
 #X connect 182 0 0 0;
